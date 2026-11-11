@@ -1,0 +1,26 @@
+# secrets
+.env
+.env.*
+!.env.example
+
+# client data (ALLDATA PDFs, cases, scan reports) never goes into git
+data/*
+!data/.gitkeep
+
+# smoke / eval outputs
+eval/smoke/results/
+
+# python
+__pycache__/
+*.py[cod]
+.venv/
+venv/
+*.egg-info/
+.pytest_cache/
+build/
+dist/
+
+# editors / OS
+.idea/
+.vscode/
+.DS_Store

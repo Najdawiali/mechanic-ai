@@ -1,0 +1,28 @@
+[project]
+name = "mechanic-ai"
+version = "0.1.0"
+description = "AI service for the mechanic diagnostic assistant (AI part only)"
+requires-python = ">=3.12"
+dependencies = [
+    "fastapi>=0.115",
+    "uvicorn[standard]>=0.30",
+    "pydantic>=2.7",
+    "pydantic-settings>=2.3",
+    "openai>=1.50",
+    "httpx>=0.27",
+    "psycopg[binary]>=3.2",
+    "pillow>=10.1",
+]
+
+[project.optional-dependencies]
+dev = ["pytest>=8"]
+
+[build-system]
+requires = ["setuptools>=68"]
+build-backend = "setuptools.build_meta"
+
+[tool.setuptools.packages.find]
+include = ["app*", "eval*"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
