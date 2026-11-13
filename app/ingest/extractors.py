@@ -1,7 +1,6 @@
-"""The extractors: one per kind of source file. Each turns a file into draft records.
+"""What an extractor is: a function that turns one source file into draft records.
 
-An extractor is registered here when it is built. A file whose kind has no extractor yet fails
-its job with a clear message, and can be processed again later.
+The extractors themselves are listed in app/ingest/registry.py.
 """
 
 from __future__ import annotations
@@ -24,12 +23,20 @@ class SourceDocument:
 
 
 @dataclass(frozen=True)
+class Asset:
+    """A file made from the source (a page image) that goes into storage beside the record."""
+
+    key: str
+    data: bytes
+    content_type: str
+
+
+@dataclass(frozen=True)
 class Extracted:
     record: KbRecord
     extracted_by: ExtractedBy  # "code" or "model"
+    assets: tuple[Asset, ...] = ()
 
 
 Extractor = Callable[[SourceDocument], list[Extracted]]
 Classifier = Callable[[SourceDocument], str | None]
-
-EXTRACTORS: dict[str, Extractor] = {}

@@ -59,10 +59,26 @@ class Hit:
     version: int
     status: Status
     scope_match: ScopeMatch  # how closely the record's vehicle fits the mechanic's vehicle
-    record: Case | ExpertNote
+    record: KbRecord
     matched_codes: list[str] = field(default_factory=list)  # as written in the record
     matched_units: list[MatchedUnit] = field(default_factory=list)
     score: float = 0.0
+
+
+@dataclass(frozen=True)
+class PinHit:
+    """One pin of a component on a wiring diagram, with where its wire goes."""
+
+    record_id: int
+    diagram_key: str
+    diagram_title: str
+    verdict: str  # traced | partial: how far the diagram's reading can be trusted
+    component: str
+    pin: str
+    wire_colour: str | None
+    page: str
+    fuse: str | None
+    routes: list[dict]  # each: {"hops": [...], "text": "...", "complete": bool}
 
 
 @dataclass(frozen=True)
@@ -181,6 +197,12 @@ class KnowledgeStore:
                 "INSERT INTO kb.search_unit (record_id, kind, ordinal, text, origin) VALUES (%s, %s, %s, %s, %s)",
                 [(record_id, u.kind, u.ordinal, u.text, u.origin) for u in index.unit_rows(record)],
             )
+            cur.executemany(
+                "INSERT INTO kb.diagram_pin (record_id, component_key, component, pin_key, pin, wire_colour, page, fuse, routes) "
+                "VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s)",
+                [(record_id, r.component_key, r.component, r.pin_key, r.pin, r.wire_colour, r.page, r.fuse, Jsonb(r.routes))
+                 for r in index.pin_rows(record)],
+            )
 
     def set_review(self, record_id: int, status: Status, *, reviewer: str | None, on: dt.date | None = None) -> None:
         """Approve or reject one version. Approval must name the reviewer."""
@@ -267,6 +289,40 @@ class KnowledgeStore:
         for hit in hits.values():
             hit.score = float(len(hit.matched_codes))
         return sorted(hits.values(), key=lambda h: (-h.score, _SCOPE_ORDER[h.scope_match], h.record_id))
+
+    def get_pins(
+        self, vehicle: Vehicle, component: str, pin: str | None = None, *, statuses: tuple[Status, ...] = APPROVED
+    ) -> list[PinHit]:
+        """The pins of a component on this exact car, from its wiring diagrams, with their routes.
+
+        `component` is the name as printed on the diagram (find it with search_text over
+        record_types=("diagram",)). Like a procedure, a diagram is a specification: the make,
+        model and year must be the same, and the engine too when the diagram names one.
+        """
+        if vehicle.year is None:
+            return []
+        params = _vehicle_params(vehicle) | {
+            "component": norm_key(component), "pin": norm_key(pin) if pin else None, "statuses": list(statuses),
+        }
+        rows = self.conn.execute(
+            f"""
+            SELECT p.*, r.record_key, r.body->>'title' AS title, r.body->>'verdict' AS verdict
+            FROM kb.diagram_pin p
+            JOIN kb.record r ON r.id = p.record_id
+            WHERE r.record_type = 'diagram' AND p.component_key = %(component)s
+              AND (%(pin)s::text IS NULL OR p.pin_key = %(pin)s::text)
+              AND EXISTS (
+                  SELECT 1 FROM kb.record_scope s
+                  WHERE s.record_id = r.id AND s.make_key = %(make)s::text AND s.model_key = %(model)s::text
+                    AND s.year_from = %(year)s::int AND s.year_to = %(year)s::int
+                    AND (s.engine_key IS NULL OR %(engine)s::text IS NULL OR s.engine_key = %(engine)s::text))
+              AND {_IS_SERVED}
+            ORDER BY p.record_id, length(p.pin_key), p.pin_key, p.id
+            """,
+            params,
+        ).fetchall()
+        return [PinHit(row["record_id"], row["record_key"], row["title"], row["verdict"], row["component"], row["pin"],
+                       row["wire_colour"], row["page"], row["fuse"], row["routes"]) for row in rows]
 
     # -- search by words ---------------------------------------------------------
     def search_text(

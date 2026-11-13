@@ -21,8 +21,9 @@ import psycopg
 
 from app.db import connect
 from app.ingest import jobs
-from app.ingest.extractors import EXTRACTORS, Classifier, Extractor, SourceDocument
+from app.ingest.extractors import Classifier, Extractor, SourceDocument
 from app.ingest.jobs import PermanentError
+from app.ingest.registry import EXTRACTORS
 from app.kb.index import record_key, record_type
 from app.kb.store import KnowledgeStore
 from app.storage import ObjectNotFound, S3Store, get_store
@@ -90,6 +91,9 @@ class Worker:
         if extractor is None:
             raise PermanentError(f"no extractor for {kind} files yet")
         extracted = extractor(document)
+        for item in extracted:  # page images and the like; writing the same key again is harmless
+            for asset in item.assets:
+                self.storage.put(asset.key, asset.data, content_type=asset.content_type)
 
         # The records and the job's success are stored together, or not at all.
         with conn.transaction():

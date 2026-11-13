@@ -153,7 +153,21 @@ colours and follow a wire from a pin to everything it reaches, across pages.
 python scripts/score_diagrams.py "C:/path/to/diagrams"
 ```
 
-The script prints, per diagram, how many wires were read, the colour check (the colour a wire is
+Added as a `licensed_diagram` file, a diagram becomes one record with every pin and where its wire
+goes, plus an image of each page. After `alembic upgrade head`:
+
+```bash
+python -m app.ingest.add --kind licensed_diagram "C:/path/to/diagrams"
+python -m app.ingest.worker --once
+python scripts/show_pin.py Acura Integra 2025 "VSA MODULATOR-CONTROL UNIT" 31
+python scripts/show_pin.py Acura Integra 2025 --find "wheel speed sensor"
+```
+
+Each diagram gets a verdict from checks that need no answer key: `traced` (pins and routes can be
+used), `partial` (routes that hit a problem are marked incomplete) or `show_only` (the file is not
+drawn the way the reader understands: it is stored and shown, and no pin is taken from it).
+
+The scoring script prints, per diagram, how many wires were read, the colour check (the colour a wire is
 drawn in against the colour printed beside it), every wire end the reader could not attach, and
 how many hand-verified routes in `eval/golden/diagrams/` it reproduces.
 

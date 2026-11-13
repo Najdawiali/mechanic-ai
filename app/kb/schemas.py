@@ -3,7 +3,7 @@
 Four kinds of knowledge, each with a different level of authority:
 
   Procedure    manufacturer troubleshooting steps (licensed source, e.g. ALLDATA)
-  DiagramPage  one page of a wiring diagram (licensed source)
+  WiringDiagram  a wiring diagram read into pins and routes (licensed source)
   Case         one real repair done in the client's workshop
   ExpertNote   a rule of thumb from the client's expert; applies across vehicles
 
@@ -159,20 +159,66 @@ class Procedure(Record):
         return self
 
 
-# -- DiagramPage -------------------------------------------------------------
-class DiagramPage(Record):
-    diagram_id: str
-    vehicle: Vehicle
-    system_path: list[str]  # e.g. ["Brakes", "ABS"]
-    title: str
+# -- WiringDiagram ------------------------------------------------------------
+class RouteHop(Record):
+    kind: Literal["pin", "wire", "connector", "junction_connector", "version", "ground", "system", "page", "open"]
+    name: str | None = None  # component, connector ids, ground id, other system, version, or wire colour
+    pin: str | None = None
+    detail: str | None = None  # the fuse at a fuse-box terminal; "dashed" for a wire fitted on some versions
+
+
+class Route(Record):
+    """Where a wire goes from one pin, worked out once when the diagram is read."""
+
+    hops: list[RouteHop]
+    text: str  # the same route in one line, for showing and for citing
+    complete: bool  # False = it stops at an end the reader could not attach: never present it as the whole path
+
+
+class DiagramPin(Record):
+    component: str
+    pin: str  # a string: pins can be "31", "A11"
+    wire_colour: str | None = None  # None = the diagram prints no colour for this wire
     page: str  # "1 of 3"
-    components: list[str] = Field(default_factory=list)
-    fuses: list[str] = Field(default_factory=list)
-    connectors: list[str] = Field(default_factory=list)
-    wire_colours: list[str] = Field(default_factory=list)
-    image_file: str
+    fuse: str | None = None
+    routes: list[Route] = Field(default_factory=list)
+
+
+class DiagramComponent(Record):
+    name: str
+    location: str | None = None
+    page: str
+
+
+class DiagramSheet(Record):
+    page: str  # "1 of 3"
+    diagram_id: str  # the provider's id printed on the page
+    image_key: str | None = None  # where the page image is in storage, to send when the mechanic asks
+
+
+class WiringDiagram(Record):
+    """One wiring diagram (all its pages), read into pins and routes."""
+
+    diagram_key: str
+    vehicle: Vehicle
+    system_path: list[str]  # e.g. ["Brakes and Traction Control", "Antilock Brakes / Traction Control Systems"]
+    title: str
+    sheets: list[DiagramSheet]
+    components: list[DiagramComponent] = Field(default_factory=list)
+    versions: dict[str, str] = Field(default_factory=dict)  # marker -> meaning, from the diagram's legend
+    pins: list[DiagramPin] = Field(default_factory=list)
+    # How far the reading can be trusted (see app/ingest/diagrams.py):
+    # traced = pins and routes usable; partial = incomplete routes are marked; show_only = no pins taken.
+    verdict: Literal["traced", "partial", "show_only"]
+    verdict_reasons: list[str] = Field(default_factory=list)
     source: Source
     review: Review = Field(default_factory=Review)
+
+    @model_validator(mode="after")
+    def _show_only_has_no_pins(self) -> WiringDiagram:
+        if self.verdict == "show_only" and self.pins:
+            raise ValueError("a show_only diagram carries no pins")
+        return self
 
 
 # -- Case --------------------------------------------------------------------

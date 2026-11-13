@@ -12,13 +12,13 @@ from dataclasses import dataclass
 from itertools import product
 
 from app.kb.keys import code_key, code_stem, norm_key
-from app.kb.schemas import Case, DiagramPage, ExpertNote, Procedure
+from app.kb.schemas import Case, ExpertNote, Procedure, WiringDiagram
 
-KbRecord = Procedure | DiagramPage | Case | ExpertNote
+KbRecord = Procedure | WiringDiagram | Case | ExpertNote
 
 RECORD_TYPES: dict[str, type] = {
     "procedure": Procedure,
-    "diagram_page": DiagramPage,
+    "diagram": WiringDiagram,
     "case": Case,
     "expert_note": ExpertNote,
 }
@@ -68,8 +68,8 @@ def record_key(record: KbRecord) -> str:
     match record:
         case Procedure():
             return record.procedure_id
-        case DiagramPage():
-            return record.diagram_id
+        case WiringDiagram():
+            return record.diagram_key
         case Case():
             return record.case_id
         case ExpertNote():
@@ -94,7 +94,7 @@ def _pt(value) -> str | None:
 def scope_rows(record: KbRecord) -> list[ScopeRow]:
     """Always at least one row. A row with no make means the record is not tied to a make."""
     match record:
-        case Procedure() | DiagramPage():
+        case Procedure() | WiringDiagram():
             v = record.vehicle
             return [ScopeRow(norm_key(v.make), norm_key(v.model), norm_key(v.engine_code), v.year, v.year, _pt(v.powertrain))]
         case Case():
@@ -144,7 +144,7 @@ def term_rows(record: KbRecord) -> list[TermRow]:
             found += [("part", p.part) for p in record.parts_replaced]
         case ExpertNote():
             found += [("system", s) for s in record.systems]
-        case DiagramPage():
+        case WiringDiagram():
             found += [("system", s) for s in record.system_path]
     rows: dict[tuple[str, str], TermRow] = {}
     for kind, text in found:
@@ -160,8 +160,9 @@ def unit_rows(record: KbRecord) -> list[UnitRow]:
     match record:
         case Procedure():
             found += [("meaning", record.meaning, None), ("overview", record.overview, None)]
-        case DiagramPage():
-            found += [("title", record.title, None)] + [("component", c, None) for c in record.components]
+        case WiringDiagram():
+            found += [("title", record.title, None)]
+            found += [("component", name, None) for name in dict.fromkeys(c.name for c in record.components)]
         case Case():
             found += [("symptom", s, None) for s in record.symptoms]
             found += [("fault_text", fc.text_on_tool, None) for fc in record.fault_codes]
@@ -182,3 +183,26 @@ def unit_rows(record: KbRecord) -> list[UnitRow]:
             counters[kind] = counters.get(kind, 0) + 1
             rows.append(UnitRow(kind, counters[kind], text.strip(), origin))
     return rows
+
+
+@dataclass(frozen=True)
+class PinRow:
+    component_key: str
+    component: str
+    pin_key: str
+    pin: str
+    wire_colour: str | None
+    page: str
+    fuse: str | None
+    routes: list[dict]
+
+
+def pin_rows(record: KbRecord) -> list[PinRow]:
+    """The pins of a wiring diagram, each with its routes, for exact lookup by component and pin."""
+    if not isinstance(record, WiringDiagram):
+        return []
+    return [
+        PinRow(norm_key(p.component) or "?", p.component, norm_key(p.pin) or "?", p.pin, p.wire_colour, p.page, p.fuse,
+               [r.model_dump(mode="json") for r in p.routes])
+        for p in record.pins
+    ]

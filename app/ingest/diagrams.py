@@ -14,6 +14,8 @@ looks at pixels. A page is read as:
                named by a ringed number or a short text printed at the brace
   dashed wires a wire fitted on some versions only, drawn as a row of filled dashes
   arrows       a wire ending in an arrowhead goes to another system, named beside the arrow
+  named        a connector drawn without a box: its name and location are printed past the
+  connectors   wire ends, which carry its pin numbers
   page joins   a wire that leaves the page continues on the next page under the same number
 
 Every wire is checked two ways: the colour it is drawn in must agree with the colour printed
@@ -414,6 +416,7 @@ def _attach_ends(wires, dots, components, pin_labels, labels, problems, braces=(
     left, right = (min(xs), max(xs)) if xs else (0, 0)
     connector_ids = [lb for lb in labels if CONNECTOR_ID.match(lb.text)]
     ground_ids = [lb for lb in labels if GROUND_ID.match(lb.text)]
+    blocks = _text_blocks(labels)
 
     for wi, ei, end in all_ends:
         # a junction dot
@@ -480,6 +483,17 @@ def _attach_ends(wires, dots, components, pin_labels, labels, problems, braces=(
         ground = min(ground_ids, key=lambda lb: math.dist(end.xy, (lb.x, lb.y)), default=None)
         if ground is not None and math.dist(end.xy, (ground.x, ground.y)) < 20:
             end.kind, end.ids = "ground", (ground.text,)
+            continue
+        # a connector drawn without a box: a pin number here, and its name printed past the end
+        pin = _pin_beside(end, pin_labels)
+        if pin is not None:
+            past = [(_rect_distance(end.xy, rect), rect, text) for rect, text in blocks if not text.startswith("(")
+                    and ((rect[0] + rect[2]) / 2 - end.xy[0]) * end.out[0] + ((rect[1] + rect[3]) / 2 - end.xy[1]) * end.out[1] > 0
+                    and re.search(r"[A-Z]{3}", text)]
+            if past and min(past)[0] < 34:
+                _, rect, name = min(past)
+                where = [t for r, t in blocks if t.startswith("(") and -2.5 <= r[1] - rect[3] < 3 and abs((r[0] + r[2]) - (rect[0] + rect[2])) < 16]
+                end.kind, end.component, end.pin = "pin", f"{name} {where[0]}" if where else name, pin
 
     # a dot with a ground id beside it is a ground point
     for di, dot in enumerate(dots):
@@ -590,12 +604,13 @@ def read_pdf(source: str | bytes) -> Diagram:
     for number, raw in enumerate(doc):
         header = [line.strip() for line in raw.get_text("text", clip=pymupdf.Rect(0, MARGIN_TOP, raw.rect.width, 101)).splitlines()
                   if line.strip()]
-        label = next((m for m in (HEADER_PAGE.match(line) for line in header) if m), None)
-        if label is None:
-            continue
+        # The vehicle and system lines may be printed on a page of their own, before the drawing.
         vehicle_line = vehicle_line or next((line for line in header if re.match(r"^(19|20)\d{2} ", line)), "")
         path_line = next((line for line in header if " > " in line), "")
         system_path = system_path or [part.strip() for part in path_line.split(">") if part.strip() and part.strip() != "Vehicle"]
+        label = next((m for m in (HEADER_PAGE.match(line) for line in header) if m), None)
+        if label is None:
+            continue
         title = title or label["title"]
         page = read_page(raw, number)
         if not page.wires:  # a page that carries only the header
@@ -698,7 +713,7 @@ def pins_of(diagram: Diagram, component: str) -> list[tuple[str | None, str | No
     return sorted(found, key=lambda t: (len(t[0] or ""), t[0] or ""))
 
 
-def trace(diagram: Diagram, component: str, pin: str) -> list[list[Hop]]:
+def trace(diagram: Diagram, component: str, pin: str, *, exact: bool = False) -> list[list[Hop]]:
     """Follow the wire from a component pin to everything it reaches.
 
     Returns one route per destination. A route passes through connectors, junctions, junction
@@ -709,7 +724,7 @@ def trace(diagram: Diagram, component: str, pin: str) -> list[list[Hop]]:
     for pi, page in enumerate(diagram.pages):
         for wi, wire in enumerate(page.wires):
             for ei, end in enumerate(wire.ends):
-                if end.kind == "pin" and end.pin == pin and _same(end.component, component):
+                if end.kind == "pin" and end.pin == pin and (end.component == component if exact else _same(end.component, component)):
                     start = Hop("pin", end.component, end.pin, end.fuse)
                     _walk(diagram, pi, wi, ei, [start], {(pi, wi)}, routes)
     return routes
