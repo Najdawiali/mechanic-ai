@@ -458,7 +458,23 @@ def run_all(gw: LLMGateway, models: list[str], repeat: int = 3,
     return results
 
 
-def run_real_image(gw: LLMGateway, models: list[str], path: str, question: str) -> list[TestResult]:
+REAL_QUESTIONS = {
+    "procedure": (
+        "List every test in this page as JSON: [{\"step\": ..., \"ignition\": ..., \"from\": "
+        "{\"connector\": ..., \"pin\": ...}, \"to\": {\"connector\": ..., \"pin\": ...}, "
+        "\"normal_value\": ...}]. Copy pin numbers and values exactly. Use null if you cannot read one."),
+    "scan_report": (
+        "This is a photo of a scan-tool report. Return ONLY JSON: {\"fault_code_count\": number or null, "
+        "\"system_count\": number or null, \"modules\": [{\"name\": ..., \"has_fault\": true/false, "
+        "\"codes\": [{\"code\": ..., \"description\": ..., \"note\": ...}]}]}. Copy every code and "
+        "description exactly as printed. Do not add codes that are not visible. Use null for anything "
+        "you cannot read."),
+}
+
+
+def run_real_image(gw: LLMGateway, models: list[str], path: str, question: str,
+                   expect: list[str] | None = None) -> list[TestResult]:
+    """A real image. With `expect`, PASS only if every expected string appears in the answer."""
     out = []
     for model in models:
         res = TestResult("real_image", model, "INFO", runs=1)
@@ -467,7 +483,13 @@ def run_real_image(gw: LLMGateway, models: list[str], path: str, question: str) 
                         model=model, max_tokens=2048)
             res.add(r)
             res.samples.append(r.text)
-            res.detail = "see the .md report; compare with the PDF by eye"
+            if expect:
+                missing = [e for e in expect if e not in r.text]
+                res.passed = int(not missing)
+                res.status = "FAIL" if missing else "PASS"
+                res.detail = f"missing {missing}" if missing else f"found all of {expect}"
+            else:
+                res.detail = "no --expect given; compare the answer with the source by eye"
         except Exception as exc:  # noqa: BLE001
             res.status, res.detail = "ERROR", _err(exc)
         out.append(res)
@@ -533,11 +555,12 @@ def main(argv: list[str] | None = None) -> int:
     p.add_argument("--repeat", type=int, default=3, help="repeats for the reliability tests")
     p.add_argument("--only", default="", help="comma-separated test names")
     p.add_argument("--models", default="", help="comma-separated model ids (default: from .env)")
-    p.add_argument("--real-image", default="", help="path to a real page image, e.g. the P0010 test table")
-    p.add_argument("--real-question", default=(
-        "List every test in this page as JSON: [{\"step\": ..., \"ignition\": ..., \"from\": "
-        "{\"connector\": ..., \"pin\": ...}, \"to\": {\"connector\": ..., \"pin\": ...}, "
-        "\"normal_value\": ...}]. Copy pin numbers and values exactly. Use null if you cannot read one."))
+    p.add_argument("--real-image", default="", help="path to a real image: a procedure page or a scan-report photo")
+    p.add_argument("--real-kind", default="procedure", choices=list(REAL_QUESTIONS),
+                   help="which built-in question to ask about --real-image")
+    p.add_argument("--real-question", default="", help="your own question (overrides --real-kind)")
+    p.add_argument("--expect", default="", help="comma-separated strings that must appear in the answer")
+    p.add_argument("--no-standard", action="store_true", help="skip the 12 standard tests")
     args = p.parse_args(argv)
 
     if sys.stdout.encoding and sys.stdout.encoding.lower() != "utf-8":
@@ -558,12 +581,20 @@ def main(argv: list[str] | None = None) -> int:
         return 2
 
     print(f"Endpoint: {gw.settings.llm_base_url}\nModels:   {', '.join(models)}\n")
-    results = run_all(gw, models, repeat=args.repeat, only=only)
+    if args.no_standard and not args.real_image:
+        print("--no-standard needs --real-image, otherwise there is nothing to run.")
+        return 2
+    results = [] if args.no_standard else run_all(gw, models, repeat=args.repeat, only=only)
     if args.real_image:
-        results += run_real_image(gw, models, args.real_image, args.real_question)
+        question = args.real_question or REAL_QUESTIONS[args.real_kind]
+        expect = [e.strip() for e in args.expect.split(",") if e.strip()]
+        results += run_real_image(gw, models, args.real_image, question, expect)
 
     table = summary_table(results) + "\n" + model_totals(results)
     print("\n" + table)
+    for r in results:
+        if r.test == "real_image" and r.samples:
+            print(f"\n--- answer from {_short(r.model)} ---\n{r.samples[0]}")
     report = write_reports(results, table)
     print(f"\nFull outputs (Arabic / Urdu replies to read): {report}")
     print("\n>>> Paste everything from the 'test  model  status' line down into the chat. <<<")

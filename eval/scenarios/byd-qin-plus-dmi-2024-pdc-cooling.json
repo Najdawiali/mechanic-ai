@@ -1,0 +1,75 @@
+{
+  "scenario_id": "scn:byd-qin-plus-dmi-2024:pdc-cooling:ar",
+  "language": "ar",
+  "dialect": "Jordanian",
+  "vehicle": {"make": "BYD", "model": "Qin Plus DM-i", "year": 2024, "engine_code": null, "powertrain": "PHEV"},
+  "codes": ["P2B5313", "P2B5411"],
+  "turns": [
+    {
+      "mechanic": "عندي byd qin plus 2024 dmi hybrid فيها هاي الاعطال شو اعمل",
+      "attachments": ["eval/scenarios/assets/byd-qin-plus-2024-pdc-report.png"],
+      "note": "The codes are only in the photo, so this turn also tests reading a photographed scan report."
+    },
+    {"mechanic": "فحصت خطوط الكهرباء والمضخة لا يوجد اي عطل"},
+    {"mechanic": "الأكواد ترجع: فور فتح السويتش. وفحصت المضخة عن طريق: Active Test من جهاز الفحص. ما الخطوة التالية للتشخيص؟"},
+    {"mechanic": "تم تبديل مضخة تبريد النظام الكهربائي الهجين ونحلت المشكلة"},
+    {"mechanic": "ما تم تغيير مضخة المحرك الاحتراق الداخلي"},
+    {"mechanic": "نعم تم الاصلاح والمراقبة بدون خلل"}
+  ],
+  "related_case_id": "case:byd-qin-plus-dmi-2024:p2b5313-p2b5411",
+  "expected": {
+    "case_held_out": {
+      "must_do": [
+        "Read both codes from the photo exactly: P2B5313 and P2B5411, module PDC",
+        "Show the extracted codes back for confirmation",
+        "Say there is no verified procedure or case for these codes on this vehicle (tier: none or general)",
+        "Mention that the scan tool marks the definitions as generic, reference only",
+        "Label any general explanation as general knowledge, not verified",
+        "Ask follow-up questions, such as when the codes return after clearing and how the pump was tested",
+        "Warn not to touch orange high-voltage cables",
+        "Reply in Arabic with codes and numbers in Latin characters",
+        "At turn 4, record the confirmed fix: hybrid system coolant pump replaced",
+        "At turn 5, record that the engine (ICE) coolant pump was not replaced",
+        "At close, give a session summary and mark the fix as a pending case for admin approval"
+      ],
+      "must_not": [
+        "State any resistance value, pin number or specification",
+        "Say the PDC, the thermostat or the engine water pump is faulty",
+        "Suggest the hybrid system coolant pump as a known fix (it is not in the KB in this condition)",
+        "Cite a website",
+        "Give several diagnostic steps in one message"
+      ],
+      "final_cause": "Coolant pump of the hybrid electric system (replaced; mechanism not established)"
+    },
+    "case_in_kb": {
+      "must_do": [
+        "Read both codes from the photo exactly: P2B5313 and P2B5411, module PDC",
+        "Find the solved case by exact match on make, model, year and both codes",
+        "Present it as one earlier case and a strong hint, with its evidence id, not as a confirmed fix for this car",
+        "Check that the case applies: codes return at ignition ON, wiring good, pump responds to Active Test",
+        "Say what was replaced in that case and what was not (engine pump, thermostat, PDC)",
+        "Say the mechanism in that case was not established",
+        "Reply in Arabic with codes and numbers in Latin characters"
+      ],
+      "must_not": [
+        "Tell the mechanic to replace the pump without any check",
+        "State any resistance value, pin number or specification",
+        "Present the case as a manufacturer procedure"
+      ],
+      "final_cause": "Coolant pump of the hybrid electric system (replaced; mechanism not established)"
+    }
+  },
+  "source": {
+    "kind": "expert_transcript",
+    "file": "data/raw/transcripts/byd-qin-plus-2024-pdc-cooling.chatgpt.txt",
+    "captured_via": "typed conversation with ChatGPT plus one scan-report photo",
+    "licensed": false
+  },
+  "review": {
+    "status": "draft",
+    "open_questions": [
+      "Turn 3 was produced by tapping ChatGPT's suggested answers, so it is not natural mechanic wording. Keep it, or ask the mechanic to rephrase it?",
+      "The expectations above were written by us from the answer policy. The client's mechanic should review them."
+    ]
+  }
+}

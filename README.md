@@ -54,7 +54,29 @@ python -m eval.smoke.run --models google/gemma-4-31B-it-turbo
 python -m eval.smoke.run --real-image data/p0010_page2.png   # a real procedure page, judged by eye
 ```
 
+## Knowledge and test data (days 2-4)
+
+```
+app/kb/schemas.py        record types: Procedure, DiagramPage, Case, ExpertNote
+eval/scenario_schema.py  one evaluation scenario, judged with and without its case in the KB
+seed/cases/              solved cases drafted from the client's own material
+seed/expert_notes/       the expert's rules of thumb (each claim marked: expert said it / AI added it)
+eval/scenarios/          scripted mechanic conversations with expected behaviour
+scripts/inventory.py     facts about the data folders listed in data/sources.txt
+```
+
+Every file in `seed/` and `eval/scenarios/` is a **draft** until the client's expert approves it;
+the `review.open_questions` list in each file is what to ask him. `pytest` validates all of them.
+
+```bash
+python scripts/inventory.py          # file counts, duplicates, PDF text layers; safe to paste
+python -m eval.smoke.run --no-standard --real-kind scan_report --real-image eval/scenarios/assets/byd-qin-plus-2024-pdc-report.png --expect P2B5313,P2B5411
+```
+
 ## Rules
+
+- Only the client's **own** knowledge (their cases, their expert's notes) may be committed under `seed/`.
+  Anything taken from licensed manuals (ALLDATA procedures, diagrams) stays in `data/`.
 
 - The key lives only in `.env`. Never in code, prompts, git or chat.
 - Client files (procedure PDFs, cases, scan reports) stay in `data/`, which is git-ignored.

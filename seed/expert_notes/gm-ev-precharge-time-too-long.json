@@ -1,0 +1,68 @@
+{
+  "note_id": "note:gm-ev:precharge-time-too-long",
+  "title": "GM EV: Precharge Time Too Long, check the 12 V battery first",
+  "applies_to": {
+    "makes": ["Chevrolet", "General Motors"],
+    "models": ["Bolt EV"],
+    "year_from": 2018,
+    "year_to": 2025,
+    "powertrains": ["EV"],
+    "scope_note": "First described for the Chevrolet Bolt EV 2018. The expert then extended it to all GM electric vehicles of 2018-2025. Only the Bolt EV is named from direct experience; the wider scope is his generalisation and is not verified per model."
+  },
+  "systems": ["High-voltage precharge", "12 V battery"],
+  "fault_codes": [],
+  "fault_texts": ["Precharge time too long"],
+  "symptoms": ["Vehicle does not enter READY", "May appear after a collision, or with no collision"],
+  "claims": [
+    {
+      "text": "A weak or discharged 12 V battery can cause 'Precharge time too long' and stop the vehicle entering READY, with or without a collision.",
+      "origin": "expert_stated"
+    },
+    {
+      "text": "After a collision the 12 V battery is usually discharged, so the fault can remain even after the collision repair.",
+      "origin": "expert_stated"
+    },
+    {
+      "text": "Jump-starting (booster cables) did not solve it in the cases he met. A healthy, charged 12 V battery must be fitted and connected correctly.",
+      "origin": "expert_stated"
+    },
+    {
+      "text": "The point is a healthy, charged, correctly installed battery, not a battery stronger than the factory specification.",
+      "origin": "expert_stated",
+      "note": "The expert corrected the assistant on this."
+    },
+    {
+      "text": "After collision repair, an Impact Reset is done through inverter number 2 with a scan tool that supports the function.",
+      "origin": "expert_summarised",
+      "note": "The part of the conversation where he described this is not in the file. The exact function name is not confirmed."
+    },
+    {
+      "text": "Measure the 12 V battery voltage during the start attempt before suspecting the inverter or the high-voltage contactors.",
+      "origin": "ai_added"
+    }
+  ],
+  "thresholds": [],
+  "customer_advice": [],
+  "safety": {
+    "level": "high_voltage",
+    "qualification": "Technician trained for high-voltage systems",
+    "warnings": [
+      "After a collision, confirm the high-voltage system is intact before any reset or start attempt."
+    ]
+  },
+  "source": {
+    "kind": "expert_transcript",
+    "file": "data/raw/transcripts/gm-ev-precharge.chatgpt.txt",
+    "captured_via": "voice conversation with ChatGPT (speech-to-text)",
+    "licensed": false
+  },
+  "review": {
+    "status": "draft",
+    "open_questions": [
+      "What is the exact fault code number shown with 'Precharge time too long', and in which module?",
+      "What is the exact name of the Impact Reset function, on which scan tool, and what does 'inverter number 2' appear as on that tool?",
+      "Which GM EV models has he seen this on himself, apart from the Bolt EV?",
+      "Is there a 12 V voltage below which he expects this fault?"
+    ]
+  }
+}
