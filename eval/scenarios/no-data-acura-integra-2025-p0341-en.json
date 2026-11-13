@@ -35,7 +35,24 @@
           ]
         }
       },
-      "note": "The knowledge base has the P0010 procedure for this car, and nothing for P0341. Same car, different code: the near miss must not be used."
+      "note": "The knowledge base has the P0010 procedure for this car, and nothing for P0341. Rule set by Ali on 2026-11-13: codes are never mixed; a record is used only for its own vehicle and its own code."
+    },
+    {
+      "mechanic": "P0010 is stored as well.",
+      "attachments": [],
+      "expect": {
+        "standard": {
+          "reply_type": "step",
+          "label": "verified",
+          "evidence_types": [
+            "procedure"
+          ],
+          "message_must_contain": [
+            "P0010"
+          ]
+        }
+      },
+      "note": "Now P0010 is reported on this car, so its procedure may start. It is presented as the P0010 procedure, not as an answer to P0341."
     }
   ],
   "related_case_id": null,
@@ -44,12 +61,12 @@
     "standard": {
       "must_do": [
         "Say there is no verified procedure for P0341 on this car in the knowledge base",
-        "Say a procedure exists for P0010 on this car, and ask whether P0010 is also stored",
-        "Ask follow-up questions that narrow the fault"
+        "Ask follow-up questions that narrow the fault, including which other codes are stored"
       ],
       "must_not": [
         "Present the P0010 steps, pins or values as the procedure for P0341",
-        "State a pin or a resistance value for P0341"
+        "State a pin or a resistance value for P0341",
+        "Offer or use the procedure of another code. A procedure is used only when its own code is reported on this car"
       ],
       "final_cause": null
     }
@@ -58,8 +75,7 @@
   "review": {
     "status": "draft",
     "open_questions": [
-      "The mechanic's messages were written by us. The client's mechanic should check they sound natural.",
-      "Should the assistant offer the procedure of a related code on the same car, marked as related? This scenario assumes it only mentions that it exists."
+      "The mechanic's messages were written by us. The client's mechanic should check they sound natural."
     ]
   }
 }
