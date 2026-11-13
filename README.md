@@ -93,6 +93,42 @@ a hint, with its source) and with the case held out (the assistant must not inve
 diagram answers expected by the four diagram scenarios were read by eye from the rendered pages; they
 are compared with the extracted records in Milestone 2.
 
+## Knowledge base (Milestone 2)
+
+The knowledge base lives in PostgreSQL. Tables are created by migrations, never by hand.
+
+```bash
+uv pip install -e ".[dev]"     # picks up the new packages (alembic, sqlalchemy)
+docker compose up -d           # PostgreSQL with pgvector
+alembic upgrade head           # create or update the tables
+python scripts/load_seed.py    # load the records kept in this repository, as drafts
+pytest -q
+```
+
+With the database running, `pytest` also runs the database tests, in a throw-away database it
+creates and drops itself. Without it those tests are skipped and the rest still run.
+
+```
+migrations/versions/     one file per change to the tables
+app/kb/schemas.py        the record types (the single definition of what a record is)
+app/kb/keys.py           normalised keys, so vehicles and fault codes match exactly
+app/kb/index.py          what is copied out of a record into the lookup tables
+app/kb/store.py          save, approve, exact lookups, keyword search
+```
+
+Rules the store enforces, each covered by tests:
+
+- **Only approved records are served.** Drafts are visible only when the caller asks for them
+  (development and evaluation).
+- **A record is used only for its own vehicle and its own fault code.** `P0010` never returns
+  `P0011`; a 7-character code never matches its 5-character base; a procedure needs the same
+  make, model, year and engine.
+- **An approved record is never changed in place.** New content becomes a new draft version, and
+  the approved version keeps being served until the new one is approved.
+- **Search finds a small piece and returns the whole record** (one symptom, one finding or one
+  claim leads to the full case or expert note). Text the chat assistant added and the expert has
+  not confirmed is not searched.
+
 ## Rules
 
 - Only the client's **own** knowledge (their cases, their expert's notes) may be committed under `seed/`.
