@@ -24,8 +24,12 @@ def main() -> int:
         failed = conn.execute("SELECT f.original_name, j.error FROM kb.ingest_job j JOIN kb.source_file f ON f.id = j.source_file_id "
                               "WHERE j.status = 'failed' AND j.id = (SELECT max(id) FROM kb.ingest_job x WHERE x.source_file_id = f.id) "
                               "ORDER BY 1").fetchall()
+        not_english = [row for row in failed if "not in English" in (row["error"] or "")]
+        if not_english:
+            print(f"  Not used, as intended: {len(not_english)} file(s) that are not in English")
         for row in failed:
-            print(f"  FAILED  {row['original_name'][:60]}: {(row['error'] or '')[:90]}")
+            if row not in not_english:
+                print(f"  FAILED  {row['original_name'][:60]}: {(row['error'] or '')[:90]}")
     return 0
 
 

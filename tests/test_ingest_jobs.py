@@ -210,6 +210,19 @@ def test_reading_a_file_again_does_not_leave_the_old_draft_behind(auto_conn, que
     assert keys == ["case:second-name"] and jobs.job_status(auto_conn, again.job_id)["result"]["stale_drafts_removed"] == 1
 
 
+def test_a_file_that_is_refused_loses_the_drafts_it_made_before(auto_conn, queued, worker, storage, database_url):
+    # Real run: an Arabic report had been read before the English-only check existed, and its draft stayed.
+    worker.run_once()
+    assert auto_conn.execute("SELECT count(*) AS n FROM kb.record").fetchone()["n"] == 1
+
+    def refuses(document):
+        raise PermanentError("the report is not in English: only the English reports are used")
+
+    jobs.register_file(auto_conn, storage, KEY, again=True)
+    Worker(database_url, storage, extractors={"client_case_file": refuses}, worker_id="w").run_once()
+    assert auto_conn.execute("SELECT count(*) AS n FROM kb.record").fetchone()["n"] == 0
+
+
 def test_a_file_with_no_extractor_fails_with_a_clear_message(auto_conn, storage, worker):
     storage.put("kb/diagram.pdf", b"%PDF")
     done = jobs.register_file(auto_conn, storage, "kb/diagram.pdf", kind="licensed_diagram")

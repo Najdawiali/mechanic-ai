@@ -68,6 +68,8 @@ class Worker:
             try:
                 self._process(conn, job)
             except PermanentError as exc:
+                # The file cannot be used as it is, so drafts made from it under earlier rules go too.
+                conn.execute("DELETE FROM kb.record WHERE source_file_id = %s AND status <> 'approved'", (job.source_file_id,))
                 jobs.fail(conn, job.id, str(exc), retryable=False)
                 log.warning("job %s failed: %s", job.id, exc)
             except Exception as exc:  # noqa: BLE001  a job must never take the worker down
