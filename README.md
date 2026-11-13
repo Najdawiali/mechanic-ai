@@ -143,6 +143,20 @@ app/ingest/add.py         the local way to add files
   One that cannot pass is marked failed at once, with the reason, and can be queued again.
 - Withdrawing a file stops everything extracted from it being served.
 
+### Wiring diagrams
+
+`app/ingest/diagrams.py` reads a diagram PDF from its drawing: wires, pins, connectors, junctions,
+version braces and page joins. No model is used. It can list a component's pins with their wire
+colours and follow a wire from a pin to everything it reaches, across pages.
+
+```bash
+python scripts/score_diagrams.py "C:/path/to/diagrams"
+```
+
+The script prints, per diagram, how many wires were read, the colour check (the colour a wire is
+drawn in against the colour printed beside it), every wire end the reader could not attach, and
+how many hand-verified routes in `eval/golden/diagrams/` it reproduces.
+
 Rules the store enforces, each covered by tests:
 
 - **Only approved records are served.** Drafts are visible only when the caller asks for them
