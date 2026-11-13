@@ -171,6 +171,23 @@ The scoring script prints, per diagram, how many wires were read, the colour che
 drawn in against the colour printed beside it), every wire end the reader could not attach, and
 how many hand-verified routes in `eval/golden/diagrams/` it reproduces.
 
+### DTC procedures
+
+`app/ingest/procedure_extractor.py` turns a troubleshooting PDF into a Procedure record. It does
+not depend on a manufacturer's layout: code takes out the text and leaves a marker where each image
+sits, the vision model reads each image on its own (manuals print the test points of a measurement
+as small images), the reasoning model writes the steps, and code then checks the result against the
+PDF itself: every value must be printed in the PDF, every pin must come from an image and exist on
+its connector, every measurement image must be used once. Failed checks are written into the draft
+for the reviewer.
+
+```bash
+python scripts/score_procedure.py "C:/path/to/P0010.pdf"
+```
+
+This runs the real models (it needs the key in `.env`) and compares the result with the
+hand-written reference record in `eval/golden/procedures/`, where one exists.
+
 Rules the store enforces, each covered by tests:
 
 - **Only approved records are served.** Drafts are visible only when the caller asks for them

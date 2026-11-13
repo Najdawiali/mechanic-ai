@@ -8,7 +8,9 @@ from __future__ import annotations
 
 from app.ingest.diagram_extractor import extract_diagram
 from app.ingest.extractors import Extractor
+from app.ingest.procedure_extractor import extract_procedure
 
 EXTRACTORS: dict[str, Extractor] = {
-    "licensed_diagram": extract_diagram,
+    "licensed_diagram": extract_diagram,      # code only
+    "licensed_procedure": extract_procedure,  # calls the vision and reasoning models
 }
