@@ -73,10 +73,25 @@ python scripts/inventory.py          # file counts, duplicates, PDF text layers;
 python -m eval.smoke.run --no-standard --real-kind scan_report --real-image eval/scenarios/assets/byd-qin-plus-2024-pdc-report.png --expect P2B5313,P2B5411
 ```
 
+## Evaluation (Milestone 1)
+
+```
+app/engine/readings.py         a reading compared with a normal range, in code (units, OL, Arabic and Urdu digits)
+app/engine/procedure_walk.py   next step or conclusion for a procedure, as pure functions
+eval/golden/procedures/        hand-verified reference records
+eval/scenarios/                10 of the 30 scenarios: 9 for P0010 (5 branches, 4 language variants), 1 solved case
+eval/scenario_schema.py        per-turn checks a program can score, plus behaviour a reviewer checks
+```
+
+`pytest` walks every P0010 scenario through the reference record and fails if a pin, a value or a
+conclusion in a scenario disagrees with it.
+
 ## Rules
 
 - Only the client's **own** knowledge (their cases, their expert's notes) may be committed under `seed/`.
-  Anything taken from licensed manuals (ALLDATA procedures, diagrams) stays in `data/`.
+  Source files from licensed manuals (procedure and diagram PDFs) stay in `data/` and in storage, never in git.
+- `eval/golden/` holds hand-verified reference records (one so far: the P0010 procedure). They are the
+  answer key the extraction and the scenarios are checked against, so they are versioned with the code.
 
 - The key lives only in `.env`. Never in code, prompts, git or chat.
 - Client files (procedure PDFs, cases, scan reports) stay in `data/`, which is git-ignored.

@@ -43,10 +43,10 @@ class Vehicle(Record):
 
 
 class Source(Record):
-    kind: Literal["oem_procedure", "oem_diagram", "client_case_file", "expert_transcript", "scan_report"]
+    kind: Literal["licensed_procedure", "licensed_diagram", "client_case_file", "expert_transcript", "scan_report"]
     file: str  # path under data/, or the original file name
     captured_via: str | None = None  # e.g. "voice conversation with ChatGPT"
-    licensed: bool = False  # True = third-party content; the text must never be committed to git
+    licensed: bool = False  # True = from a licensed manual; the source file itself never goes into git
 
 
 class Review(Record):
@@ -68,7 +68,9 @@ class NormalRange(Record):
     op: Literal["between", "lt", "le", "gt", "ge"]
     min: float | None = None
     max: float | None = None
-    unit: str
+    unit: str  # ohm, kohm, Mohm, V, mV, A (see app/engine/readings.py)
+    approximate: bool = False  # the manual says "about"
+    condition: str | None = None  # e.g. "at room temperature"
 
     @model_validator(mode="after")
     def _bounds_match_op(self) -> NormalRange:
@@ -96,6 +98,16 @@ class TestPoint(Record):
     label: str  # "valve connector pin 1", "body ground"
     connector: str | None = None
     pin: str | None = None  # a string: pins can be "64", "A3", "B+"
+    ground: bool = False
+    terminal_side: Literal["male", "female"] | None = None  # which face of the connector is probed
+
+    @model_validator(mode="after")
+    def _pin_or_ground(self) -> TestPoint:
+        if self.ground and (self.pin or self.connector):
+            raise ValueError("a ground test point has no connector or pin")
+        if not self.ground and not self.pin:
+            raise ValueError("a test point is either ground or a pin")
+        return self
 
 
 class Measure(Record):
@@ -105,8 +117,10 @@ class Measure(Record):
 
 class Step(Record):
     id: str
+    section: str | None = None  # the inspection this step belongs to, as titled in the manual
     check: str
     prepare: list[str] = Field(default_factory=list)  # ignition state, connectors to disconnect
+    notices: list[str] = Field(default_factory=list)  # NOTICE boxes that apply to this step
     measure: Measure | None = None
     normal: NormalRange | None = None
     if_abnormal: str  # the conclusion when the reading is outside `normal`
@@ -114,14 +128,23 @@ class Step(Record):
     requires_tool: str | None = None  # factory tool, e.g. "HDS"
 
 
+class ToolFunction(Record):
+    tool: str  # e.g. "HDS" (Honda's factory tool)
+    path: str  # the menu path exactly as printed
+
+
 class Procedure(Record):
     procedure_id: str
     vehicle: Vehicle
     code: str  # exactly as written; matched with exact SQL, never by similarity
     meaning: str
+    overview: str | None = None  # when the control unit sets this code
     warnings: list[str] = Field(default_factory=list)
     related_docs: list[str] = Field(default_factory=list)
+    confirmation: list[str] = Field(default_factory=list)  # how to confirm the fault / the repair
+    tool_functions: list[ToolFunction] = Field(default_factory=list)
     steps: list[Step]
+    elimination_conclusion: str | None = None  # the verdict when every step reads normal
     source: Source
     review: Review = Field(default_factory=Review)
 

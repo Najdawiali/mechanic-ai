@@ -51,11 +51,11 @@ def test_high_voltage_note_needs_a_warning():
 
 def test_procedure_steps_must_link_to_real_steps():
     step = {"id": "1", "check": "resistance", "if_abnormal": "part faulty", "if_normal": "9",
-            "measure": {"from": {"label": "connector pin 1", "pin": "1"}, "to": {"label": "ground"}},
+            "measure": {"from": {"label": "connector pin 1", "pin": "1"}, "to": {"label": "ground", "ground": True}},
             "normal": {"op": "lt", "max": 1, "unit": "ohm"}}
     body = {"procedure_id": "p", "vehicle": {"make": "X", "model": "Y", "year": 2020}, "code": "P0000",
             "meaning": "m", "steps": [step],
-            "source": {"kind": "oem_procedure", "file": "x.pdf", "licensed": True}}
+            "source": {"kind": "licensed_procedure", "file": "x.pdf", "licensed": True}}
     with pytest.raises(ValidationError, match="unknown step"):
         Procedure(**body)
     step["if_normal"] = None
@@ -87,14 +87,19 @@ def test_expert_notes_are_valid(path):
 
 @pytest.mark.parametrize("path", SCENARIOS, ids=lambda p: p.name)
 def test_scenarios_are_valid(path):
-    scn = Scenario(**load(path))
-    assert set(scn.expected) == {"case_held_out", "case_in_kb"}
+    scn = Scenario(**load(path))  # the model itself checks the conditions fit the group
     for turn in scn.turns:
         for att in turn.attachments:
             assert (REPO / att).exists(), f"missing attachment {att}"
     if scn.related_case_id:
         ids = {load(p)["case_id"] for p in CASES}
         assert scn.related_case_id in ids
+
+
+def test_seed_holds_only_the_clients_own_knowledge():
+    """Records taken from licensed manuals live under eval/golden or in the database, never in seed/."""
+    for path in CASES + NOTES:
+        assert load(path)["source"]["licensed"] is False, path.name
 
 
 def test_no_seed_file_is_marked_approved_yet():

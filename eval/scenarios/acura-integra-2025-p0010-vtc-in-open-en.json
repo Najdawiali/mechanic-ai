@@ -1,0 +1,173 @@
+{
+  "scenario_id": "scn:acura-integra-2025:p0010:vtc-in-open:en",
+  "group": "procedure",
+  "language": "en",
+  "dialect": null,
+  "vehicle": {
+    "make": "Acura",
+    "model": "Integra",
+    "year": 2025,
+    "engine_code": "L15CA",
+    "powertrain": "ICE"
+  },
+  "codes": [
+    "P0010"
+  ],
+  "turns": [
+    {
+      "mechanic": "2025 Acura Integra 1.5L turbo, fault code P0010.",
+      "expect": {
+        "standard": {
+          "reply_type": "step",
+          "label": "verified",
+          "step": {
+            "step_id": "1",
+            "test_points": [
+              {
+                "pin": "1",
+                "connector_contains": "VTC oil control solenoid valve A connector (2P)"
+              },
+              {
+                "pin": "2",
+                "connector_contains": "VTC oil control solenoid valve A connector (2P)"
+              }
+            ],
+            "normal": {
+              "op": "between",
+              "min": 7.14,
+              "max": 7.9,
+              "unit": "ohm",
+              "approximate": true,
+              "condition": "at room temperature"
+            }
+          },
+          "evidence_types": [
+            "procedure"
+          ]
+        }
+      }
+    },
+    {
+      "mechanic": "7.5 ohm",
+      "reading": {
+        "value": 7.5,
+        "unit": "ohm"
+      },
+      "expect": {
+        "standard": {
+          "reply_type": "step",
+          "label": "verified",
+          "step": {
+            "step_id": "2",
+            "test_points": [
+              {
+                "pin": "2",
+                "connector_contains": "VTC oil control solenoid valve A connector (2P)"
+              },
+              {
+                "ground": true
+              }
+            ],
+            "normal": {
+              "op": "lt",
+              "max": 1,
+              "unit": "ohm"
+            }
+          },
+          "evidence_types": [
+            "procedure"
+          ],
+          "warnings_must_contain": [
+            "SCS"
+          ]
+        }
+      }
+    },
+    {
+      "mechanic": "0.3 ohm",
+      "reading": {
+        "value": 0.3,
+        "unit": "ohm"
+      },
+      "expect": {
+        "standard": {
+          "reply_type": "step",
+          "label": "verified",
+          "step": {
+            "step_id": "3",
+            "test_points": [
+              {
+                "pin": "1",
+                "connector_contains": "VTC oil control solenoid valve A connector (2P)"
+              },
+              {
+                "pin": "64",
+                "connector_contains": "PCM connector E (80P)"
+              }
+            ],
+            "normal": {
+              "op": "lt",
+              "max": 1,
+              "unit": "ohm"
+            }
+          },
+          "evidence_types": [
+            "procedure"
+          ]
+        }
+      }
+    },
+    {
+      "mechanic": "120 ohm",
+      "reading": {
+        "value": 120,
+        "unit": "ohm"
+      },
+      "expect": {
+        "standard": {
+          "reply_type": "conclusion",
+          "label": "verified",
+          "conclusion_contains": [
+            "circuit",
+            "VTC(IN)",
+            "open"
+          ],
+          "evidence_types": [
+            "procedure"
+          ]
+        }
+      }
+    }
+  ],
+  "related_case_id": null,
+  "related_procedure_id": "proc:acura-integra-2025-l15ca:P0010",
+  "expected": {
+    "standard": {
+      "must_do": [
+        "Give one step per message",
+        "Cite the procedure as the source of every pin and value",
+        "Show the notice about the SCS line and the HDS before the PCM connector is disconnected",
+        "Where a step names the HDS, say which function it is, so a mechanic with another tool can look for the same function (labelled general knowledge)",
+        "Reply in the mechanic's language with codes, pins, values and units in English letters and Latin digits"
+      ],
+      "must_not": [
+        "State any pin or value that is not in the procedure",
+        "Give several steps in one message",
+        "Name a faulty part before the reading that proves it",
+        "Translate or reformat a number"
+      ],
+      "final_cause": "There is a problem in the circuit (VTC(IN) open wire inspection)."
+    }
+  },
+  "source": {
+    "kind": "licensed_procedure",
+    "file": "DTC Troubleshooting (1.5L Engine) (ALL Diagnostic Trouble Codes ( DTC )) p0010.pdf",
+    "licensed": true
+  },
+  "review": {
+    "status": "draft",
+    "open_questions": [
+      "Written by us from the procedure. The client's mechanic should review the wording of the mechanic's messages."
+    ]
+  }
+}

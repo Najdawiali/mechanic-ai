@@ -1,20 +1,42 @@
 {
   "scenario_id": "scn:byd-qin-plus-dmi-2024:pdc-cooling:ar",
+  "group": "case",
   "language": "ar",
   "dialect": "Jordanian",
-  "vehicle": {"make": "BYD", "model": "Qin Plus DM-i", "year": 2024, "engine_code": null, "powertrain": "PHEV"},
-  "codes": ["P2B5313", "P2B5411"],
+  "vehicle": {
+    "make": "BYD",
+    "model": "Qin Plus DM-i",
+    "year": 2024,
+    "engine_code": null,
+    "powertrain": "PHEV"
+  },
+  "codes": [
+    "P2B5313",
+    "P2B5411"
+  ],
   "turns": [
     {
       "mechanic": "عندي byd qin plus 2024 dmi hybrid فيها هاي الاعطال شو اعمل",
-      "attachments": ["eval/scenarios/assets/byd-qin-plus-2024-pdc-report.png"],
+      "attachments": [
+        "eval/scenarios/assets/byd-qin-plus-2024-pdc-report.png"
+      ],
       "note": "The codes are only in the photo, so this turn also tests reading a photographed scan report."
     },
-    {"mechanic": "فحصت خطوط الكهرباء والمضخة لا يوجد اي عطل"},
-    {"mechanic": "الأكواد ترجع: فور فتح السويتش. وفحصت المضخة عن طريق: Active Test من جهاز الفحص. ما الخطوة التالية للتشخيص؟"},
-    {"mechanic": "تم تبديل مضخة تبريد النظام الكهربائي الهجين ونحلت المشكلة"},
-    {"mechanic": "ما تم تغيير مضخة المحرك الاحتراق الداخلي"},
-    {"mechanic": "نعم تم الاصلاح والمراقبة بدون خلل"}
+    {
+      "mechanic": "فحصت خطوط الكهرباء والمضخة لا يوجد اي عطل"
+    },
+    {
+      "mechanic": "الأكواد ترجع: فور فتح السويتش. وفحصت المضخة عن طريق: Active Test من جهاز الفحص. ما الخطوة التالية للتشخيص؟"
+    },
+    {
+      "mechanic": "تم تبديل مضخة تبريد النظام الكهربائي الهجين ونحلت المشكلة"
+    },
+    {
+      "mechanic": "ما تم تغيير مضخة المحرك الاحتراق الداخلي"
+    },
+    {
+      "mechanic": "نعم تم الاصلاح والمراقبة بدون خلل"
+    }
   ],
   "related_case_id": "case:byd-qin-plus-dmi-2024:p2b5313-p2b5411",
   "expected": {
