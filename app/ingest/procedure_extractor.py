@@ -63,7 +63,10 @@ Rules:
 - "if_abnormal" is the conclusion the manual gives when the reading is not normal; where one
   result sentence covers several measurements, add the name of the inspection in brackets.
 - "if_normal" is the id of the next step, or null for the last step.
-- "elimination_conclusion" is what the manual concludes when every measurement is normal.
+- "elimination_conclusion" is the manual's result sentence when every measurement is normal: only
+  the sentence that names what is faulty, not the reasoning before it.
+- Write each conclusion as a full sentence, as printed: "If abnormal, there is a problem with X."
+  gives "There is a problem with X."
 
 Answer with JSON only, in this shape:
 {"code": "P0000", "meaning": "...", "overview": string or null, "warnings": [], "related_docs": [],
@@ -97,7 +100,7 @@ class ImageReading:
             return "[NOTICE]"
         if self.kind == "connector_view":
             return "[drawing of a connector]"
-        return f"[image: {self.text}]" if self.text else "[image]"
+        return "[image]"  # words a model read from a picture are not passed on as if they were the manual's text
 
 
 def _json(text: str) -> Any:
@@ -152,6 +155,23 @@ def _as_procedure(data: dict, *, placeholder: bool = False, **fixed) -> Procedur
     return Procedure(**fields, **fixed)
 
 
+def _sentence(text: str | None) -> str | None:
+    """A conclusion as a sentence: one space between words, a capital first, a full stop last."""
+    if not text or not text.strip():
+        return None
+    text = " ".join(text.split())
+    return text[0].upper() + text[1:] + ("" if text.endswith((".", "!", "?")) else ".")
+
+
+def _printed(sentence: str, pdf_text: str) -> bool:
+    """Is this sentence in the PDF? Compared without spaces, capitals or the final full stop, so a
+    line break in the PDF does not matter and a changed letter does. An inspection name added in
+    brackets at the end (see the writing rules) is not part of the printed sentence."""
+    squeeze = lambda t: "".join(t.lower().split())  # noqa: E731
+    core = sentence.split(" (")[0] if sentence.rstrip(".").endswith(")") else sentence
+    return squeeze(core.rstrip(".!?")) in squeeze(pdf_text)
+
+
 # -- checks that need no answer key ------------------------------------------------------
 def check_procedure(procedure: Procedure, pdf_text: str, readings: list[ImageReading]) -> list[str]:
     """Everything in the record that the PDF itself does not back up. Empty = all checks passed."""
@@ -166,8 +186,12 @@ def check_procedure(procedure: Procedure, pdf_text: str, readings: list[ImageRea
     for unread in (r for r in readings if r.kind == "unreadable" or (r.kind == "measurement" and None in (r.start, r.end))):
         problems.append(f"image {unread.number} could not be read with certainty")
 
+    if procedure.elimination_conclusion and not _printed(procedure.elimination_conclusion, pdf_text):
+        problems.append(f"the all-normal conclusion is not printed in the PDF as written: {procedure.elimination_conclusion!r}")
     for step in procedure.steps:
         where = f"step {step.id}"
+        if step.if_abnormal and not _printed(step.if_abnormal, pdf_text):
+            problems.append(f"{where}: the conclusion is not printed in the PDF as written: {step.if_abnormal!r}")
         if (step.measure is None) != (step.normal is None):
             problems.append(f"{where}: a measurement and its normal value must come together")
         if step.normal is not None:
@@ -221,6 +245,9 @@ def extract_with_readings(document: SourceDocument, gateway=None) -> tuple[Extra
     vehicle, questions = vehicle_from(pdf.header[0] if pdf.header else "", document.declared)
     readings = [read_image(gateway, image) for image in pdf.images]
     data = write_procedure(gateway, text_with_readings(pdf, readings))
+    data["elimination_conclusion"] = _sentence(data.get("elimination_conclusion"))
+    for step in data.get("steps", []):
+        step["if_abnormal"] = _sentence(step.get("if_abnormal")) or step.get("if_abnormal")
 
     # The code is taken from the PDF's own heading; the model's answer must agree with it.
     in_header = [m.group(1) for line in pdf.header for m in CODE.finditer(line)]

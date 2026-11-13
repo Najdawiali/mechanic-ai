@@ -38,7 +38,9 @@ def build_pdf(images: int = 4) -> bytes:
              "DTC Troubleshooting: P0010", "DTC P0010: Variable Valve Timing Control (VTC) Oil Control Solenoid Valve A Malfunction",
              f"{VALVE}: disconnected", f"{PCM}: disconnected", "Valve internal circuit inspection OFF About 7.14 - 7.90 Ω",
              "PG open wire inspection OFF There is less than 1 Ω", "VTC(IN) shorted to ground inspection OFF There is more than 1 MΩ",
-             "If abnormal, there is a problem in the circuit. There is a problem with the PCM." + " filler" * 20]
+             "If abnormal, there is a problem with VTC oil control solenoid valve A.",
+             "If abnormal, there is a problem in the circuit. If the other inspection item(s) indicated a normal condition, then it is",
+             "determined that the remaining PCM is the cause. There is a problem with the PCM." + " filler" * 20]
     for i, line in enumerate(lines):
         page.insert_text((40, 60 + 22 * i), line, fontsize=8, fontname="china-s" if "Ω" in line else "helv")
     icon = pymupdf.Pixmap(pymupdf.csRGB, pymupdf.IRect(0, 0, 120, 24), False)
@@ -114,6 +116,35 @@ def change(step: int, path: list[str], value) -> Procedure:
 )
 def test_a_wrong_record_is_caught_without_an_answer_key(procedure, expected):
     assert any(expected in problem for problem in check_procedure(procedure, TEXT, readings()))
+
+
+def test_a_conclusion_with_a_changed_letter_is_caught():
+    data = json.loads(json.dumps(GOLDEN))
+    data["elimination_conclusion"] = "There is a problem with the ECM."
+    data["steps"][0]["if_abnormal"] = "There is a problem with VTC oil control solenoid valve B."
+    problems = check_procedure(Procedure(**data), TEXT, readings())
+    assert any("all-normal conclusion is not printed" in p for p in problems) and any("step 1: the conclusion is not printed" in p for p in problems)
+
+
+def test_two_sentences_that_are_not_together_in_the_pdf_are_caught():
+    data = json.loads(json.dumps(GOLDEN))  # what the model wrote on the first real run: reasoning and result glued together
+    data["elimination_conclusion"] = "There is a problem in the circuit. There is a problem with VTC oil control solenoid valve A."
+    assert any("all-normal conclusion is not printed" in p for p in check_procedure(Procedure(**data), TEXT, readings()))
+
+
+def test_a_line_break_in_the_pdf_does_not_fail_a_conclusion():
+    data = json.loads(json.dumps(GOLDEN))  # "it is" ends one line of the PDF and "determined" starts the next
+    data["elimination_conclusion"] = "If the other inspection item(s) indicated a normal condition, then it is determined that the remaining PCM is the cause."
+    assert check_procedure(Procedure(**data), TEXT, readings()) == []
+
+
+def test_conclusions_are_stored_as_full_sentences():
+    body = {k: v for k, v in GOLDEN.items() if k not in ("procedure_id", "vehicle", "source", "review")}
+    body = json.loads(json.dumps(body))
+    body["steps"][0]["if_abnormal"] = "there is a problem with VTC oil control solenoid valve A"  # as the model wrote it on the first real run
+    [extracted] = extract_procedure(document(build_pdf()), FakeGateway(answers=[json.dumps(body)]))
+    assert extracted.record.steps[0].if_abnormal == "There is a problem with VTC oil control solenoid valve A."
+    assert not any(q.startswith("CHECK FAILED") for q in extracted.record.review.open_questions)
 
 
 def test_every_measurement_image_must_be_used_once():
