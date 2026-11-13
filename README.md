@@ -188,6 +188,17 @@ python scripts/score_procedure.py "C:/path/to/P0010.pdf"
 This runs the real models (it needs the key in `.env`) and compares the result with the
 hand-written reference record in `eval/golden/procedures/`, where one exists.
 
+### Solved cases
+
+`app/ingest/case_extractor.py` turns a case report (text or PDF) into a Case record. The model reads
+the report; code then checks that every fault code, the make, each model and each year in the record
+are written in the report, and points out codes the report mentions that the record left out. A year
+the report does not give stays empty.
+
+```bash
+python scripts/score_cases.py "C:/path/to/reports_01" --limit 3
+```
+
 Rules the store enforces, each covered by tests:
 
 - **Only approved records are served.** Drafts are visible only when the caller asks for them
