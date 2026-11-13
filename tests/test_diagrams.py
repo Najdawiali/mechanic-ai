@@ -10,7 +10,7 @@ from __future__ import annotations
 import pymupdf
 import pytest
 
-from app.ingest.diagrams import COMPONENT_FILL, read_pdf, pins_of, trace
+from app.ingest.diagrams import COMPONENT_FILL, assess, is_complete, pins_of, read_pdf, trace
 
 RED, BLUE, GREEN = (1, 0, 0), (0, 0, 1), (0.16, 0.65, 0)
 
@@ -128,3 +128,41 @@ def test_an_unknown_pin_has_no_route(diagram):
 def test_a_wire_whose_label_disagrees_with_its_drawn_colour_is_reported():
     problems = read_pdf(build(mislabel=True)).problems
     assert any("drawn RED, labelled BLU" in problem for problem in problems)
+
+
+# -- the verdict: how far a file can be trusted, with no answer key ---------------------
+def test_a_clean_diagram_is_trusted_for_pins_and_routes(diagram):
+    quality = assess(diagram)
+    assert (quality.verdict, quality.reasons, quality.unattached_ends, quality.colour_disagree) == ("traced", (), 0, 0)
+    assert all(is_complete(route) for route in trace(diagram, "TEST UNIT", "1"))
+
+
+def test_a_diagram_with_a_disagreeing_colour_is_only_partly_trusted():
+    quality = assess(read_pdf(build(mislabel=True)))
+    assert quality.verdict in ("partial", "show_only") and any("labelled another" in reason for reason in quality.reasons)
+
+
+def test_a_file_this_reader_does_not_understand_is_stored_to_show_only():
+    doc = pymupdf.open()
+    page = new_page(doc, 1, 1)  # the header, and nothing drawn the way the reader knows
+    page.draw_line((100, 300), (400, 300), color=(0, 0, 0), width=3)
+    text(page, 100, 290, "A scanned or differently drawn diagram")
+    quality = assess(read_pdf(doc.tobytes()))
+    assert quality.verdict == "show_only" and "no wires were found" in quality.reasons[0]
+
+
+def test_a_route_that_stops_at_an_unattached_end_is_marked_incomplete():
+    doc = pymupdf.open()
+    page = new_page(doc, 1, 1)
+    box(page, (60, 200, 100, 300), "TEST UNIT")
+    wire(page, [(103, 220), (250, 220)], RED)  # ends in mid-air
+    text(page, 104, 218, "1")
+    text(page, 130, 218, "RED")
+    wire(page, [(103, 240), (400, 240)], RED)
+    text(page, 104, 238, "2")
+    text(page, 130, 238, "RED")
+    box(page, (403, 225, 440, 255), "LAMP")
+    diagram = read_pdf(doc.tobytes())
+    assert [is_complete(route) for route in trace(diagram, "TEST UNIT", "1")] == [False]
+    assert [is_complete(route) for route in trace(diagram, "TEST UNIT", "2")] == [True]
+    assert assess(diagram).unattached_ends == 1

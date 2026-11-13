@@ -15,7 +15,7 @@ from pathlib import Path
 REPO = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(REPO))
 
-from app.ingest.diagrams import read_pdf, trace  # noqa: E402
+from app.ingest.diagrams import assess, read_pdf, trace  # noqa: E402
 
 
 def main(argv: list[str]) -> int:
@@ -29,14 +29,14 @@ def main(argv: list[str]) -> int:
     for pdf in pdfs:
         diagram = read_pdf(str(pdf))
         if not diagram.pages:
-            print(f"SKIP  {pdf.name}: no diagram pages")
+            print(f"SHOW_ONLY  {pdf.name}: {'; '.join(assess(diagram).reasons)}")
             continue
         wires = [w for page in diagram.pages for w in page.wires]
         ok = sum(w.colour_agrees is True for w in wires)
         wrong = sum(w.colour_agrees is False for w in wires)
         totals["wires"] += len(wires); totals["colour_ok"] += ok; totals["colour_wrong"] += wrong  # noqa: E702
         totals["unlabelled"] += len(wires) - ok - wrong; totals["problems"] += len(diagram.problems)  # noqa: E702
-        print(f"{'FAIL' if wrong else 'OK  '}  {diagram.title}: {len(diagram.pages)} page(s), {len(wires)} wires, "
+        print(f"{assess(diagram).verdict.upper():<9}  {diagram.title}: {len(diagram.pages)} page(s), {len(wires)} wires, "
               f"colour check {ok} agree / {wrong} disagree / {len(wires) - ok - wrong} with no printed colour, "
               f"{len(diagram.problems)} not attached")
         for problem in diagram.problems:

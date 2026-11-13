@@ -607,6 +607,64 @@ def read_pdf(source: str | bytes) -> Diagram:
 
 
 @dataclass(frozen=True)
+class Quality:
+    """How far a diagram can be trusted, decided from checks that need no human and no answer key.
+
+      traced     every wire end is attached and every printed colour agrees with the drawn one:
+                 pins and routes may be used in answers
+      partial    most of the drawing was read; routes that pass a problem are marked incomplete
+      show_only  the file is not drawn the way this reader understands (a scanned image, another
+                 drawing style): it is stored and can be shown, and no pin or route is taken from it
+    """
+
+    verdict: str
+    wires: int
+    colour_agree: int
+    colour_disagree: int
+    no_printed_colour: int
+    unattached_ends: int
+    reasons: tuple[str, ...]
+
+
+# Starting limits, to be tuned as more diagram families are scored.
+MAX_UNATTACHED_SHARE = 0.10
+MAX_DISAGREE_SHARE = 0.02
+
+
+def assess(diagram: Diagram) -> Quality:
+    wires = [wire for page in diagram.pages for wire in page.wires]
+    agree = sum(wire.colour_agrees is True for wire in wires)
+    disagree = sum(wire.colour_agrees is False for wire in wires)
+    unattached = sum(end.kind == "open" for wire in wires for end in wire.ends)
+    ends = sum(len(wire.ends) for wire in wires)
+    reasons = []
+    if not wires:
+        reasons.append("no wires were found: the page is an image, or is drawn in a style this reader does not know")
+    if wires and agree == 0:
+        reasons.append("no wire has a printed colour that could be checked against its drawn colour")
+    if disagree:
+        reasons.append(f"{disagree} wire(s) are drawn in one colour and labelled another")
+    if unattached:
+        reasons.append(f"{unattached} wire end(s) are attached to nothing")
+    other = len(diagram.problems) - disagree - unattached
+    if other > 0:
+        reasons.append(f"{other} other problem(s), such as a connector with no id")
+    if not wires or agree == 0 or unattached > MAX_UNATTACHED_SHARE * ends or disagree > MAX_DISAGREE_SHARE * len(wires):
+        verdict = "show_only"
+    elif reasons:
+        verdict = "partial"
+    else:
+        verdict = "traced"
+    return Quality(verdict, len(wires), agree, disagree, len(wires) - agree - disagree, unattached, tuple(reasons))
+
+
+def is_complete(route: list[Hop]) -> bool:
+    """False when the route stops at an end the reader could not attach: it must not be
+    presented as the whole path."""
+    return route[-1].kind != "open"
+
+
+@dataclass(frozen=True)
 class Hop:
     kind: str  # pin | wire | connector | junction_connector | version | ground | system | page | open
     name: str | None = None  # component, connector ids, ground id, other system, version, colour
