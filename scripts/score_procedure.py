@@ -36,6 +36,9 @@ def main() -> int:
     for name in ("make", "model", "year"):
         parser.add_argument(f"--{name}")
     args = parser.parse_args()
+    if not args.pdf.is_file():
+        print(f"No file at {str(args.pdf)!r}. Give the full path of the PDF, in quotes.")
+        return 2
     declared = {k: v for k in ("make", "model", "year") if (v := getattr(args, k))}
     started = time.perf_counter()
     extracted, readings = extract_with_readings(
