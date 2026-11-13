@@ -144,6 +144,11 @@ def test_dangerous_work_is_flagged_from_the_report_even_when_the_model_does_not(
     assert not extract(ANSWER).sensitive
 
 
+def test_a_general_word_is_not_a_tool_name():
+    case = extract(ANSWER | {"scan_tools": ["scan tool", "Tesla Toolbox"]})
+    assert case.scan_tools == ["Tesla Toolbox"]
+
+
 def test_a_scan_tool_must_be_written_in_the_report():
     assert "CHECK FAILED: the scan tool 'Autel' is not written in the report" in extract(ANSWER | {"scan_tools": ["Autel"]}).review.open_questions
 

@@ -38,10 +38,13 @@ Rules:
 - A model is a model name only. If the report does not name the model, use null. Words such as
   "Hybrid" or "EV" are not a model.
 - "powertrain" only if the report states it in words; do not work it out from the model name.
-- "scan_tools" are the diagnostic tools the report names.
+- "scan_tools" are the diagnostic tools the report names by name (Autel, Tesla Toolbox, FORScan).
+  A general word such as "scan tool" is not a name.
 - "cars" has one entry for each car that was actually repaired, with its model and its year. If the
-  report does not give a car's year, its year is null. A wider range that the technician says the
-  fix applies to goes into "occurrences" as a sentence, never into "cars".
+  report does not give a car's year, its year is null. If the report does not say which single car
+  was repaired but names the model or models it is about (for example "Model 3 / Model Y"), give
+  one entry per named model with year null. A wider range that the technician only says the fix
+  also applies to goes into "occurrences" as a sentence, never into "cars".
 - "findings" are the checks that were done and what each showed, one per item.
 - "parts_not_replaced" are parts that were checked or suspected and found good.
 - "outcome": "confirmed_fixed" if the report says the fault was gone after the repair and that was
@@ -110,6 +113,7 @@ def write_case(gateway, text: str, document: SourceDocument, *, attempts: int = 
 
 LOOKS_LIKE_A_CODE = re.compile(r"(?=.*\d)[A-Za-z0-9][A-Za-z0-9_.:\-]{2,49}")
 NOT_A_MODEL = {"HYBRID", "PHEV", "EV", "BEV", "ELECTRIC", "PETROL", "GASOLINE", "DIESEL", "ALLMODELS", "UNKNOWN"}
+NOT_A_TOOL_NAME = {"SCANTOOL", "SCANNER", "DIAGNOSTICTOOL", "DIAGNOSTICSCANNER", "KEYPROGRAMMINGTOOL", "TOOL"}
 POWERTRAIN_WORDS = {"EV": r"\b(EV|BEV)\b|electric", "Hybrid": r"hybrid", "PHEV": r"plug-?in|\bPHEV\b",
                     "ICE": r"petrol|gasoline|diesel|combustion"}
 
@@ -128,6 +132,8 @@ def tidy(data: dict) -> None:
             inside = ALERT_NAME.search(str(fault.get("text_on_tool") or "")) or OBD_CODE.search(str(fault.get("text_on_tool") or ""))
             if inside:
                 fault["code"] = inside.group(0)
+
+    data["scan_tools"] = [t for t in data.get("scan_tools") or [] if isinstance(t, str) and (norm_key(t) or "") not in NOT_A_TOOL_NAME | {""}]
 
     # The cars repaired, as model-and-year pairs; models and the year range are derived from them.
     cars = data.pop("cars", None)
