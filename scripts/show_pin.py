@@ -33,7 +33,8 @@ def main() -> int:
     with connect() as conn:
         store = KnowledgeStore(conn)
         if args.find:
-            hits = store.search_text(car, args.find, record_types=("diagram",), statuses=APPROVED_AND_DRAFT, limit=10)
+            hits = store.search_text(car, args.find, record_types=("diagram",), statuses=APPROVED_AND_DRAFT, limit=10,
+                                     min_shared_words=2)
             for hit in hits:
                 print(f"{hit.record.title} [{hit.status}, {hit.record.verdict}]")
                 for unit in hit.matched_units[:8]:

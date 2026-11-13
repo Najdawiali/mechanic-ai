@@ -340,8 +340,12 @@ class KnowledgeStore:
         statuses: tuple[Status, ...] = APPROVED,
         include_ai_added: bool = False,
         limit: int = 5,
+        min_shared_words: int = 1,
     ) -> list[Hit]:
         """Records that fit this vehicle and have a piece of text sharing words with the query.
+
+        `min_shared_words` is how many different words of the query one piece must contain. One
+        shared word ("module", "stays") is usually chance; `search` asks for two.
 
         Search runs on the small pieces (one symptom, one finding, one claim) and returns the
         whole record each piece belongs to, with the pieces that matched. Text the chat
@@ -354,12 +358,14 @@ class KnowledgeStore:
             return []
         params = _vehicle_params(vehicle) | {
             "q": query, "types": list(record_types), "statuses": list(statuses), "ai": include_ai_added,
+            "shared": min_shared_words,
         }
         rows = self.conn.execute(
             f"""
             WITH q AS (
                 -- Any of the words may match: a mechanic's sentence never matches a note word for word.
-                SELECT NULLIF(replace(plainto_tsquery('english', %(q)s)::text, '&', '|'), '')::tsquery AS tsq
+                SELECT NULLIF(replace(plainto_tsquery('english', %(q)s)::text, '&', '|'), '')::tsquery AS tsq,
+                       tsvector_to_array(to_tsvector('english', %(q)s)) AS words
             )
             SELECT r.*, {_SCOPE_MATCH} AS scope_match,
                    u.kind AS unit_kind, u.text AS unit_text, u.origin AS unit_origin,
@@ -370,6 +376,8 @@ class KnowledgeStore:
             JOIN kb.record_scope s ON s.record_id = r.id
             WHERE r.record_type = ANY(%(types)s)
               AND (%(ai)s OR u.origin IS DISTINCT FROM 'ai_added')
+              AND (SELECT count(*) FROM unnest(tsvector_to_array(u.tsv)) AS word WHERE word = ANY(q.words))
+                  >= LEAST(%(shared)s::int, cardinality(q.words))
               AND {_SCOPE_FITS} AND {_IS_SERVED}
             """,
             params,
@@ -451,7 +459,8 @@ class KnowledgeStore:
         both (reciprocal rank fusion), so a record found both ways comes first and neither kind
         of score has to be compared with the other. Without a vector this is keyword search alone.
         """
-        by_words = self.search_text(vehicle, query, record_types=record_types, statuses=statuses, limit=limit * 2)
+        by_words = self.search_text(vehicle, query, record_types=record_types, statuses=statuses, limit=limit * 2,
+                                    min_shared_words=2)
         floor = get_settings().search_min_similarity if min_similarity is None else min_similarity
         by_meaning = [] if query_vector is None else self.search_meaning(
             vehicle, query_vector, record_types=record_types, statuses=statuses, limit=limit * 2, min_similarity=floor)

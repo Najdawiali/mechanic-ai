@@ -42,9 +42,10 @@ def main() -> int:
     [vector] = LLMGateway().embed([args.query], query=True)
     with connect() as conn:
         store = KnowledgeStore(conn)
-        show("By words:", store.search_text(car, args.query, statuses=APPROVED_AND_DRAFT))
-        show("By meaning:", store.search_meaning(car, vector, statuses=APPROVED_AND_DRAFT))
-        show("Both together:", store.search(car, args.query, vector, statuses=APPROVED_AND_DRAFT))
+        show("By words (any shared word, unfiltered):", store.search_text(car, args.query, statuses=APPROVED_AND_DRAFT))
+        show("By meaning (nearest pieces, unfiltered):", store.search_meaning(car, vector, statuses=APPROVED_AND_DRAFT))
+        show("What the assistant would get (two shared words, or similarity above the floor):",
+             store.search(car, args.query, vector, statuses=APPROVED_AND_DRAFT))
     return 0
 
 

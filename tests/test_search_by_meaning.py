@@ -115,6 +115,17 @@ def test_text_the_expert_has_not_confirmed_is_not_found_by_meaning(store):
     assert not any("flap sticks" in text for text in found)
 
 
+def test_one_shared_word_is_not_a_keyword_match(filled):
+    # Real queries: "tyre pressure light stays on" brought back a battery note that shares only "stays".
+    add(filled, case("case:test:stays", "The fault stays at the same position after the swap"))
+    embed_missing(filled.conn, FakeEmbedder())
+    query = "tyre pressure light stays on"
+    assert [h.record_key for h in filled.search_text(TESLA, query)] == ["case:test:stays"]  # the raw keyword search still sees it
+    assert filled.search_text(TESLA, query, min_shared_words=2) == []
+    assert filled.search(TESLA, query, vector(query), min_similarity=0.9) == []
+    assert [h.record_key for h in filled.search_text(TESLA, "window", min_shared_words=2)] == ["case:test:window"]  # a one-word query
+
+
 def test_a_record_found_both_ways_comes_first(filled):
     add(filled, case("case:test:ac-words", "The aircon compressor relay clicks"))  # shares a word, not the meaning
     embed_missing(filled.conn, FakeEmbedder())
@@ -124,7 +135,7 @@ def test_a_record_found_both_ways_comes_first(filled):
     assert len({u.text for u in hits[0].matched_units}) == len(hits[0].matched_units)  # each piece shown once
     far = "tyre pressure warning lamp"
     assert filled.search(TESLA, far, vector(far)) == []  # nothing close enough, nothing in common: nothing offered
-    assert {h.record_key for h in hits} >= {"case:test:ac", "case:test:ac-words"}
+    assert "case:test:ac-words" not in {h.record_key for h in filled.search(TESLA, query, vector(query), min_similarity=0.9)}  # one shared word only
     assert [h.found_by for h in filled.search(TESLA, query)] == [("words",)] * len(filled.search(TESLA, query))  # no vector: words only
 
 
