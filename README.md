@@ -105,6 +105,10 @@ python scripts/load_seed.py    # load the records kept in this repository, as dr
 pytest -q
 ```
 
+`python scripts/check_storage.py` checks file storage the same way `scripts/check_db.py` checks the
+database. Locally, storage is the `storage` service in `docker-compose.yml`, a stand-in for the S3
+bucket shared with the platform; the values in `.env.example` match it.
+
 With the database running, `pytest` also runs the database tests, in a throw-away database it
 creates and drops itself. Without it those tests are skipped and the rest still run.
 
@@ -115,6 +119,29 @@ app/kb/keys.py           normalised keys, so vehicles and fault codes match exac
 app/kb/index.py          what is copied out of a record into the lookup tables
 app/kb/store.py          save, approve, exact lookups, keyword search
 ```
+
+### Adding files
+
+A file goes into storage, is registered, and a background worker turns it into draft records.
+
+```bash
+python -m app.ingest.add --kind licensed_diagram "C:/path/to/diagrams" --make Acura --model Integra --year 2025
+python -m app.ingest.worker --once     # process what is waiting, then exit
+python -m app.ingest.worker            # or: keep running and pick up new files as they arrive
+```
+
+```
+app/storage.py            the S3 bucket: read, write, short-lived download links
+app/ingest/jobs.py        registering files, and the job queue (a PostgreSQL table)
+app/ingest/extractors.py  one extractor per kind of file, registered here as each is built
+app/ingest/worker.py      takes jobs from the queue and runs the extractor
+app/ingest/add.py         the local way to add files
+```
+
+- The same file added twice is processed once. Changed content becomes a new version.
+- A job that fails for a passing reason is tried again after 30 seconds, then 2 minutes, then 8.
+  One that cannot pass is marked failed at once, with the reason, and can be queued again.
+- Withdrawing a file stops everything extracted from it being served.
 
 Rules the store enforces, each covered by tests:
 

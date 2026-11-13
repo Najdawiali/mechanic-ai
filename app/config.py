@@ -22,6 +22,15 @@ class Settings(BaseSettings):
 
     database_url: str = "postgresql://mechanic:mechanic@localhost:5432/mechanic_ai"
 
+    # File storage: S3, or anything that speaks the S3 API. The bucket is shared with the platform.
+    s3_bucket: str = "mechanic-ai"
+    s3_endpoint_url: str | None = None  # None = AWS S3. Local development: http://localhost:8333
+    s3_region: str = "us-east-1"
+    # None = the standard AWS credential chain (an IAM role in production).
+    s3_access_key_id: SecretStr | None = None
+    s3_secret_access_key: SecretStr | None = None
+    ingest_max_file_mb: int = 50
+
 
 @lru_cache
 def get_settings() -> Settings:

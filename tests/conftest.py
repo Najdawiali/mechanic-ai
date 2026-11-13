@@ -81,6 +81,26 @@ def conn(database_url: str):
     from app.db import connect
 
     with connect(database_url) as connection:
-        connection.execute("TRUNCATE kb.record RESTART IDENTITY CASCADE")
+        connection.execute("TRUNCATE kb.source_file, kb.record RESTART IDENTITY CASCADE")
         connection.commit()
         yield connection
+
+
+@pytest.fixture
+def auto_conn(conn):
+    """The same connection in autocommit mode, as the job queue and the worker use it."""
+    conn.autocommit = True
+    return conn
+
+
+@pytest.fixture
+def storage():
+    """An S3 bucket that exists only in memory for the length of one test."""
+    from moto import mock_aws
+
+    from app.storage import S3Store
+
+    with mock_aws():
+        store = S3Store("test-bucket", access_key_id="test", secret_access_key="test")
+        store.ensure_bucket()
+        yield store

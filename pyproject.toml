@@ -13,12 +13,13 @@ dependencies = [
     "psycopg[binary]>=3.2",
     "sqlalchemy>=2.0",
     "alembic>=1.13",
+    "boto3>=1.35",
     "pillow>=10.1",
     "pymupdf>=1.24",
 ]
 
 [project.optional-dependencies]
-dev = ["pytest>=8"]
+dev = ["pytest>=8", "moto[s3]>=5"]
 
 [build-system]
 requires = ["setuptools>=68"]

@@ -92,10 +92,10 @@ _SCOPE_MATCH = """
 """
 # The version that is served: the newest one among the statuses the caller allows.
 _IS_SERVED = """
-    r.status = ANY(%(statuses)s)
+    r.status = ANY(%(statuses)s) AND r.withdrawn_at IS NULL
     AND r.version = (SELECT max(v.version) FROM kb.record v
                      WHERE v.record_type = r.record_type AND v.record_key = r.record_key
-                       AND v.status = ANY(%(statuses)s))
+                       AND v.status = ANY(%(statuses)s) AND v.withdrawn_at IS NULL)
 """
 
 
@@ -127,7 +127,7 @@ class KnowledgeStore:
         self.conn = conn
 
     # -- writing ---------------------------------------------------------------
-    def save(self, record: KbRecord, *, extracted_by: ExtractedBy) -> Saved:
+    def save(self, record: KbRecord, *, extracted_by: ExtractedBy, source_file_id: int | None = None) -> Saved:
         """Store a record. Saving the same content twice changes nothing."""
         rtype, rkey = index.record_type(record), index.record_key(record)
         body = index.body_of(record)
@@ -152,11 +152,11 @@ class KnowledgeStore:
             record_id = self.conn.execute(
                 """
                 INSERT INTO kb.record (record_type, record_key, version, status, reviewer, reviewed_on, open_questions,
-                                       source_kind, licensed, extracted_by, body, body_hash)
-                VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s) RETURNING id
+                                       source_kind, licensed, extracted_by, body, body_hash, source_file_id)
+                VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s) RETURNING id
                 """,
                 (rtype, rkey, version, review.status, review.reviewer, review.reviewed_on, Jsonb(review.open_questions),
-                 record.source.kind, record.source.licensed, extracted_by, Jsonb(body), digest),
+                 record.source.kind, record.source.licensed, extracted_by, Jsonb(body), digest, source_file_id),
             ).fetchone()["id"]
             self._write_lookup_rows(record_id, record)
         return Saved(record_id, version, action)
