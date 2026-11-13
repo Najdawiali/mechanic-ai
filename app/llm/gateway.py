@@ -54,6 +54,10 @@ class StreamResult:
     latency_s: float
 
 
+SEARCH_INSTRUCTION = ("Given a mechanic's description of a vehicle fault, retrieve the workshop notes and "
+                      "solved repair cases that describe the same fault")
+
+
 @dataclass
 class LLMGateway:
     settings: Settings = field(default_factory=get_settings)
@@ -72,6 +76,26 @@ class LLMGateway:
             max_retries=1,
             http_client=self.http_client,
         )
+
+    # -- embeddings --------------------------------------------------------
+    def embed(self, texts: list[str], *, query: bool = False) -> list[list[float]]:
+        """One vector per text, for search by meaning.
+
+        A search query is sent with a one-line instruction saying what it is looking for; the
+        stored texts are sent as they are. That is how this family of embedding models is meant
+        to be used, and it is why a query and a stored text must not be embedded the same way.
+        """
+        if not texts:
+            return []
+        size = self.settings.embedding_dimensions
+        inputs = [f"Instruct: {SEARCH_INSTRUCTION}\nQuery: {text}" for text in texts] if query else list(texts)
+        reply = self.client.embeddings.create(
+            model=self.settings.llm_embedding_model, input=inputs, dimensions=size, encoding_format="float")
+        vectors = [item.embedding for item in sorted(reply.data, key=lambda item: item.index)]
+        if len(vectors) != len(texts) or any(len(v) != size for v in vectors):
+            got = sorted({len(v) for v in vectors})
+            raise RuntimeError(f"asked for {len(texts)} vectors of {size} numbers; got {len(vectors)} of size {got}")
+        return vectors
 
     # -- routing ---------------------------------------------------------
     def model_for(self, role: Role) -> str:

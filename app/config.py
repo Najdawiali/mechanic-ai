@@ -17,6 +17,10 @@ class Settings(BaseSettings):
     llm_reasoning_model: str = "google/gemma-4-31B-it"
     llm_fast_model: str = "google/gemma-4-26B-A4B-it"
     llm_vision_model: str = "google/gemma-4-31B-it"
+    # Search by meaning. The model gives 2560 numbers per text; 1024 are kept (it is trained so
+    # that the first numbers carry the most), which PostgreSQL can index. Changing the size needs a migration.
+    llm_embedding_model: str = "Qwen/Qwen3-Embedding-4B"
+    embedding_dimensions: int = 1024
 
     llm_timeout_s: float = 90.0
 

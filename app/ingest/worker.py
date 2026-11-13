@@ -24,6 +24,7 @@ from app.ingest import jobs
 from app.ingest.extractors import Classifier, Extractor, SourceDocument
 from app.ingest.jobs import PermanentError
 from app.ingest.registry import EXTRACTORS
+from app.kb.embedder import embed_missing
 from app.kb.index import record_key, record_type
 from app.kb.store import KnowledgeStore
 from app.storage import ObjectNotFound, S3Store, get_store
@@ -41,7 +42,9 @@ class Worker:
         classify: Classifier | None = None,
         worker_id: str | None = None,
         stale_after: dt.timedelta = dt.timedelta(minutes=30),
+        embedder=None,  # a gateway, or a function that makes one; None = records are not embedded by this worker
     ):
+        self.embedder = embedder
         self.database_url = database_url
         self.storage = storage or get_store()
         self.extractors = EXTRACTORS if extractors is None else extractors
@@ -72,7 +75,18 @@ class Worker:
                 log.warning("job %s attempt %s failed (%s): %s", job.id, job.attempts, state, exc)
             else:
                 log.info("job %s succeeded", job.id)
+                self._embed_new_units(conn)
             return True
+
+    def _embed_new_units(self, conn: psycopg.Connection) -> None:
+        """Vectors for search by meaning. A failure here never fails the job: the units stay
+        searchable by keywords and are embedded on a later pass."""
+        if self.embedder is None:
+            return
+        try:
+            embed_missing(conn, self.embedder() if callable(self.embedder) else self.embedder)
+        except Exception as exc:  # noqa: BLE001
+            log.warning("search units not embedded yet: %s", exc)
 
     def _process(self, conn: psycopg.Connection, job: jobs.Job) -> None:
         file = conn.execute("SELECT * FROM kb.source_file WHERE id = %s", (job.source_file_id,)).fetchone()
@@ -127,7 +141,9 @@ def main() -> int:
     parser.add_argument("--once", action="store_true", help="process the jobs that are waiting, then exit")
     args = parser.parse_args()
     logging.basicConfig(level=logging.INFO, format="%(asctime)s %(levelname)s %(name)s %(message)s")
-    worker = Worker()
+    from app.llm.gateway import LLMGateway
+
+    worker = Worker(embedder=LLMGateway)
     if args.once:
         count = 0
         while worker.run_once():

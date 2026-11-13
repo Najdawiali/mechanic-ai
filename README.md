@@ -199,6 +199,18 @@ the report does not give stays empty.
 python scripts/score_cases.py "C:/path/to/reports_01" --limit 3
 ```
 
+### Search by meaning
+
+Every small piece of text in the knowledge base (one symptom, one finding, one claim) gets a vector
+from the embedding model (`LLM_EMBEDDING_MODEL`, Qwen3-Embedding-4B, 1024 numbers kept). The worker
+adds the vectors after each job; `python -m app.kb.embedder` fills in any that are missing.
+`KnowledgeStore.search` combines keyword search with search by meaning.
+
+```bash
+python scripts/check_embeddings.py
+python scripts/search_kb.py Tesla "Model S" 2022 "the air conditioning cuts out while driving"
+```
+
 Rules the store enforces, each covered by tests:
 
 - **Only approved records are served.** Drafts are visible only when the caller asks for them

@@ -19,6 +19,7 @@ import psycopg
 from psycopg.types.json import Jsonb
 
 from app.kb import index
+from app.kb.embedder import as_pgvector
 from app.kb.index import KbRecord
 from app.kb.keys import code_stem, norm_key
 from app.kb.schemas import Case, ExpertNote, Procedure, Review, Vehicle
@@ -63,6 +64,7 @@ class Hit:
     matched_codes: list[str] = field(default_factory=list)  # as written in the record
     matched_units: list[MatchedUnit] = field(default_factory=list)
     score: float = 0.0
+    found_by: tuple[str, ...] = ()  # set by search(): "words", "meaning" or both
 
 
 @dataclass(frozen=True)
@@ -379,6 +381,86 @@ class KnowledgeStore:
             hit.score = sum(u.rank for u in hit.matched_units[:3])  # a record is as good as its best pieces
         ranked = sorted(hits.values(), key=lambda h: (-h.score, _SCOPE_ORDER[h.scope_match], h.record_id))
         return ranked[:limit]
+
+    def search_meaning(
+        self,
+        vehicle: Vehicle,
+        query_vector: list[float],
+        *,
+        record_types: tuple[str, ...] = ("case", "expert_note"),
+        statuses: tuple[Status, ...] = APPROVED,
+        include_ai_added: bool = False,
+        limit: int = 5,
+        min_similarity: float = 0.0,
+    ) -> list[Hit]:
+        """Records that fit this vehicle and have a piece of text close in meaning to the query.
+
+        `query_vector` comes from `gateway.embed([text], query=True)`. The nearest pieces always
+        exist, however far away they are, so each matched piece carries its similarity (1 = the
+        same meaning, 0 = unrelated) and the caller decides what is close enough.
+        """
+        params = _vehicle_params(vehicle) | {
+            "vec": as_pgvector(query_vector), "types": list(record_types), "statuses": list(statuses),
+            "ai": include_ai_added, "k": limit * 8,
+        }
+        rows = self.conn.execute(
+            f"""
+            SELECT r.*, {_SCOPE_MATCH} AS scope_match,
+                   u.kind AS unit_kind, u.text AS unit_text, u.origin AS unit_origin,
+                   1 - (u.embedding <=> %(vec)s::vector) AS unit_rank
+            FROM kb.search_unit u
+            JOIN kb.record r ON r.id = u.record_id
+            JOIN kb.record_scope s ON s.record_id = r.id
+            WHERE u.embedding IS NOT NULL AND r.record_type = ANY(%(types)s)
+              AND (%(ai)s OR u.origin IS DISTINCT FROM 'ai_added')
+              AND {_SCOPE_FITS} AND {_IS_SERVED}
+            ORDER BY u.embedding <=> %(vec)s::vector
+            LIMIT %(k)s
+            """,
+            params,
+        ).fetchall()
+        rows = [row for row in rows if row["unit_rank"] >= min_similarity]
+        hits = self._collect(rows)
+        for row in rows:
+            unit = MatchedUnit(row["unit_kind"], row["unit_text"], row["unit_origin"], float(row["unit_rank"]))
+            if unit not in hits[row["id"]].matched_units:
+                hits[row["id"]].matched_units.append(unit)
+        for hit in hits.values():
+            hit.matched_units.sort(key=lambda u: -u.rank)
+            hit.score = hit.matched_units[0].rank  # a record is as close as its closest piece
+        return sorted(hits.values(), key=lambda h: (-h.score, _SCOPE_ORDER[h.scope_match], h.record_id))[:limit]
+
+    def search(
+        self,
+        vehicle: Vehicle,
+        query: str,
+        query_vector: list[float] | None = None,
+        *,
+        record_types: tuple[str, ...] = ("case", "expert_note"),
+        statuses: tuple[Status, ...] = APPROVED,
+        limit: int = 5,
+        min_similarity: float = 0.0,
+    ) -> list[Hit]:
+        """Keyword search and search by meaning together.
+
+        Each finds its own list; a record's place in the combined list comes from its place in
+        both (reciprocal rank fusion), so a record found both ways comes first and neither kind
+        of score has to be compared with the other. Without a vector this is keyword search alone.
+        """
+        by_words = self.search_text(vehicle, query, record_types=record_types, statuses=statuses, limit=limit * 2)
+        by_meaning = [] if query_vector is None else self.search_meaning(
+            vehicle, query_vector, record_types=record_types, statuses=statuses, limit=limit * 2, min_similarity=min_similarity)
+        merged: dict[int, Hit] = {}
+        for found, how in ((by_words, "words"), (by_meaning, "meaning")):
+            for place, hit in enumerate(found, start=1):
+                kept = merged.setdefault(hit.record_id, hit)
+                if kept is hit:
+                    hit.score = 0.0
+                else:
+                    kept.matched_units += [u for u in hit.matched_units if u.text not in {k.text for k in kept.matched_units}]
+                kept.score += 1.0 / (60 + place)
+                kept.found_by = tuple(dict.fromkeys((*kept.found_by, how)))
+        return sorted(merged.values(), key=lambda h: (-h.score, _SCOPE_ORDER[h.scope_match], h.record_id))[:limit]
 
     @staticmethod
     def _collect(rows: list[dict]) -> dict[int, Hit]:
