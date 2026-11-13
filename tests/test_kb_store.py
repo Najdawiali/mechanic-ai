@@ -217,6 +217,13 @@ def test_a_general_note_applies_by_powertrain_only(with_seed):
     assert with_seed.search_text(petrol, "cell deviation between battery cells", record_types=("expert_note",)) == []
 
 
+def test_a_powertrain_note_is_not_offered_when_the_powertrain_is_unknown(with_seed):
+    # First real search: high-voltage battery notes came back for a 2014 Ford Edge given without a powertrain.
+    edge = Vehicle(make="Ford", model="Edge", year=2014)
+    assert with_seed.search_text(edge, "cell deviation between battery cells module", record_types=("expert_note",)) == []
+    assert with_seed.find_by_codes(BYD.model_copy(update={"powertrain": None}), ["P2B5313"])  # a case for the car itself still is
+
+
 def test_a_note_for_one_make_is_not_offered_for_another(with_seed):
     query = "vehicle does not enter READY precharge time too long"
     key = "note:gm-ev:precharge-time-too-long"

@@ -21,6 +21,9 @@ class Settings(BaseSettings):
     # that the first numbers carry the most), which PostgreSQL can index. Changing the size needs a migration.
     llm_embedding_model: str = "Qwen/Qwen3-Embedding-4B"
     embedding_dimensions: int = 1024
+    # A piece of text less similar to the query than this is not offered. Provisional: set from the
+    # first real query (related pieces 0.64 to 0.68, unrelated 0.31 to 0.41); to be tuned in the evaluation.
+    search_min_similarity: float = 0.5
 
     llm_timeout_s: float = 90.0
 

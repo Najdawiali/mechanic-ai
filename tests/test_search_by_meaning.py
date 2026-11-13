@@ -121,6 +121,9 @@ def test_a_record_found_both_ways_comes_first(filled):
     query = "aircon stops intermittently"
     hits = filled.search(TESLA, query, vector(query))
     assert hits[0].record_key == "case:test:ac" and hits[0].found_by == ("words", "meaning")
+    assert len({u.text for u in hits[0].matched_units}) == len(hits[0].matched_units)  # each piece shown once
+    far = "tyre pressure warning lamp"
+    assert filled.search(TESLA, far, vector(far)) == []  # nothing close enough, nothing in common: nothing offered
     assert {h.record_key for h in hits} >= {"case:test:ac", "case:test:ac-words"}
     assert [h.found_by for h in filled.search(TESLA, query)] == [("words",)] * len(filled.search(TESLA, query))  # no vector: words only
 

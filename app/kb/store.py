@@ -18,6 +18,7 @@ from typing import Literal
 import psycopg
 from psycopg.types.json import Jsonb
 
+from app.config import get_settings
 from app.kb import index
 from app.kb.embedder import as_pgvector
 from app.kb.index import KbRecord
@@ -92,7 +93,9 @@ class MatchedUnit:
 
 
 # The vehicle filter for cases and expert notes. A scope row fits when every part it states
-# agrees with the mechanic's vehicle. Parts the record does not state are reported in
+# agrees with the mechanic's vehicle. A record that is tied to no make and only to a powertrain
+# (a note about high-voltage batteries) needs the car's powertrain to be known and to match: it
+# is not offered for a car that may be a petrol car. Parts the record does not state are reported in
 # scope_match, so the reply can say "the report did not record the year".
 _SCOPE_FITS = """
     (s.make_key IS NULL OR s.make_key = %(make)s::text)
@@ -100,7 +103,8 @@ _SCOPE_FITS = """
     AND (%(year)s::int IS NULL
          OR ((s.year_from IS NULL OR s.year_from <= %(year)s::int)
              AND (s.year_to IS NULL OR s.year_to >= %(year)s::int)))
-    AND (s.powertrain IS NULL OR %(powertrains)s::text[] IS NULL OR s.powertrain = ANY(%(powertrains)s::text[]))
+    AND (s.powertrain IS NULL OR s.powertrain = ANY(%(powertrains)s::text[])
+         OR (%(powertrains)s::text[] IS NULL AND s.make_key IS NOT NULL))
 """
 _SCOPE_MATCH = """
     CASE WHEN s.make_key IS NULL THEN 'general'
@@ -439,7 +443,7 @@ class KnowledgeStore:
         record_types: tuple[str, ...] = ("case", "expert_note"),
         statuses: tuple[Status, ...] = APPROVED,
         limit: int = 5,
-        min_similarity: float = 0.0,
+        min_similarity: float | None = None,
     ) -> list[Hit]:
         """Keyword search and search by meaning together.
 
@@ -448,16 +452,18 @@ class KnowledgeStore:
         of score has to be compared with the other. Without a vector this is keyword search alone.
         """
         by_words = self.search_text(vehicle, query, record_types=record_types, statuses=statuses, limit=limit * 2)
+        floor = get_settings().search_min_similarity if min_similarity is None else min_similarity
         by_meaning = [] if query_vector is None else self.search_meaning(
-            vehicle, query_vector, record_types=record_types, statuses=statuses, limit=limit * 2, min_similarity=min_similarity)
+            vehicle, query_vector, record_types=record_types, statuses=statuses, limit=limit * 2, min_similarity=floor)
         merged: dict[int, Hit] = {}
         for found, how in ((by_words, "words"), (by_meaning, "meaning")):
             for place, hit in enumerate(found, start=1):
                 kept = merged.setdefault(hit.record_id, hit)
                 if kept is hit:
                     hit.score = 0.0
-                else:
-                    kept.matched_units += [u for u in hit.matched_units if u.text not in {k.text for k in kept.matched_units}]
+                else:  # the same piece found both ways is shown once, with its similarity
+                    by_text = {u.text: u for u in kept.matched_units} | {u.text: u for u in hit.matched_units}
+                    kept.matched_units = sorted(by_text.values(), key=lambda u: -u.rank)
                 kept.score += 1.0 / (60 + place)
                 kept.found_by = tuple(dict.fromkeys((*kept.found_by, how)))
         return sorted(merged.values(), key=lambda h: (-h.score, _SCOPE_ORDER[h.scope_match], h.record_id))[:limit]
