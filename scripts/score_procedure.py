@@ -52,7 +52,7 @@ def main() -> int:
         if step.measure and step.normal:
             n = step.normal
             print(f"  {step.id}  {point(step.measure.from_point)}  <->  {point(step.measure.to_point)}   "
-                  f"normal: {n.op} {n.min} {n.max} {n.unit}\n       if abnormal: {step.if_abnormal}")
+                  f"normal: {n.op} {n.min} {n.max} {n.unit}\n       inspection: {step.check}\n       if abnormal: {step.if_abnormal}")
         else:
             print(f"  {step.id}  {step.check}")
     print(f"  all normal: {record.elimination_conclusion}")

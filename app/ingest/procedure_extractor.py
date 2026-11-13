@@ -60,13 +60,14 @@ Rules:
 - One step per measurement, in the order of the manual. Use each [measurement ...] note once.
 - Decide which connector each test point belongs to from the table's connector headings. A pin
   cannot be higher than its connector's pin count: "(2P)" has pins 1 and 2, "(80P)" pins 1 to 80.
-- "if_abnormal" is the conclusion the manual gives when the reading is not normal; where one
-  result sentence covers several measurements, add the name of the inspection in brackets.
+- "check" is the name of the inspection in that table row, exactly as printed, for example
+  "PG open wire inspection". "section" is the heading the table stands under.
+- "if_abnormal" is the result sentence the manual prints for a reading that is not normal, and
+  nothing else: no brackets, no inspection name.
 - "if_normal" is the id of the next step, or null for the last step.
 - "elimination_conclusion" is the manual's result sentence when every measurement is normal: only
   the sentence that names what is faulty, not the reasoning before it.
-- Write each conclusion as a full sentence, as printed: "If abnormal, there is a problem with X."
-  gives "There is a problem with X."
+- "If abnormal, there is a problem with X." gives the conclusion "There is a problem with X."
 
 Answer with JSON only, in this shape:
 {"code": "P0000", "meaning": "...", "overview": string or null, "warnings": [], "related_docs": [],
@@ -163,6 +164,29 @@ def _sentence(text: str | None) -> str | None:
     return text[0].upper() + text[1:] + ("" if text.endswith((".", "!", "?")) else ".")
 
 
+TRAILING_BRACKET = re.compile(r"\.?\s*\((?:[^()]|\([^()]*\))*\)\s*\.?\s*$")
+
+
+def name_conclusions(data: dict) -> None:
+    """Put the conclusions of a model's answer into their stored form, in code.
+
+    A manual often prints one result sentence under a table of several measurements ("there is a
+    problem in the circuit"). So that each step's conclusion says which fault it means, the name
+    of the step's inspection is added in brackets when a sentence is shared. This is done here,
+    from the step's own `check` name, and never left to the model's wording.
+    """
+    data["elimination_conclusion"] = _sentence(data.get("elimination_conclusion"))
+    steps = [step for step in data.get("steps", []) if isinstance(step, dict) and step.get("if_abnormal")]
+    for step in steps:
+        step["if_abnormal"] = _sentence(TRAILING_BRACKET.sub("", str(step["if_abnormal"])))
+    shared = {sentence for sentence in (step["if_abnormal"] for step in steps)
+              if sum(other["if_abnormal"] == sentence for other in steps) > 1}
+    for step in steps:
+        name = " ".join(str(step.get("check") or "").split())
+        if step["if_abnormal"] in shared and name:
+            step["if_abnormal"] = f"{step['if_abnormal'].rstrip('.!?')} ({name})."
+
+
 def _printed(sentence: str, pdf_text: str) -> bool:
     """Is this sentence in the PDF? Compared without spaces, capitals or the final full stop, so a
     line break in the PDF does not matter and a changed letter does. An inspection name added in
@@ -245,9 +269,7 @@ def extract_with_readings(document: SourceDocument, gateway=None) -> tuple[Extra
     vehicle, questions = vehicle_from(pdf.header[0] if pdf.header else "", document.declared)
     readings = [read_image(gateway, image) for image in pdf.images]
     data = write_procedure(gateway, text_with_readings(pdf, readings))
-    data["elimination_conclusion"] = _sentence(data.get("elimination_conclusion"))
-    for step in data.get("steps", []):
-        step["if_abnormal"] = _sentence(step.get("if_abnormal")) or step.get("if_abnormal")
+    name_conclusions(data)
 
     # The code is taken from the PDF's own heading; the model's answer must agree with it.
     in_header = [m.group(1) for line in pdf.header for m in CODE.finditer(line)]

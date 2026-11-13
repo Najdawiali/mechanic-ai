@@ -147,6 +147,21 @@ def test_conclusions_are_stored_as_full_sentences():
     assert not any(q.startswith("CHECK FAILED") for q in extracted.record.review.open_questions)
 
 
+@pytest.mark.parametrize(
+    "as_the_model_wrote_it",
+    ["there is a problem in the circuit",                                   # first real run, without the name
+     "There is a problem in the circuit. (VTC(IN), PG Circuit Inspection).",  # second real run: the section, not the row
+     "There is a problem in the circuit (some other name)."],
+)
+def test_a_shared_conclusion_is_named_in_code_from_the_step_itself(as_the_model_wrote_it):
+    body = json.loads(json.dumps({k: v for k, v in GOLDEN.items() if k not in ("procedure_id", "vehicle", "source", "review")}))
+    for step in body["steps"][1:]:
+        step["if_abnormal"] = as_the_model_wrote_it
+    [extracted] = extract_procedure(document(build_pdf()), FakeGateway(answers=[json.dumps(body)]))
+    assert [step.if_abnormal for step in extracted.record.steps] == [step.if_abnormal for step in golden().steps]
+    assert not any(q.startswith("CHECK FAILED") for q in extracted.record.review.open_questions)
+
+
 def test_every_measurement_image_must_be_used_once():
     data = json.loads(json.dumps(GOLDEN))
     del data["steps"][3]
