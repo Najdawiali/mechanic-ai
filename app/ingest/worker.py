@@ -118,7 +118,13 @@ class Worker:
                 done = store.save(item.record, extracted_by=item.extracted_by, source_file_id=file["id"])
                 saved.append({"record_id": done.record_id, "type": record_type(item.record), "key": record_key(item.record),
                               "version": done.version, "action": done.action})
-            jobs.succeed(conn, job.id, {"records": saved}, file_version=file["version"])
+            # Drafts made from this file earlier that this reading no longer produces are removed,
+            # so reading a file again never leaves two versions of the same thing. Approved records stay.
+            removed = conn.execute(
+                "DELETE FROM kb.record WHERE source_file_id = %s AND status <> 'approved' AND NOT (id = ANY(%s))",
+                (file["id"], [item["record_id"] for item in saved]),
+            ).rowcount
+            jobs.succeed(conn, job.id, {"records": saved, "stale_drafts_removed": removed}, file_version=file["version"])
 
     def run_forever(self, poll_seconds: float = 10.0) -> None:
         """Work until stopped. Wakes at once when a job is queued, and polls as a fallback."""

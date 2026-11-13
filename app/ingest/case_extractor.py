@@ -186,6 +186,15 @@ def check_case(case: Case, text: str) -> list[str]:
     return notes
 
 
+def case_name(file_name: str) -> str:
+    """A report's name without what differs between copies of it: the extension, a language
+    suffix, a "(1)" added by a download."""
+    stem = file_name.rsplit(".", 1)[0]
+    stem = re.sub(r"\s*\(\d+\)\s*$", "", stem)
+    stem = re.sub(r"[_\- ](EN|AR)$", "", stem, flags=re.I)
+    return _slug(stem)[:100] or "unnamed"
+
+
 def _slug(text: str) -> str:
     return re.sub(r"[^a-z0-9]+", "-", text.lower()).strip("-")
 
@@ -203,11 +212,9 @@ def extract_case(document: SourceDocument, gateway=None) -> list[Extracted]:
     data = write_case(gateway, text, document)
     specific = data.pop("specific_car", True)
 
-    years = "year-unknown" if not data.get("year_from") else (
-        str(data["year_from"]) if data["year_from"] == data["year_to"] else f"{data['year_from']}-{data['year_to']}")
-    car = "-".join(filter(None, [_slug(data["make"]), _slug(" ".join(data.get("models") or [])[:40]), years]))
-    codes = "-".join(_slug(fault["code"]) for fault in data.get("fault_codes") or [] if fault.get("code"))[:60]
-    case_id = f"case:{car}:{codes or _slug(document.original_name.rsplit('.', 1)[0])[:60]}"
+    # The record is named after its file, not after what the model read: reading the same report
+    # again must update the same record, and the model's reading of the car varies between runs.
+    case_id = f"case:{case_name(document.original_name)}"
     # Dangerous work is flagged by the model's reading or by the report's own words, whichever says so:
     # on two real runs the model's flag for the same report changed.
     data["sensitive"] = bool(data.get("sensitive")) or bool(re.search(r"high[- ]voltage|\bHV\b", text, re.I))

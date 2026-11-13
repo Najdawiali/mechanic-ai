@@ -198,6 +198,18 @@ def test_the_worker_turns_a_file_into_draft_records(auto_conn, queued, worker):
     assert store.find_by_codes(BYD, ["P2B5313"]) == []  # a draft is not served
 
 
+def test_reading_a_file_again_does_not_leave_the_old_draft_behind(auto_conn, queued, storage, database_url):
+    # Real run: the model named the same report differently on two runs and two drafts were left.
+    def named(case_id):
+        return lambda document: [Extracted(byd_case().model_copy(update={"case_id": case_id}), "model")]
+
+    Worker(database_url, storage, extractors={"client_case_file": named("case:first-name")}, worker_id="w").run_once()
+    again = jobs.register_file(auto_conn, storage, KEY, again=True)
+    Worker(database_url, storage, extractors={"client_case_file": named("case:second-name")}, worker_id="w").run_once()
+    keys = [r["record_key"] for r in auto_conn.execute("SELECT record_key FROM kb.record").fetchall()]
+    assert keys == ["case:second-name"] and jobs.job_status(auto_conn, again.job_id)["result"]["stale_drafts_removed"] == 1
+
+
 def test_a_file_with_no_extractor_fails_with_a_clear_message(auto_conn, storage, worker):
     storage.put("kb/diagram.pdf", b"%PDF")
     done = jobs.register_file(auto_conn, storage, "kb/diagram.pdf", kind="licensed_diagram")

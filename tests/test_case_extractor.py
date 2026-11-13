@@ -53,7 +53,7 @@ def extract(answer: dict, text: str = REPORT) -> Case:
 
 def test_a_report_becomes_a_draft_case():
     case = extract(ANSWER)
-    assert case.case_id == "case:tesla-model-x-2020:tas-a211-norideheightcalib"
+    assert case.case_id == "case:tesla-model-x-2020-tas-a211"  # named after the file, so it is the same on every run
     assert (case.make, case.models, case.year_from, case.outcome) == ("Tesla", ["Model X"], 2020, "confirmed_fixed")
     assert not case.source.licensed and not any(q.startswith("CHECK FAILED") for q in case.review.open_questions)
 
@@ -87,7 +87,7 @@ def test_a_code_written_with_other_separators_still_counts_as_written():
 def test_an_unknown_year_stays_unknown_and_is_said_so():
     report = REPORT.replace("Tesla Model X, 2020", "Tesla Model X")
     case = extract(ANSWER | {"cars": [{"model": "Model X", "year": None}]}, report)
-    assert case.year_from is None and case.case_id.startswith("case:tesla-model-x-year-unknown:")
+    assert case.year_from is None
     assert "The report does not give: year." in case.review.open_questions
 
 
@@ -121,7 +121,6 @@ def test_a_report_on_two_cars_keeps_each_model_with_its_own_year():
     case = extract(ANSWER | {"cars": [{"model": "Model S", "year": 2024}, {"model": "Model Y", "year": 2022}]}, report)
     assert (case.models, case.year_from, case.year_to) == (["Model S", "Model Y"], 2022, 2024)
     assert [(r.model_key, r.year_from, r.year_to) for r in scope_rows(case)] == [("MODELS", 2024, 2024), ("MODELY", 2022, 2022)]
-    assert case.case_id.startswith("case:tesla-model-s-model-y-2022-2024:")
 
 
 def test_a_code_written_inside_a_wording_is_recovered():
@@ -153,9 +152,13 @@ def test_a_scan_tool_must_be_written_in_the_report():
     assert "CHECK FAILED: the scan tool 'Autel' is not written in the report" in extract(ANSWER | {"scan_tools": ["Autel"]}).review.open_questions
 
 
-def test_a_case_without_a_code_is_named_after_its_file():
-    case = extract(ANSWER | {"fault_codes": []})
-    assert case.case_id == "case:tesla-model-x-2020:tesla-model-x-2020-tas-a211-en"
+def test_copies_of_one_report_share_one_name():
+    from app.ingest.case_extractor import case_name
+
+    names = {case_name(n) for n in ("Tesla_TAS_A025_Crash_EN.txt", "Tesla_TAS_A025_Crash_EN (1).txt", "Tesla_TAS_A025_Crash_EN(1).txt",
+                                    "Tesla_TAS_A025_Crash_EN.pdf", "Tesla_TAS_A025_Crash.txt")}
+    assert names == {"tesla-tas-a025-crash"}
+    assert extract(ANSWER | {"fault_codes": []}).case_id == extract(ANSWER | {"cars": []}).case_id  # whatever the model read
 
 
 def test_a_pdf_report_is_read_and_its_screenshots_are_counted():
