@@ -55,14 +55,28 @@ class StepCheck(_Strict):
 
 
 class TurnCheck(_Strict):
+    """Checks on one reply. All text comparisons ignore letter case."""
+
     reply_type: ReplyType | None = None
     label: Label | None = None
+    label_any_of: list[Label] = Field(default_factory=list)  # when more than one label is acceptable
     step: StepCheck | None = None
-    conclusion_contains: list[str] = Field(default_factory=list)  # in the conclusion, case-insensitive
+    conclusion_contains: list[str] = Field(default_factory=list)  # in the reply's cause names or message
     message_must_contain: list[str] = Field(default_factory=list)
     message_must_not_contain: list[str] = Field(default_factory=list)
     warnings_must_contain: list[str] = Field(default_factory=list)
     evidence_types: list[EvidenceType] = Field(default_factory=list)  # at least these are cited
+    evidence_must_not_include: list[EvidenceType] = Field(default_factory=list)
+    # Codes read from an attached scan report. Compared as an exact set: none missed, none invented.
+    report_codes: list[str] | None = None
+    # Diagram images attached to the reply, by diagram id. None = not checked; [] = none may be sent.
+    diagrams_sent: list[str] | None = None
+
+    @model_validator(mode="after")
+    def _one_way_to_state_the_label(self) -> TurnCheck:
+        if self.label and self.label_any_of:
+            raise ValueError("give label or label_any_of, not both")
+        return self
 
 
 class Turn(_Strict):
@@ -90,7 +104,7 @@ class Scenario(_Strict):
     related_case_id: str | None = None
     related_procedure_id: str | None = None
     expected: dict[Condition, Expectation]
-    source: Source
+    source: Source | None = None  # None = written by us for the test, not taken from a client or licensed file
     review: Review = Field(default_factory=Review)
 
     @model_validator(mode="after")

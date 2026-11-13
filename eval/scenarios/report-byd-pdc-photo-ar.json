@@ -1,0 +1,74 @@
+{
+  "scenario_id": "scn:report:byd-pdc-photo:ar",
+  "group": "report",
+  "language": "ar",
+  "dialect": "Jordanian",
+  "vehicle": {
+    "make": "BYD",
+    "model": "Qin Plus DM-i",
+    "year": 2024,
+    "engine_code": null,
+    "powertrain": "Hybrid"
+  },
+  "codes": [
+    "P2B5313",
+    "P2B5411"
+  ],
+  "turns": [
+    {
+      "mechanic": "byd qin plus 2024، شو الأعطال اللي بهاي الصورة؟",
+      "attachments": [
+        "eval/scenarios/assets/byd-qin-plus-2024-pdc-report.png"
+      ],
+      "expect": {
+        "standard": {
+          "report_codes": [
+            "P2B5313",
+            "P2B5411"
+          ],
+          "message_must_contain": [
+            "P2B5313",
+            "P2B5411",
+            "PDC"
+          ],
+          "message_must_not_contain": [
+            "FMCU",
+            "SRM"
+          ]
+        }
+      },
+      "note": "A phone photo of a scan tool. The report says Fault Code Count: 4, but only the two PDC codes are visible; the multimedia system is flagged and collapsed."
+    }
+  ],
+  "related_case_id": null,
+  "related_procedure_id": null,
+  "expected": {
+    "standard": {
+      "must_do": [
+        "List exactly the two visible codes, both in the Power domain controller (PDC): P2B5313 and P2B5411",
+        "Say the report counts 4 fault codes and only 2 are visible, and that the multimedia system is flagged but its codes are not shown; ask for the rest of the report",
+        "Say the report marks both descriptions as generic, for reference only",
+        "Reply in Arabic with codes and module names in English letters",
+        "Reply within the 6-second target for a message with an image"
+      ],
+      "must_not": [
+        "Add a code that is not in the picture",
+        "Guess the two codes that are not visible",
+        "List the front drive motor controller (FMCU) or the sunroof controller (SRM) as having a fault",
+        "Change a character of a code"
+      ],
+      "final_cause": null
+    }
+  },
+  "source": {
+    "kind": "scan_report",
+    "file": "eval/scenarios/assets/byd-qin-plus-2024-pdc-report.png",
+    "licensed": false
+  },
+  "review": {
+    "status": "draft",
+    "open_questions": [
+      "The mechanic's messages were written by us. The client's mechanic should check they sound natural."
+    ]
+  }
+}

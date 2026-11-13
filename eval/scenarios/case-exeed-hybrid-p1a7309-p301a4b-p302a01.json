@@ -1,0 +1,136 @@
+{
+  "scenario_id": "scn:exeed-hybrid:p1a7309-p301a4b-p302a01:en",
+  "group": "case",
+  "language": "en",
+  "dialect": null,
+  "vehicle": {
+    "make": "EXEED",
+    "model": "Hybrid (model not confirmed)",
+    "year": null,
+    "engine_code": null,
+    "powertrain": "Hybrid"
+  },
+  "codes": [
+    "P1A7309",
+    "P301A4B",
+    "P302A01"
+  ],
+  "turns": [
+    {
+      "mechanic": "EXEED hybrid with three current codes: P1A7309 in the HCU, P301A4B and P302A01 in the MCUF.",
+      "expect": {
+        "case_in_kb": {
+          "label": "verified",
+          "evidence_types": [
+            "case"
+          ],
+          "message_must_contain": [
+            "P1A7309",
+            "P301A4B",
+            "P302A01"
+          ],
+          "message_must_not_contain": []
+        },
+        "case_held_out": {
+          "label_any_of": [
+            "general",
+            "none"
+          ],
+          "evidence_must_not_include": [
+            "case"
+          ],
+          "message_must_not_contain": []
+        }
+      }
+    },
+    {
+      "mechanic": "One motor temperature sensor circuit reads about 15 kohm. The other reads 0 ohm with the inverter main connector plugged in.",
+      "expect": {
+        "case_in_kb": {
+          "evidence_types": [
+            "case"
+          ],
+          "message_must_contain": [
+            "inverter"
+          ],
+          "message_must_not_contain": []
+        },
+        "case_held_out": {
+          "label_any_of": [
+            "general",
+            "none"
+          ],
+          "evidence_must_not_include": [
+            "case"
+          ],
+          "message_must_not_contain": []
+        }
+      }
+    },
+    {
+      "mechanic": "Unplugged the inverter main connector and the second circuit went back to about 15 kohm. Replaced the inverter and the car runs normally.",
+      "expect": {
+        "case_in_kb": {
+          "reply_type": "conclusion",
+          "conclusion_contains": [
+            "inverter"
+          ]
+        },
+        "case_held_out": {
+          "reply_type": "conclusion",
+          "conclusion_contains": [
+            "inverter"
+          ]
+        }
+      }
+    }
+  ],
+  "related_case_id": null,
+  "related_procedure_id": null,
+  "expected": {
+    "case_in_kb": {
+      "must_do": [
+        "Offer the solved case as a hint, with its source, and say it is one earlier repair, not a confirmed fix for this car",
+        "Say which car the case was done on, or that the report did not record it",
+        "Ask for, or point to, the check that shows the case applies before any part is replaced",
+        "Reply in the mechanic's language with codes and part names in English letters",
+        "At the 0 ohm reading, tell the mechanic to disconnect the inverter and measure the sensor-side circuit again before condemning the sensor",
+        "Say that the reference documents in the case show differing MCUF pin assignments, so the connector variant must be verified"
+      ],
+      "must_not": [
+        "Tell the mechanic to replace a part without a check",
+        "Present the case as a manufacturer procedure",
+        "State a pin, value or specification that is not in the case",
+        "Give MCUF pin numbers"
+      ],
+      "final_cause": "Internal short circuit in the inverter (MCUF assembly), affecting the ISG motor temperature sensor circuit"
+    },
+    "case_held_out": {
+      "must_do": [
+        "Say there is no verified information for this vehicle and fault in the knowledge base",
+        "Label any explanation as general knowledge, not verified",
+        "Ask follow-up questions that narrow the fault",
+        "When the mechanic confirms the fix, record it as a pending case for admin approval"
+      ],
+      "must_not": [
+        "Present the fix from the held-out case as a known or verified fix",
+        "Cite a solved case",
+        "State a pin, value or specification",
+        "Give MCUF pin numbers"
+      ],
+      "final_cause": "Internal short circuit in the inverter (MCUF assembly), affecting the ISG motor temperature sensor circuit"
+    }
+  },
+  "source": {
+    "kind": "client_case_file",
+    "file": "EXEED_Chinese_Hybrid_P1A7309_P301A4B_P302A01_Inverter_Short_EN.pdf",
+    "licensed": false
+  },
+  "review": {
+    "status": "draft",
+    "open_questions": [
+      "The mechanic's messages were written by us from the case report. The client's mechanic should check they sound natural.",
+      "The report says EXEED Hybrid; its scan screenshot shows 'FULWIN Series > Tiggo 9 PHEV (T28 PHEV)'. Which car was it?"
+    ]
+  }
+}

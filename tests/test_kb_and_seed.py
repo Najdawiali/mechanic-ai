@@ -106,3 +106,24 @@ def test_no_seed_file_is_marked_approved_yet():
     """Nothing here has been reviewed by the client's expert. This test must be changed on purpose."""
     for path in CASES + NOTES + SCENARIOS:
         assert load(path)["review"]["status"] == "draft", path.name
+
+
+def test_the_scenario_set_is_complete():
+    """The Milestone 1 set: thirty scenarios, in the planned mix."""
+    groups = [Scenario(**load(p)).group for p in SCENARIOS]
+    want = {"procedure": 5, "language": 4, "case": 12, "diagram": 4, "report": 2, "no_data": 2, "emergency": 1}
+    assert {g: groups.count(g) for g in want} == want and len(groups) == 30
+
+
+def test_scenario_ids_are_unique():
+    ids = [load(p)["scenario_id"] for p in SCENARIOS]
+    assert len(ids) == len(set(ids))
+
+
+def test_a_check_states_its_label_one_way():
+    from eval.scenario_schema import TurnCheck
+
+    TurnCheck(label="verified")
+    TurnCheck(label_any_of=["general", "none"])
+    with pytest.raises(ValidationError):
+        TurnCheck(label="verified", label_any_of=["general"])

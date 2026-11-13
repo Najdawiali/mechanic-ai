@@ -1,0 +1,131 @@
+{
+  "scenario_id": "scn:tesla-model-3-2021:direr-a149:en",
+  "group": "case",
+  "language": "en",
+  "dialect": null,
+  "vehicle": {
+    "make": "Tesla",
+    "model": "Model 3",
+    "year": 2021,
+    "engine_code": null,
+    "powertrain": "EV"
+  },
+  "codes": [
+    "DIRER_a149_oilPumpFailure"
+  ],
+  "turns": [
+    {
+      "mechanic": "Tesla Model 3 2021 in limp mode with DIRER_a149_oilPumpFailure.",
+      "expect": {
+        "case_in_kb": {
+          "label": "verified",
+          "evidence_types": [
+            "case"
+          ],
+          "message_must_contain": [
+            "DIRER_a149"
+          ],
+          "message_must_not_contain": []
+        },
+        "case_held_out": {
+          "label_any_of": [
+            "general",
+            "none"
+          ],
+          "evidence_must_not_include": [
+            "case"
+          ],
+          "message_must_not_contain": []
+        }
+      }
+    },
+    {
+      "mechanic": "Replaced the rear drive unit oil pump. Now there is a software-related problem with the oil pump controller and the car is not back to normal.",
+      "expect": {
+        "case_in_kb": {
+          "evidence_types": [
+            "case"
+          ],
+          "message_must_contain": [
+            "software"
+          ],
+          "message_must_not_contain": []
+        },
+        "case_held_out": {
+          "label_any_of": [
+            "general",
+            "none"
+          ],
+          "evidence_must_not_include": [
+            "case"
+          ],
+          "message_must_not_contain": []
+        }
+      }
+    },
+    {
+      "mechanic": "Did a software reinstall and the fault cleared. Limp mode is gone.",
+      "expect": {
+        "case_in_kb": {
+          "reply_type": "conclusion",
+          "conclusion_contains": [
+            "software"
+          ]
+        },
+        "case_held_out": {
+          "reply_type": "conclusion",
+          "conclusion_contains": [
+            "software"
+          ]
+        }
+      }
+    }
+  ],
+  "related_case_id": null,
+  "related_procedure_id": null,
+  "expected": {
+    "case_in_kb": {
+      "must_do": [
+        "Offer the solved case as a hint, with its source, and say it is one earlier repair, not a confirmed fix for this car",
+        "Say which car the case was done on, or that the report did not record it",
+        "Ask for, or point to, the check that shows the case applies before any part is replaced",
+        "Reply in the mechanic's language with codes and part names in English letters",
+        "When the fault remains after the pump is replaced, bring up the software reinstallation done in the case",
+        "Mention Firmware Redeploy with Tesla Toolbox as an alternative from the technician's experience, and say it was not the procedure performed in the case"
+      ],
+      "must_not": [
+        "Tell the mechanic to replace a part without a check",
+        "Present the case as a manufacturer procedure",
+        "State a pin, value or specification that is not in the case"
+      ],
+      "final_cause": "Rear drive unit oil pump failure; after replacement a software reinstallation was needed"
+    },
+    "case_held_out": {
+      "must_do": [
+        "Say there is no verified information for this vehicle and fault in the knowledge base",
+        "Label any explanation as general knowledge, not verified",
+        "Ask follow-up questions that narrow the fault",
+        "When the mechanic confirms the fix, record it as a pending case for admin approval"
+      ],
+      "must_not": [
+        "Present the fix from the held-out case as a known or verified fix",
+        "Cite a solved case",
+        "State a pin, value or specification"
+      ],
+      "final_cause": "Rear drive unit oil pump failure; after replacement a software reinstallation was needed"
+    }
+  },
+  "source": {
+    "kind": "client_case_file",
+    "file": "Tesla_Rear_Oil_Pump_DIRER_a149_EN.txt",
+    "licensed": false
+  },
+  "review": {
+    "status": "draft",
+    "open_questions": [
+      "The mechanic's messages were written by us from the case report. The client's mechanic should check they sound natural.",
+      "The scenario car (Model 3 2021) is ours: the report names no model or year.",
+      "The report does not say whether limp mode stayed after the pump was replaced, only that a software-related problem was seen. Confirm with the technician."
+    ]
+  }
+}

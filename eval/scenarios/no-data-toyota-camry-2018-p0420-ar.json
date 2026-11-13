@@ -1,0 +1,82 @@
+{
+  "scenario_id": "scn:no-data:toyota-camry-2018:p0420:ar",
+  "group": "no_data",
+  "language": "ar",
+  "dialect": "Jordanian",
+  "vehicle": {
+    "make": "Toyota",
+    "model": "Camry",
+    "year": 2018,
+    "engine_code": null,
+    "powertrain": "ICE"
+  },
+  "codes": [
+    "P0420"
+  ],
+  "turns": [
+    {
+      "mechanic": "تويوتا كامري 2018 عليها كود P0420، شو السبب وشو أفحص؟",
+      "attachments": [],
+      "expect": {
+        "standard": {
+          "label_any_of": [
+            "general",
+            "none"
+          ],
+          "evidence_must_not_include": [
+            "procedure",
+            "diagram",
+            "case",
+            "expert_note"
+          ],
+          "message_must_contain": [
+            "P0420"
+          ]
+        }
+      },
+      "note": "No Toyota record of any kind is in the knowledge base."
+    },
+    {
+      "mechanic": "طيب أي بن بكمبيوتر المحرك لحساس الأكسجين الخلفي؟",
+      "attachments": [],
+      "expect": {
+        "standard": {
+          "label": "none",
+          "evidence_must_not_include": [
+            "procedure",
+            "diagram",
+            "case",
+            "expert_note"
+          ]
+        }
+      },
+      "note": "A pin is asked for and there is no source: the only correct answer is that it is not available."
+    }
+  ],
+  "related_case_id": null,
+  "related_procedure_id": null,
+  "expected": {
+    "standard": {
+      "must_do": [
+        "Say there is no verified information for this vehicle and code in the knowledge base",
+        "Mark any explanation as general knowledge, not verified",
+        "Ask follow-up questions that narrow the fault",
+        "For the pin, say it is not available and name what would be needed (the wiring diagram for this car)"
+      ],
+      "must_not": [
+        "State a pin number",
+        "State a specification value as a fact for this car",
+        "Cite a procedure, diagram or case",
+        "Use a record from another make as if it applied to this car"
+      ],
+      "final_cause": null
+    }
+  },
+  "source": null,
+  "review": {
+    "status": "draft",
+    "open_questions": [
+      "The mechanic's messages were written by us. The client's mechanic should check they sound natural."
+    ]
+  }
+}

@@ -1,0 +1,108 @@
+{
+  "scenario_id": "scn:tesla-model-x-2020:tas-a211:en",
+  "group": "case",
+  "language": "en",
+  "dialect": null,
+  "vehicle": {
+    "make": "Tesla",
+    "model": "Model X",
+    "year": 2020,
+    "engine_code": null,
+    "powertrain": "EV"
+  },
+  "codes": [
+    "TAS_a211_noRideHeightCalib"
+  ],
+  "turns": [
+    {
+      "mechanic": "Tesla Model X 2020, alert tas_a211 no ride height calib. Automatic leveling is disabled.",
+      "expect": {
+        "case_in_kb": {
+          "label": "verified",
+          "evidence_types": [
+            "case"
+          ],
+          "message_must_contain": [
+            "TAS_a211"
+          ],
+          "message_must_not_contain": []
+        },
+        "case_held_out": {
+          "label_any_of": [
+            "general",
+            "none"
+          ],
+          "evidence_must_not_include": [
+            "case"
+          ],
+          "message_must_not_contain": []
+        }
+      },
+      "note": "The code is typed in lower case with spaces: the lookup must normalise it to find the case."
+    },
+    {
+      "mechanic": "Measured all four reference points on level ground and ran PROC_TAS_X_CALIBRATE-RIDE-HEIGHT in Toolbox. Values accepted, alert cleared after a short drive.",
+      "expect": {
+        "case_in_kb": {
+          "reply_type": "conclusion",
+          "conclusion_contains": [
+            "calibration"
+          ]
+        },
+        "case_held_out": {
+          "reply_type": "conclusion",
+          "conclusion_contains": [
+            "calibration"
+          ]
+        }
+      }
+    }
+  ],
+  "related_case_id": null,
+  "related_procedure_id": null,
+  "expected": {
+    "case_in_kb": {
+      "must_do": [
+        "Offer the solved case as a hint, with its source, and say it is one earlier repair, not a confirmed fix for this car",
+        "Say which car the case was done on, or that the report did not record it",
+        "Ask for, or point to, the check that shows the case applies before any part is replaced",
+        "Reply in the mechanic's language with codes and part names in English letters",
+        "Give the reference points as in the case: front, ground to the rearmost mounting bolt of the front subframe; rear, ground to the front mounting bolt of the rear subframe",
+        "Say the measurement is not taken from the wheel centre or the fender lip",
+        "Say this alert alone does not establish a failed ride-height sensor"
+      ],
+      "must_not": [
+        "Tell the mechanic to replace a part without a check",
+        "Present the case as a manufacturer procedure",
+        "State a pin, value or specification that is not in the case"
+      ],
+      "final_cause": "No valid ride-height calibration values stored in the TAS ECU; calibrated with Tesla Toolbox"
+    },
+    "case_held_out": {
+      "must_do": [
+        "Say there is no verified information for this vehicle and fault in the knowledge base",
+        "Label any explanation as general knowledge, not verified",
+        "Ask follow-up questions that narrow the fault",
+        "When the mechanic confirms the fix, record it as a pending case for admin approval"
+      ],
+      "must_not": [
+        "Present the fix from the held-out case as a known or verified fix",
+        "Cite a solved case",
+        "State a pin, value or specification"
+      ],
+      "final_cause": "No valid ride-height calibration values stored in the TAS ECU; calibrated with Tesla Toolbox"
+    }
+  },
+  "source": {
+    "kind": "client_case_file",
+    "file": "Tesla_Model_X_2020_TAS_a211_Ride_Height_Calibration_EN(1).txt",
+    "licensed": false
+  },
+  "review": {
+    "status": "draft",
+    "open_questions": [
+      "The mechanic's messages were written by us from the case report. The client's mechanic should check they sound natural.",
+      "Two versions of this report exist. This scenario follows the one marked (1)."
+    ]
+  }
+}

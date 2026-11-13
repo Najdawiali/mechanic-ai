@@ -79,12 +79,19 @@ python -m eval.smoke.run --no-standard --real-kind scan_report --real-image eval
 app/engine/readings.py         a reading compared with a normal range, in code (units, OL, Arabic and Urdu digits)
 app/engine/procedure_walk.py   next step or conclusion for a procedure, as pure functions
 eval/golden/procedures/        hand-verified reference records
-eval/scenarios/                10 of the 30 scenarios: 9 for P0010 (5 branches, 4 language variants), 1 solved case
+eval/scenarios/                the 30 scenarios: 5 procedure branches, 4 language and number variants,
+                               12 solved cases, 4 wiring-diagram questions, 2 scan-report readings,
+                               2 with no data in the knowledge base, 1 emergency
 eval/scenario_schema.py        per-turn checks a program can score, plus behaviour a reviewer checks
 ```
 
 `pytest` walks every P0010 scenario through the reference record and fails if a pin, a value or a
 conclusion in a scenario disagrees with it.
+
+Each solved case is judged twice: with the case in the knowledge base (the assistant must offer it as
+a hint, with its source) and with the case held out (the assistant must not invent the fix). The
+diagram answers expected by the four diagram scenarios were read by eye from the rendered pages; they
+are compared with the extracted records in Milestone 2.
 
 ## Rules
 

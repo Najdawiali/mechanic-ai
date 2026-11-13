@@ -1,0 +1,102 @@
+{
+  "scenario_id": "scn:ford-edge-2014:abs-vin-mismatch:ar",
+  "group": "case",
+  "language": "ar",
+  "dialect": "Jordanian",
+  "vehicle": {
+    "make": "Ford",
+    "model": "Edge",
+    "year": 2014,
+    "engine_code": null,
+    "powertrain": "ICE"
+  },
+  "codes": [],
+  "turns": [
+    {
+      "mechanic": "فورد ايدج 2014 غيرنا وحدة الـ ABS وطلع عطل VIN mismatch، وجهاز الفحص مش راضي يبرمج الوحدة",
+      "expect": {
+        "case_in_kb": {
+          "label": "verified",
+          "evidence_types": [
+            "case"
+          ],
+          "message_must_contain": [],
+          "message_must_not_contain": []
+        },
+        "case_held_out": {
+          "label_any_of": [
+            "general",
+            "none"
+          ],
+          "evidence_must_not_include": [
+            "case"
+          ],
+          "message_must_not_contain": []
+        }
+      },
+      "note": "No fault code was recorded in the case: the scenario is found by vehicle and symptom."
+    },
+    {
+      "mechanic": "نزلنا بيانات الـ As-Built على وحدة الـ ABS بالـ FORScan حسب رقم الشاصي وراح العطل",
+      "expect": {
+        "case_in_kb": {
+          "reply_type": "conclusion",
+          "conclusion_contains": [
+            "As-Built"
+          ]
+        },
+        "case_held_out": {
+          "reply_type": "conclusion",
+          "conclusion_contains": [
+            "As-Built"
+          ]
+        }
+      }
+    }
+  ],
+  "related_case_id": null,
+  "related_procedure_id": null,
+  "expected": {
+    "case_in_kb": {
+      "must_do": [
+        "Offer the solved case as a hint, with its source, and say it is one earlier repair, not a confirmed fix for this car",
+        "Say which car the case was done on, or that the report did not record it",
+        "Ask for, or point to, the check that shows the case applies before any part is replaced",
+        "Reply in the mechanic's language with codes and part names in English letters",
+        "Say the case loaded As-Built data matched to the vehicle's VIN using FORScan",
+        "Say that no road test or ABS function test was reported in the case, and advise one"
+      ],
+      "must_not": [
+        "Tell the mechanic to replace a part without a check",
+        "Present the case as a manufacturer procedure",
+        "State a pin, value or specification that is not in the case"
+      ],
+      "final_cause": "Replacement ABS module not configured; vehicle-specific As-Built data loaded with FORScan"
+    },
+    "case_held_out": {
+      "must_do": [
+        "Say there is no verified information for this vehicle and fault in the knowledge base",
+        "Label any explanation as general knowledge, not verified",
+        "Ask follow-up questions that narrow the fault",
+        "When the mechanic confirms the fix, record it as a pending case for admin approval"
+      ],
+      "must_not": [
+        "Present the fix from the held-out case as a known or verified fix",
+        "Cite a solved case",
+        "State a pin, value or specification"
+      ],
+      "final_cause": "Replacement ABS module not configured; vehicle-specific As-Built data loaded with FORScan"
+    }
+  },
+  "source": {
+    "kind": "client_case_file",
+    "file": "Ford_Edge_2014_ABS_VIN_Mismatch_AsBuilt_EN.txt",
+    "licensed": false
+  },
+  "review": {
+    "status": "draft",
+    "open_questions": [
+      "The mechanic's messages were written by us from the case report. The client's mechanic should check they sound natural."
+    ]
+  }
+}

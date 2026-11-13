@@ -1,0 +1,69 @@
+{
+  "scenario_id": "scn:acura-integra-2025:diagram:abs-right-rear-epb:en",
+  "group": "diagram",
+  "language": "en",
+  "dialect": null,
+  "vehicle": {
+    "make": "Acura",
+    "model": "Integra",
+    "year": 2025,
+    "engine_code": "L15CA",
+    "powertrain": "ICE"
+  },
+  "codes": [],
+  "turns": [
+    {
+      "mechanic": "2025 Integra 1.5 turbo. Which VSA unit pins go to the right rear electric parking brake actuator?",
+      "attachments": [],
+      "expect": {
+        "standard": {
+          "reply_type": "conclusion",
+          "label": "verified",
+          "evidence_types": [
+            "diagram"
+          ],
+          "diagrams_sent": [],
+          "message_must_contain": [
+            "RED",
+            "BLK",
+            "C224",
+            "C230",
+            "C222"
+          ]
+        }
+      },
+      "note": "The wires leave page 1 at the right edge (2 and 3) and continue on page 2. The answer needs both pages joined."
+    }
+  ],
+  "related_case_id": null,
+  "related_procedure_id": null,
+  "expected": {
+    "standard": {
+      "must_do": [
+        "Give VSA modulator-control unit pin 4 (RED) and pin 5 (BLK)",
+        "Say they pass through connector C224, pin 2 (RED) and pin 4 (BLK)",
+        "Say they reach the actuator at pin 1 (RED) and pin 2 (BLK), through C230 (except 1.5L Turbo CVT Integra) or C222 (1.5L Turbo CVT Integra)",
+        "Name both pages used: Anti-Lock Brakes page 1 of 3 (910112) and page 2 of 3 (910113)"
+      ],
+      "must_not": [
+        "State a pin, colour or connector that is not on the diagram",
+        "Report NCA as a wire colour",
+        "Send the diagram image when the mechanic did not ask for it",
+        "Give the left rear actuator's wires (pin 6 GRN, pin 7 YEL) as the answer"
+      ],
+      "final_cause": null
+    }
+  },
+  "source": {
+    "kind": "licensed_diagram",
+    "file": "Anti-Lock Brakes (Antilock Brakes _ Traction Control Systems).pdf",
+    "licensed": true
+  },
+  "review": {
+    "status": "draft",
+    "open_questions": [
+      "The mechanic's messages were written by us. The client's mechanic should check they sound natural.",
+      "The expected pins, colours and connectors were read by eye from the diagram page. Compare with the extracted record in Milestone 2."
+    ]
+  }
+}

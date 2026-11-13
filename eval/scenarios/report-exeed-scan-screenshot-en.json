@@ -1,0 +1,77 @@
+{
+  "scenario_id": "scn:report:exeed-scan-screenshot:en",
+  "group": "report",
+  "language": "en",
+  "dialect": null,
+  "vehicle": {
+    "make": "EXEED",
+    "model": "Hybrid (model not confirmed)",
+    "year": null,
+    "engine_code": null,
+    "powertrain": "Hybrid"
+  },
+  "codes": [
+    "P1A7309",
+    "P301A4B",
+    "P302A01"
+  ],
+  "turns": [
+    {
+      "mechanic": "EXEED hybrid. What faults does this show?",
+      "attachments": [
+        "eval/scenarios/assets/exeed-hybrid-scan-three-codes.png"
+      ],
+      "expect": {
+        "standard": {
+          "report_codes": [
+            "P1A7309",
+            "P301A4B",
+            "P302A01"
+          ],
+          "message_must_contain": [
+            "P1A7309",
+            "P301A4B",
+            "P302A01",
+            "HCU",
+            "MCUF",
+            "Tiggo 9"
+          ],
+          "message_must_not_contain": [
+            "CEMS",
+            "ABS/ESP"
+          ]
+        }
+      },
+      "note": "The codes are only in the picture. The screen's vehicle line reads 'FULWIN Series > Tiggo 9 PHEV(T28 PHEV)', which differs from what the mechanic typed."
+    }
+  ],
+  "related_case_id": null,
+  "related_procedure_id": null,
+  "expected": {
+    "standard": {
+      "must_do": [
+        "List exactly the three codes with their modules: P1A7309 in HCU; P301A4B and P302A01 in MCUF",
+        "Say all three are shown as current fault codes",
+        "Point out that the screen shows Tiggo 9 PHEV (T28 PHEV) under FULWIN Series while the mechanic wrote EXEED, and ask which car it is",
+        "Reply within the 6-second target for a message with an image"
+      ],
+      "must_not": [
+        "Add a code that is not in the picture",
+        "List a module shown as Normal as having a fault",
+        "Change a character of a code"
+      ],
+      "final_cause": null
+    }
+  },
+  "source": {
+    "kind": "scan_report",
+    "file": "EXEED_Chinese_Hybrid_P1A7309_P301A4B_P302A01_Inverter_Short_EN.pdf (figure 1)",
+    "licensed": false
+  },
+  "review": {
+    "status": "draft",
+    "open_questions": [
+      "The mechanic's messages were written by us. The client's mechanic should check they sound natural."
+    ]
+  }
+}
