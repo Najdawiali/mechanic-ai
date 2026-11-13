@@ -223,11 +223,17 @@ class WiringDiagram(Record):
 
 # -- Case --------------------------------------------------------------------
 class FaultCode(Record):
-    code: str
+    code: str | None = None  # the code number or alert name; None when the tool showed only a wording
     text_on_tool: str | None = None  # the wording the scan tool showed
     tool: str | None = None
     module: str | None = None  # the control unit that stored it
     tool_note: str | None = None  # e.g. "Generic Type DTC, reference only"
+
+    @model_validator(mode="after")
+    def _has_a_code_or_a_wording(self) -> FaultCode:
+        if not (self.code or self.text_on_tool):
+            raise ValueError("a fault needs its code or the wording the tool showed")
+        return self
 
 
 class PartReplaced(Record):
@@ -252,6 +258,7 @@ class Case(Record):
     engine: str | None = None
     system: str | None = None
     modules: list[str] = Field(default_factory=list)
+    scan_tools: list[str] = Field(default_factory=list)  # the tools named in the report
     fault_codes: list[FaultCode] = Field(default_factory=list)
     symptoms: list[str] = Field(default_factory=list)
     findings: list[str] = Field(default_factory=list)  # checks done and what each showed

@@ -13,7 +13,7 @@ from app.ingest.extractors import SourceDocument
 from app.ingest.jobs import PermanentError
 from app.kb.schemas import Case
 
-REPORT = """Vehicle: Tesla Model X, 2020. Technician: Miqdad.
+REPORT = """Vehicle: Tesla Model X, 2020, battery electric. Technician: Miqdad.
 Alert: TAS_a211_noRideHeightCalib. Automatic leveling was disabled.
 Checks: the four ride-height reference points were measured on level ground.
 Diagnosis: no valid ride-height calibration values were stored in the TAS ECU.
@@ -22,13 +22,13 @@ The technician says the same applies to Model S and Model X from 2016 to 2021. U
 """
 ANSWER = {
     "make": "Tesla", "models": ["Model X"], "year_from": 2020, "year_to": 2020, "powertrain": "EV", "engine": None,
-    "system": "Air suspension", "modules": ["TAS"],
+    "system": "Air suspension", "modules": ["TAS"], "scan_tools": ["Tesla Toolbox"],
     "fault_codes": [{"code": "TAS_a211_noRideHeightCalib", "text_on_tool": None, "tool": "Tesla Toolbox", "module": "TAS", "tool_note": None}],
     "symptoms": ["Automatic leveling disabled"], "findings": ["The four ride-height reference points were measured on level ground"],
     "diagnosis": "No valid ride-height calibration values were stored in the TAS ECU.", "root_cause": None,
     "repair_steps": ["Ride-height calibration with Tesla Toolbox"], "parts_replaced": [], "parts_not_replaced": [],
     "outcome": "confirmed_fixed", "occurrences": ["The technician says the same applies to Model S and Model X from 2016 to 2021."],
-    "sensitive": False, "technician": "Miqdad", "date": None, "specific_car": True, "missing": [],
+    "sensitive": False, "technician": "Miqdad", "date": None, "specific_car": True,
 }
 
 
@@ -78,14 +78,14 @@ def test_what_the_report_does_not_say_is_caught(change, expected):
 
 
 def test_a_code_written_with_other_separators_still_counts_as_written():
-    case = Case(**{k: v for k, v in ANSWER.items() if k not in ("specific_car", "missing")}, case_id="c",
+    case = Case(**{k: v for k, v in ANSWER.items() if k != "specific_car"}, case_id="c",
                 source={"kind": "client_case_file", "file": "f"})
     assert not [n for n in check_case(case, REPORT.replace("TAS_a211_noRideHeightCalib", "tas a211 no ride height calib")) if "FAILED" in n]
 
 
 def test_an_unknown_year_stays_unknown_and_is_said_so():
     report = REPORT.replace("Tesla Model X, 2020", "Tesla Model X")
-    case = extract(ANSWER | {"year_from": None, "year_to": None, "missing": ["year"]}, report)
+    case = extract(ANSWER | {"year_from": None, "year_to": None}, report)
     assert case.year_from is None and case.case_id.startswith("case:tesla-model-x-year-unknown:")
     assert "The report does not give: year." in case.review.open_questions
 
@@ -93,6 +93,27 @@ def test_an_unknown_year_stays_unknown_and_is_said_so():
 def test_general_advice_and_dangerous_work_are_flagged_for_the_reviewer():
     questions = extract(ANSWER | {"specific_car": False, "sensitive": True}).review.open_questions
     assert any("no particular car" in q for q in questions) and any("owner must approve in writing" in q for q in questions)
+
+
+def test_a_fault_wording_is_not_stored_as_a_code():
+    # First real run, BYD Zero Six: the report gives wordings and no code numbers.
+    report = REPORT + "Recorded faults: BIC8: Voltage sampling abnormal.\n"
+    case = extract(ANSWER | {"fault_codes": [{"code": "Voltage sampling abnormal", "module": "BIC8"}]}, report)
+    assert [(f.code, f.text_on_tool) for f in case.fault_codes] == [(None, "Voltage sampling abnormal")]
+    assert "The report does not give: fault code." in case.review.open_questions
+    assert not any(q.startswith("CHECK FAILED") for q in case.review.open_questions)
+
+
+def test_a_powertrain_word_is_not_a_model_and_an_unstated_powertrain_is_flagged():
+    # First real run, EXEED: the model wrote models = ["Hybrid"]; BYD DM-i: it worked out PHEV by itself.
+    case = extract(ANSWER | {"models": ["Hybrid"], "powertrain": "PHEV"})
+    assert case.models == [] and "The report does not give: model." in case.review.open_questions
+    assert "CHECK FAILED: the report does not state the powertrain; the record says PHEV" in case.review.open_questions
+    assert not any("powertrain" in q for q in extract(ANSWER | {"powertrain": None}).review.open_questions)
+
+
+def test_a_scan_tool_must_be_written_in_the_report():
+    assert "CHECK FAILED: the scan tool 'Autel' is not written in the report" in extract(ANSWER | {"scan_tools": ["Autel"]}).review.open_questions
 
 
 def test_a_case_without_a_code_is_named_after_its_file():

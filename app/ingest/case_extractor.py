@@ -32,7 +32,13 @@ WRITE_PROMPT = """You convert a workshop's report of one solved repair into JSON
 Rules:
 - Use only what the report says. Never add knowledge of your own. If the report does not give
   something, use null or an empty list. Never guess a year, a model or a fault code.
-- Copy fault codes character for character, exactly as written in the report.
+- Copy fault codes character for character, exactly as written in the report. "code" is a code
+  number or an alert name only (P0010, TAS_a211_noRideHeightCalib). If the report gives only the
+  wording of a fault, put the wording in "text_on_tool" and use null for "code".
+- "models" are model names only. If the report does not name the model, use []. Words such as
+  "Hybrid" or "EV" are not a model.
+- "powertrain" only if the report states it in words; do not work it out from the model name.
+- "scan_tools" are the diagnostic tools the report names.
 - "models", "year_from" and "year_to" describe the car or cars that were actually repaired. A wider
   range that the technician says the fix applies to goes into "occurrences" as a sentence, not
   into the years. If the report does not give the year of the repaired car, both years are null.
@@ -44,18 +50,17 @@ Rules:
 - "sensitive" is true if the report describes work inside a high-voltage battery or any step that
   is dangerous without special training.
 - "specific_car" is false if the report is general advice and describes no particular car.
-- "missing" lists which of these the report does not give: "model", "year", "fault code", "scan tool", "outcome".
 
 Answer with JSON only, in this shape:
 {"make": "...", "models": ["..."], "year_from": number or null, "year_to": number or null,
  "powertrain": "ICE" | "Hybrid" | "PHEV" | "EV" | null, "engine": string or null, "system": string or null,
- "modules": ["..."],
- "fault_codes": [{"code": "...", "text_on_tool": string or null, "tool": string or null, "module": string or null, "tool_note": string or null}],
+ "modules": ["..."], "scan_tools": ["..."],
+ "fault_codes": [{"code": string or null, "text_on_tool": string or null, "tool": string or null, "module": string or null, "tool_note": string or null}],
  "symptoms": ["..."], "findings": ["..."], "diagnosis": "...", "root_cause": string or null,
  "repair_steps": ["..."], "parts_replaced": [{"part": "...", "part_source": "OEM" | "used" | "aftermarket" | "unknown"}],
  "parts_not_replaced": ["..."], "outcome": "...", "occurrences": ["..."], "sensitive": false,
  "technician": string or null, "date": "YYYY-MM-DD" or null,
- "specific_car": true, "missing": ["..."]}"""
+ "specific_car": true}"""
 
 
 def report_text(document: SourceDocument) -> tuple[str, int]:
@@ -85,7 +90,8 @@ def write_case(gateway, text: str, document: SourceDocument, *, attempts: int = 
         reply = gateway.chat(messages, role="reasoning", json_mode=True, max_tokens=4000).text
         try:
             data = _json(reply)
-            Case(**{k: v for k, v in data.items() if k not in ("specific_car", "missing")}, **_fixed(document))
+            tidy(data)
+            Case(**{k: v for k, v in data.items() if k != "specific_car"}, **_fixed(document))
             return data
         except (ValueError, json.JSONDecodeError, ValidationError) as exc:
             problem = str(exc)[:1500]
@@ -94,13 +100,39 @@ def write_case(gateway, text: str, document: SourceDocument, *, attempts: int = 
     raise RuntimeError(f"the model did not produce a valid case: {problem}")
 
 
+LOOKS_LIKE_A_CODE = re.compile(r"(?=.*\d)[A-Za-z0-9][A-Za-z0-9_.:\-]{2,49}")
+NOT_A_MODEL = {"HYBRID", "PHEV", "EV", "BEV", "ELECTRIC", "PETROL", "GASOLINE", "DIESEL", "ALLMODELS", "UNKNOWN"}
+POWERTRAIN_WORDS = {"EV": r"\b(EV|BEV)\b|electric", "Hybrid": r"hybrid", "PHEV": r"plug-?in|\bPHEV\b",
+                    "ICE": r"petrol|gasoline|diesel|combustion"}
+
+
+def tidy(data: dict) -> None:
+    """Corrections made in code, the same way every time, whatever the model's habits.
+
+    A wording is not a code: "Voltage sampling abnormal" moves from `code` to `text_on_tool`.
+    A powertrain word is not a model: "Hybrid" is dropped from `models`.
+    """
+    for fault in data.get("fault_codes") or []:
+        code = fault.get("code")
+        if isinstance(code, str) and not LOOKS_LIKE_A_CODE.fullmatch(code.strip()):
+            fault["text_on_tool"], fault["code"] = fault.get("text_on_tool") or code.strip(), None
+    data["models"] = [m for m in data.get("models") or [] if isinstance(m, str) and (norm_key(m) or "") not in NOT_A_MODEL | {""}]
+
+
 def check_case(case: Case, text: str) -> list[str]:
     """What the report does not back up ("CHECK FAILED") and what the record may have missed ("CHECK")."""
     notes: list[str] = []
     flat = norm_key(text) or ""
     for fault in case.fault_codes:
-        if (norm_key(fault.code) or "?") not in flat:
+        if fault.code and (norm_key(fault.code) or "?") not in flat:
             notes.append(f"CHECK FAILED: the fault code {fault.code} is not written in the report")
+        if fault.text_on_tool and (norm_key(fault.text_on_tool) or "?") not in flat:
+            notes.append(f"CHECK FAILED: the fault wording {fault.text_on_tool!r} is not written in the report")
+    for tool in case.scan_tools:
+        if (norm_key(tool) or "?") not in flat:
+            notes.append(f"CHECK FAILED: the scan tool {tool!r} is not written in the report")
+    if case.powertrain and not re.search(POWERTRAIN_WORDS[case.powertrain.value], text, re.I):
+        notes.append(f"CHECK FAILED: the report does not state the powertrain; the record says {case.powertrain.value}")
     if (norm_key(case.make) or "?") not in flat:
         notes.append(f"CHECK FAILED: the make {case.make!r} is not written in the report")
     for model in case.models:
@@ -111,7 +143,7 @@ def check_case(case: Case, text: str) -> list[str]:
             notes.append(f"CHECK FAILED: the year {year} is not written in the report")
     if case.technician and (norm_key(case.technician) or "?") not in flat:
         notes.append(f"CHECK FAILED: the technician name {case.technician!r} is not written in the report")
-    recorded = {code_stem(fault.code) for fault in case.fault_codes}
+    recorded = {code_stem(fault.code) for fault in case.fault_codes if fault.code}
     for found in dict.fromkeys(OBD_CODE.findall(text) + ALERT_NAME.findall(text)):
         if code_stem(found) not in recorded:
             notes.append(f"CHECK: the report mentions {found}, which is not among the record's fault codes")
@@ -131,19 +163,24 @@ def extract_case(document: SourceDocument, gateway=None) -> list[Extracted]:
 
         gateway = LLMGateway()
     data = write_case(gateway, text, document)
-    specific, missing = data.pop("specific_car", True), data.pop("missing", []) or []
+    specific = data.pop("specific_car", True)
 
     car = "-".join(filter(None, [_slug(data["make"]), _slug(" ".join(data.get("models") or [])[:40]),
                                  str(data.get("year_from") or "year-unknown")]))
-    codes = "-".join(_slug(fault["code"]) for fault in data.get("fault_codes") or [])[:60]
+    codes = "-".join(_slug(fault["code"]) for fault in data.get("fault_codes") or [] if fault.get("code"))[:60]
     case_id = f"case:{car}:{codes or _slug(document.original_name.rsplit('.', 1)[0])[:60]}"
     case = Case(**data, **_fixed(document, case_id))
 
     questions = check_case(case, text)
     if not specific:
         questions.append("The report describes no particular car: it may belong with the expert notes, not the cases.")
+    # What a complete report should carry, worked out from the record itself.
+    missing = [name for name, absent in (
+        ("model", not case.models), ("year", case.year_from is None and case.year_to is None),
+        ("fault code", not any(fault.code for fault in case.fault_codes)), ("scan tool", not case.scan_tools),
+    ) if absent]
     if missing:
-        questions.append("The report does not give: " + ", ".join(str(m) for m in missing) + ".")
+        questions.append("The report does not give: " + ", ".join(missing) + ".")
     if images:
         questions.append(f"The file has {images} screenshot(s) that were not read. Compare the codes and the vehicle on them with the record.")
     if case.sensitive:

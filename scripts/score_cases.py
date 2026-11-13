@@ -54,7 +54,9 @@ def main() -> int:
         years = "year not given" if case.year_from is None and case.year_to is None else f"{case.year_from}-{case.year_to}"
         print(f"{file.name}  ({time.perf_counter() - started:.0f} s)\n"
               f"  {case.make} {' / '.join(case.models) or '(no model)'}, {years}, {case.powertrain or 'powertrain not given'}\n"
-              f"  codes: {', '.join(f.code for f in case.fault_codes) or '(none)'}\n"
+              f"  codes: {', '.join(f.code for f in case.fault_codes if f.code) or '(none)'}"
+              f"   wordings without a code: {sum(1 for f in case.fault_codes if not f.code)}"
+              f"   tools: {', '.join(case.scan_tools) or '(none)'}\n"
               f"  outcome: {case.outcome}   parts replaced: {', '.join(p.part for p in case.parts_replaced) or '(none)'}\n"
               f"  root cause: {case.root_cause}")
         for question in case.review.open_questions:
@@ -63,7 +65,7 @@ def main() -> int:
         scenario = known.get(file.name)
         if scenario:
             want = {code_stem(c) for c in scenario["codes"]}
-            got = {code_stem(f.code) for f in case.fault_codes}
+            got = {code_stem(f.code) for f in case.fault_codes if f.code}
             same_make = norm_key(scenario["vehicle"]["make"]) == norm_key(case.make)
             verdict = "same make and codes" if want == got and same_make else f"DIFFERENT (scenario: {scenario['vehicle']['make']}, {scenario['codes']})"
             wrong += verdict.startswith("DIFFERENT")

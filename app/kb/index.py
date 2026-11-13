@@ -122,7 +122,7 @@ def code_rows(record: KbRecord) -> list[CodeRow]:
         case Procedure():
             found = [(record.code, None)]
         case Case():
-            found = [(fc.code, fc.module) for fc in record.fault_codes]
+            found = [(fc.code, fc.module) for fc in record.fault_codes if fc.code]
         case ExpertNote():
             found = [(c, None) for c in record.fault_codes]
         case _:
