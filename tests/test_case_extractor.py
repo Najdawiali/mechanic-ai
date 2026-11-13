@@ -8,7 +8,7 @@ from types import SimpleNamespace
 import pymupdf
 import pytest
 
-from app.ingest.case_extractor import check_case, extract_case, report_text
+from app.ingest.case_extractor import check_case, extract_case, report_text, tidy
 from app.ingest.extractors import SourceDocument
 from app.ingest.jobs import PermanentError
 from app.kb.schemas import Case
@@ -21,7 +21,7 @@ Repair: ride-height calibration with Tesla Toolbox. The alert cleared after a sh
 The technician says the same applies to Model S and Model X from 2016 to 2021. Unlike TAS_a025, no part was replaced.
 """
 ANSWER = {
-    "make": "Tesla", "models": ["Model X"], "year_from": 2020, "year_to": 2020, "powertrain": "EV", "engine": None,
+    "make": "Tesla", "cars": [{"model": "Model X", "year": 2020}], "powertrain": "EV", "engine": None,
     "system": "Air suspension", "modules": ["TAS"], "scan_tools": ["Tesla Toolbox"],
     "fault_codes": [{"code": "TAS_a211_noRideHeightCalib", "text_on_tool": None, "tool": "Tesla Toolbox", "module": "TAS", "tool_note": None}],
     "symptoms": ["Automatic leveling disabled"], "findings": ["The four ride-height reference points were measured on level ground"],
@@ -66,8 +66,8 @@ def test_a_code_mentioned_in_the_report_but_left_out_is_pointed_out():
     ("change", "expected"),
     [
         ({"fault_codes": [{"code": "TAS_a212_noRideHeightCalib"}]}, "CHECK FAILED: the fault code TAS_a212_noRideHeightCalib is not written in the report"),
-        ({"year_from": 2019, "year_to": 2019}, "CHECK FAILED: the year 2019 is not written in the report"),
-        ({"models": ["Model X", "Model 3"]}, "CHECK FAILED: the model 'Model 3' is not written in the report"),
+        ({"cars": [{"model": "Model X", "year": 2019}]}, "CHECK FAILED: the year 2019 is not written in the report"),
+        ({"cars": [{"model": "Model X", "year": 2020}, {"model": "Model 3", "year": None}]}, "CHECK FAILED: the model 'Model 3' is not written in the report"),
         ({"make": "BYD"}, "CHECK FAILED: the make 'BYD' is not written in the report"),
         ({"technician": "Nasoh"}, "CHECK FAILED: the technician name 'Nasoh' is not written in the report"),
     ],
@@ -78,14 +78,15 @@ def test_what_the_report_does_not_say_is_caught(change, expected):
 
 
 def test_a_code_written_with_other_separators_still_counts_as_written():
-    case = Case(**{k: v for k, v in ANSWER.items() if k != "specific_car"}, case_id="c",
-                source={"kind": "client_case_file", "file": "f"})
+    data = json.loads(json.dumps({k: v for k, v in ANSWER.items() if k != "specific_car"}))
+    tidy(data)
+    case = Case(**data, case_id="c", source={"kind": "client_case_file", "file": "f"})
     assert not [n for n in check_case(case, REPORT.replace("TAS_a211_noRideHeightCalib", "tas a211 no ride height calib")) if "FAILED" in n]
 
 
 def test_an_unknown_year_stays_unknown_and_is_said_so():
     report = REPORT.replace("Tesla Model X, 2020", "Tesla Model X")
-    case = extract(ANSWER | {"year_from": None, "year_to": None}, report)
+    case = extract(ANSWER | {"cars": [{"model": "Model X", "year": None}]}, report)
     assert case.year_from is None and case.case_id.startswith("case:tesla-model-x-year-unknown:")
     assert "The report does not give: year." in case.review.open_questions
 
@@ -106,10 +107,41 @@ def test_a_fault_wording_is_not_stored_as_a_code():
 
 def test_a_powertrain_word_is_not_a_model_and_an_unstated_powertrain_is_flagged():
     # First real run, EXEED: the model wrote models = ["Hybrid"]; BYD DM-i: it worked out PHEV by itself.
-    case = extract(ANSWER | {"models": ["Hybrid"], "powertrain": "PHEV"})
-    assert case.models == [] and "The report does not give: model." in case.review.open_questions
+    case = extract(ANSWER | {"cars": [{"model": "Hybrid", "year": None}], "powertrain": "PHEV"})
+    assert case.models == [] and "The report does not give: model, year." in case.review.open_questions
     assert "CHECK FAILED: the report does not state the powertrain; the record says PHEV" in case.review.open_questions
     assert not any("powertrain" in q for q in extract(ANSWER | {"powertrain": None}).review.open_questions)
+
+
+def test_a_report_on_two_cars_keeps_each_model_with_its_own_year():
+    # Full real run: one report covers a 2024 Model S and a 2022 Model Y; only the first was recorded.
+    from app.kb.index import scope_rows
+
+    report = REPORT + "Case 1: Tesla Model S 2024. Case 2: Tesla Model Y 2022.\n"
+    case = extract(ANSWER | {"cars": [{"model": "Model S", "year": 2024}, {"model": "Model Y", "year": 2022}]}, report)
+    assert (case.models, case.year_from, case.year_to) == (["Model S", "Model Y"], 2022, 2024)
+    assert [(r.model_key, r.year_from, r.year_to) for r in scope_rows(case)] == [("MODELS", 2024, 2024), ("MODELY", 2022, 2022)]
+    assert case.case_id.startswith("case:tesla-model-s-model-y-2022-2024:")
+
+
+def test_a_code_written_inside_a_wording_is_recovered():
+    # Full real run: the report writes "TAS_A025_Crash Event" and the code was lost.
+    report = REPORT + "Alert: TAS_A025_Crash Event.\n"
+    case = extract(ANSWER | {"fault_codes": [{"code": "TAS_A025_Crash Event"}]}, report)
+    assert [(f.code, f.text_on_tool) for f in case.fault_codes] == [("TAS_A025_Crash", "TAS_A025_Crash Event")]
+    assert not any("TAS_A025" in q for q in case.review.open_questions)
+
+
+def test_an_arabic_report_is_not_used():
+    arabic = "السيارة: Volkswagen ID.4 الموديل: 2021 أكواد الأعطال P0C4400 " + "تم إعادة توصيل الفيش وتثبيتها ومسح الأعطال والتأكد من عمل النظام " * 4
+    with pytest.raises(PermanentError, match="not in English"):
+        extract_case(document(arabic), FakeGateway(ANSWER))
+
+
+def test_dangerous_work_is_flagged_from_the_report_even_when_the_model_does_not():
+    case = extract(ANSWER | {"sensitive": False}, REPORT + "The high-voltage connector was reseated.\n")
+    assert case.sensitive and any("owner must approve in writing" in q for q in case.review.open_questions)
+    assert not extract(ANSWER).sensitive
 
 
 def test_a_scan_tool_must_be_written_in_the_report():

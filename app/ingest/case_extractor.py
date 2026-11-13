@@ -35,13 +35,13 @@ Rules:
 - Copy fault codes character for character, exactly as written in the report. "code" is a code
   number or an alert name only (P0010, TAS_a211_noRideHeightCalib). If the report gives only the
   wording of a fault, put the wording in "text_on_tool" and use null for "code".
-- "models" are model names only. If the report does not name the model, use []. Words such as
+- A model is a model name only. If the report does not name the model, use null. Words such as
   "Hybrid" or "EV" are not a model.
 - "powertrain" only if the report states it in words; do not work it out from the model name.
 - "scan_tools" are the diagnostic tools the report names.
-- "models", "year_from" and "year_to" describe the car or cars that were actually repaired. A wider
-  range that the technician says the fix applies to goes into "occurrences" as a sentence, not
-  into the years. If the report does not give the year of the repaired car, both years are null.
+- "cars" has one entry for each car that was actually repaired, with its model and its year. If the
+  report does not give a car's year, its year is null. A wider range that the technician says the
+  fix applies to goes into "occurrences" as a sentence, never into "cars".
 - "findings" are the checks that were done and what each showed, one per item.
 - "parts_not_replaced" are parts that were checked or suspected and found good.
 - "outcome": "confirmed_fixed" if the report says the fault was gone after the repair and that was
@@ -52,7 +52,7 @@ Rules:
 - "specific_car" is false if the report is general advice and describes no particular car.
 
 Answer with JSON only, in this shape:
-{"make": "...", "models": ["..."], "year_from": number or null, "year_to": number or null,
+{"make": "...", "cars": [{"model": string or null, "year": number or null}],
  "powertrain": "ICE" | "Hybrid" | "PHEV" | "EV" | null, "engine": string or null, "system": string or null,
  "modules": ["..."], "scan_tools": ["..."],
  "fault_codes": [{"code": string or null, "text_on_tool": string or null, "tool": string or null, "module": string or null, "tool_note": string or null}],
@@ -77,6 +77,14 @@ def report_text(document: SourceDocument) -> tuple[str, int]:
         except UnicodeDecodeError:
             continue
     raise PermanentError("the file is neither a PDF nor readable text")
+
+
+NOT_ENGLISH = "the report is not in English: only the English reports are used"
+
+
+def _mostly_arabic(text: str) -> bool:
+    letters = [ch for ch in text if ch.isalpha()]
+    return bool(letters) and sum("\u0600" <= ch <= "\u06ff" for ch in letters) / len(letters) > 0.15
 
 
 def _fixed(document: SourceDocument, case_id: str = "check") -> dict:
@@ -116,7 +124,27 @@ def tidy(data: dict) -> None:
         code = fault.get("code")
         if isinstance(code, str) and not LOOKS_LIKE_A_CODE.fullmatch(code.strip()):
             fault["text_on_tool"], fault["code"] = fault.get("text_on_tool") or code.strip(), None
-    data["models"] = [m for m in data.get("models") or [] if isinstance(m, str) and (norm_key(m) or "") not in NOT_A_MODEL | {""}]
+        if not fault.get("code"):  # a code written inside a wording ("TAS_A025_Crash Event") is still a code
+            inside = ALERT_NAME.search(str(fault.get("text_on_tool") or "")) or OBD_CODE.search(str(fault.get("text_on_tool") or ""))
+            if inside:
+                fault["code"] = inside.group(0)
+
+    # The cars repaired, as model-and-year pairs; models and the year range are derived from them.
+    cars = data.pop("cars", None)
+    if cars is None:  # an answer in the older shape
+        years = {data.get("year_from"), data.get("year_to")}
+        cars = [{"model": m, "year": years.pop() if len(years) == 1 else None} for m in data.get("models") or []]
+    kept = []
+    for car in cars or []:
+        model = car.get("model") if isinstance(car, dict) else None
+        model = model if isinstance(model, str) and (norm_key(model) or "") not in NOT_A_MODEL | {""} else None
+        year = car.get("year") if isinstance(car, dict) and isinstance(car.get("year"), int) else None
+        if (model or year) and {"model": model, "year": year} not in kept:
+            kept.append({"model": model, "year": year})
+    data["repaired_cars"] = kept
+    data["models"] = list(dict.fromkeys(car["model"] for car in kept if car["model"]))
+    known_years = [car["year"] for car in kept if car["year"]]
+    data["year_from"], data["year_to"] = (min(known_years), max(known_years)) if known_years else (None, None)
 
 
 def check_case(case: Case, text: str) -> list[str]:
@@ -138,7 +166,9 @@ def check_case(case: Case, text: str) -> list[str]:
     for model in case.models:
         if (norm_key(model) or "?") not in flat:
             notes.append(f"CHECK FAILED: the model {model!r} is not written in the report")
-    for year in {case.year_from, case.year_to} - {None}:
+    for year in {car.year for car in case.repaired_cars} | {case.year_from, case.year_to} - {None}:
+        if year is None:
+            continue
         if str(year) not in text:
             notes.append(f"CHECK FAILED: the year {year} is not written in the report")
     if case.technician and (norm_key(case.technician) or "?") not in flat:
@@ -158,6 +188,8 @@ def extract_case(document: SourceDocument, gateway=None) -> list[Extracted]:
     text, images = report_text(document)
     if len(text.strip()) < 100:
         raise PermanentError("the report has almost no text")
+    if _mostly_arabic(text):
+        raise PermanentError(NOT_ENGLISH)
     if gateway is None:
         from app.llm.gateway import LLMGateway
 
@@ -165,10 +197,14 @@ def extract_case(document: SourceDocument, gateway=None) -> list[Extracted]:
     data = write_case(gateway, text, document)
     specific = data.pop("specific_car", True)
 
-    car = "-".join(filter(None, [_slug(data["make"]), _slug(" ".join(data.get("models") or [])[:40]),
-                                 str(data.get("year_from") or "year-unknown")]))
+    years = "year-unknown" if not data.get("year_from") else (
+        str(data["year_from"]) if data["year_from"] == data["year_to"] else f"{data['year_from']}-{data['year_to']}")
+    car = "-".join(filter(None, [_slug(data["make"]), _slug(" ".join(data.get("models") or [])[:40]), years]))
     codes = "-".join(_slug(fault["code"]) for fault in data.get("fault_codes") or [] if fault.get("code"))[:60]
     case_id = f"case:{car}:{codes or _slug(document.original_name.rsplit('.', 1)[0])[:60]}"
+    # Dangerous work is flagged by the model's reading or by the report's own words, whichever says so:
+    # on two real runs the model's flag for the same report changed.
+    data["sensitive"] = bool(data.get("sensitive")) or bool(re.search(r"high[- ]voltage|\bHV\b", text, re.I))
     case = Case(**data, **_fixed(document, case_id))
 
     questions = check_case(case, text)

@@ -17,7 +17,7 @@ from pathlib import Path
 REPO = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(REPO))
 
-from app.ingest.case_extractor import extract_case  # noqa: E402
+from app.ingest.case_extractor import NOT_ENGLISH, extract_case  # noqa: E402
 from app.ingest.extractors import SourceDocument  # noqa: E402
 from app.kb.keys import code_stem, norm_key  # noqa: E402
 
@@ -47,13 +47,16 @@ def main() -> int:
         try:
             [extracted] = extract_case(SourceDocument(0, str(file), file.name, "client_case_file", {}, file.read_bytes()))
         except Exception as exc:  # noqa: BLE001
+            if NOT_ENGLISH in str(exc):
+                print(f"SKIPPED  {file.name}: not in English\n")
+                continue
             print(f"ERROR  {file.name}: {type(exc).__name__}: {exc}\n")
             failed += 1
             continue
         case = extracted.record
-        years = "year not given" if case.year_from is None and case.year_to is None else f"{case.year_from}-{case.year_to}"
+        cars = "; ".join(f"{car.model or '(no model)'} {car.year or '(year not given)'}" for car in case.repaired_cars) or "(no car named)"
         print(f"{file.name}  ({time.perf_counter() - started:.0f} s)\n"
-              f"  {case.make} {' / '.join(case.models) or '(no model)'}, {years}, {case.powertrain or 'powertrain not given'}\n"
+              f"  {case.make}: {cars}, {case.powertrain or 'powertrain not given'}{', DANGEROUS WORK' if case.sensitive else ''}\n"
               f"  codes: {', '.join(f.code for f in case.fault_codes if f.code) or '(none)'}"
               f"   wordings without a code: {sum(1 for f in case.fault_codes if not f.code)}"
               f"   tools: {', '.join(case.scan_tools) or '(none)'}\n"

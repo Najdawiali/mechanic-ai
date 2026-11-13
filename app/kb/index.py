@@ -97,6 +97,10 @@ def scope_rows(record: KbRecord) -> list[ScopeRow]:
         case Procedure() | WiringDiagram():
             v = record.vehicle
             return [ScopeRow(norm_key(v.make), norm_key(v.model), norm_key(v.engine_code), v.year, v.year, _pt(v.powertrain))]
+        case Case() if record.repaired_cars:
+            return list(dict.fromkeys(
+                ScopeRow(norm_key(record.make), norm_key(car.model), None, car.year, car.year, _pt(record.powertrain))
+                for car in record.repaired_cars))
         case Case():
             models = [norm_key(m) for m in record.models] or [None]
             return [

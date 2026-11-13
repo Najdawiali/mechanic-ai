@@ -248,10 +248,20 @@ class Outcome(StrEnum):
     NOT_FIXED = "not_fixed"
 
 
+class RepairedCar(Record):
+    """One car the repair was actually done on."""
+
+    model: str | None = None
+    year: int | None = None  # None = the report does not give it
+
+
 class Case(Record):
     case_id: str
     make: str
     models: list[str]
+    # Each car the repair was done on. When given, lookups match these model-and-year pairs
+    # exactly, so a report on a 2024 Model S and a 2022 Model Y is not offered for a 2022 Model S.
+    repaired_cars: list[RepairedCar] = Field(default_factory=list)
     year_from: int | None = None
     year_to: int | None = None
     powertrain: Powertrain | None = None
