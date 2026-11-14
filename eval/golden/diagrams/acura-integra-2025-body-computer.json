@@ -1,0 +1,340 @@
+{
+  "file_contains": "Body Computer",
+  "vehicle_line": "2025 Acura Integra L4-1.5L Turbo (L15CA)",
+  "title": "Body Computer",
+  "diagram_ids": [
+    "912194",
+    "912195"
+  ],
+  "verified": "Every route was compared by eye with the rendered pages on 2026-11-14: where each wire of the body control module goes, on both pages (100 arrows to other systems, 9 wires to fuses, grounds and junction boxes). Unlike the ABS file, this was checked after the reader existed, because the review screen had shown its first reading to be wrong: page 1 of 2 was missing, and arrows grouped by a brace were given a neighbour's label or none.",
+  "component": "BODY CONTROL MODULE",
+  "routes": {
+    "A1": [
+      "-RED-> JUNCTION BOX D pin A4"
+    ],
+    "A2": [
+      "-PPL-> JUNCTION BOX B pin A3"
+    ],
+    "A13": [
+      "-BRN-> system INTERIOR LIGHTS SYSTEM"
+    ],
+    "A18": [
+      "-RED-> JUNCTION BOX G pin B4"
+    ],
+    "A23": [
+      "-PNK-> system ENGINE CONTROLS SYSTEM"
+    ],
+    "A25": [
+      "-RED-> C207 pin 11 -LT BLU-> UNDER-HOOD FUSE/RELAY BOX pin C13"
+    ],
+    "A28": [
+      "-WHT-> system WIPER/WASHER SYSTEM"
+    ],
+    "A29": [
+      "-YEL-> system WIPER/WASHER & HEADLIGHTS SYSTEMS"
+    ],
+    "A33": [
+      "-LT BLU-> system ENGINE CONTROLS SYSTEM"
+    ],
+    "A34": [
+      "-GRY-> system ENGINE CONTROLS SYSTEM"
+    ],
+    "A35": [
+      "-GRN-> system EXTERIOR LIGHTS SYSTEM"
+    ],
+    "A39": [
+      "-LT GRN-> system SHIFT INTERLOCK SYSTEM"
+    ],
+    "A40": [
+      "-BLU-> system WIPER/WASHER & HEADLIGHTS SYSTEMS"
+    ],
+    "A41": [
+      "-TAN-> system INTERIOR LIGHTS SYSTEM"
+    ],
+    "A42": [
+      "-GRY-> system HEADLIGHTS SYSTEM"
+    ],
+    "A43": [
+      "-PNK-> system HEADLIGHTS SYSTEM"
+    ],
+    "A45": [
+      "-PPL-> system HEADLIGHTS SYSTEM"
+    ],
+    "A46": [
+      "-BLU-> system HEADLIGHTS SYSTEM"
+    ],
+    "A47": [
+      "-LT BLU-> system HEADLIGHTS SYSTEM"
+    ],
+    "A48": [
+      "-RED-> system EXTERIOR LIGHTS SYSTEM"
+    ],
+    "A49": [
+      "-LT GRN-> system EXTERIOR LIGHTS SYSTEM"
+    ],
+    "A50": [
+      "-BLK-> system HEADLIGHTS SYSTEM"
+    ],
+    "A51": [
+      "-BRN-> ground G011"
+    ],
+    "A52": [
+      "-LT BLU-> system COMPUTER DATA LINES SYSTEM"
+    ],
+    "A53": [
+      "-PPL-> system COMPUTER DATA LINES SYSTEM"
+    ],
+    "A54": [
+      "-PPL-> system COMPUTER DATA LINES SYSTEM"
+    ],
+    "A55": [
+      "-TAN-> system COMPUTER DATA LINES SYSTEM"
+    ],
+    "A56": [
+      "-BLU-> system COMPUTER DATA LINES SYSTEM"
+    ],
+    "A57": [
+      "-PNK-> system COMPUTER DATA LINES SYSTEM"
+    ],
+    "A61": [
+      "-TAN-> system WIPER/WASHER SYSTEM"
+    ],
+    "A62": [
+      "-GRY-> system WIPER/WASHER SYSTEM"
+    ],
+    "A63": [
+      "-WHT-> system WIPER/WASHER SYSTEM"
+    ],
+    "A64": [
+      "-BLU-> system WIPER/WASHER SYSTEM"
+    ],
+    "A65": [
+      "-GRN-> system WIPER/WASHER SYSTEM"
+    ],
+    "A66": [
+      "-BRN-> system WIPER/WASHER SYSTEM"
+    ],
+    "B1": [
+      "-LT GRN-> C207 pin 1 -YEL-> UNDER-HOOD FUSE/RELAY BOX pin A31 (FUSE 33 15A)"
+    ],
+    "B17": [
+      "-WHT-> system SUPPLEMENTAL RESTRAINTS SYSTEM"
+    ],
+    "B41": [
+      "-YEL-> system DOOR LOCKS & ANTI-THEFT SYSTEMS"
+    ],
+    "B42": [
+      "-RED-> system INTERIOR LIGHTS SYSTEM"
+    ],
+    "B43": [
+      "-PPL-> system DOOR LOCKS & TRUNK, TAILGATE, FUEL DOORS SYSTEMS"
+    ],
+    "B44": [
+      "-BLU-> system TRUNK, TAILGATE, FUEL DOORS SYSTEM"
+    ],
+    "B45": [
+      "-BLK-> system DOOR LOCKS & ANTI-THEFT SYSTEMS"
+    ],
+    "B47": [
+      "-BRN-> system DOOR LOCKS & ANTI-THEFT SYSTEMS"
+    ],
+    "B48": [
+      "-GRN-> system EXTERIOR LIGHTS SYSTEM"
+    ],
+    "B49": [
+      "-LT BLU-> system EXTERIOR LIGHTS SYSTEM"
+    ],
+    "B51": [
+      "-BLK-> ground G010"
+    ],
+    "B53": [
+      "-GRY-> system DOOR LOCKS & INTERIOR LIGHTS SYSTEMS"
+    ],
+    "B54": [
+      "-PNK-> system DOOR LOCKS & INTERIOR LIGHTS SYSTEMS"
+    ],
+    "B55": [
+      "-TAN-> system DOOR LOCKS & INTERIOR LIGHTS SYSTEMS"
+    ],
+    "B56": [
+      "-GRN-> system DOOR LOCKS & INTERIOR LIGHTS SYSTEMS"
+    ],
+    "B57": [
+      "-WHT-> system POWER WINDOWS SYSTEM"
+    ],
+    "B58": [
+      "-TAN-> UNDER-DASH FUSE/RELAY BOX pin D2 (FUSE 46 10A)"
+    ],
+    "B59": [
+      "-GRN-> UNDER-DASH FUSE/RELAY BOX pin C13 (FUSE 44 10A)"
+    ],
+    "B60": [
+      "-LT GRN-> system EXTERIOR LIGHTS SYSTEM"
+    ],
+    "B61": [
+      "-LT BLU-> system TRUNK, TAILGATE, FUEL DOORS SYSTEM"
+    ],
+    "B62": [
+      "-RED-> system DOOR LOCKS & ANTI-THEFT SYSTEMS"
+    ],
+    "B63": [
+      "-BLU-> system DOOR LOCKS & ANTI-THEFT SYSTEMS"
+    ],
+    "B64": [
+      "-BLK-> system DOOR LOCKS & ANTI-THEFT SYSTEMS"
+    ],
+    "B65": [
+      "-TAN-> system EXTERIOR LIGHTS SYSTEM"
+    ],
+    "B66": [
+      "-GRY-> system EXTERIOR LIGHTS SYSTEM"
+    ],
+    "C1": [
+      "-BLK-> system DOOR LOCKS & ANTI-THEFT SYSTEMS"
+    ],
+    "C12": [
+      "-PPL-> system DOOR LOCKS & ANTI-THEFT SYSTEMS"
+    ],
+    "C13": [
+      "-GRN-> system DOOR LOCKS & ANTI-THEFT SYSTEMS"
+    ],
+    "C14": [
+      "-GRY-> system DOOR LOCKS & ANTI-THEFT SYSTEMS"
+    ],
+    "C15": [
+      "-LT BLU-> system DOOR LOCKS & ANTI-THEFT SYSTEMS"
+    ],
+    "C16": [
+      "-LT GRN-> system DOOR LOCKS & TRUNK, TAILGATE, FUEL DOORS SYSTEMS"
+    ],
+    "C18": [
+      "-TAN-> system DOOR LOCKS & ANTI-THEFT SYSTEMS"
+    ],
+    "C19": [
+      "-YEL-> system INTERIOR LIGHTS SYSTEM"
+    ],
+    "C21": [
+      "-RED-> system DOOR LOCKS & ANTI-THEFT SYSTEMS"
+    ],
+    "C22": [
+      "-PPL-> system DOOR LOCKS & ANTI-THEFT SYSTEMS"
+    ],
+    "C26": [
+      "-PNK-> system DOOR LOCKS & ANTI-THEFT SYSTEMS"
+    ],
+    "C27": [
+      "-GRY-> system DOOR LOCKS & ANTI-THEFT SYSTEMS"
+    ],
+    "C28": [
+      "-BLU-> system DOOR LOCKS & ANTI-THEFT SYSTEMS"
+    ],
+    "C29": [
+      "-PNK-> system DOOR LOCKS & ANTI-THEFT SYSTEMS"
+    ],
+    "C30": [
+      "-PPL-> system DOOR LOCKS & ANTI-THEFT SYSTEMS"
+    ],
+    "C31": [
+      "-YEL-> system DOOR LOCKS & ANTI-THEFT SYSTEMS"
+    ],
+    "C32": [
+      "-BRN-> system DOOR LOCKS & ANTI-THEFT SYSTEMS"
+    ],
+    "C33": [
+      "-YEL-> system DOOR LOCKS & ANTI-THEFT SYSTEMS"
+    ],
+    "C34": [
+      "-GRN-> system DOOR LOCKS & ANTI-THEFT SYSTEMS"
+    ],
+    "C35": [
+      "-LT GRN-> system DOOR LOCKS & ANTI-THEFT SYSTEMS"
+    ],
+    "C36": [
+      "-PPL-> system DOOR LOCKS & ANTI-THEFT SYSTEMS"
+    ],
+    "C37": [
+      "-TAN-> system DOOR LOCKS & ANTI-THEFT SYSTEMS"
+    ],
+    "C38": [
+      "-PNK-> system DOOR LOCKS & ANTI-THEFT SYSTEMS"
+    ],
+    "C39": [
+      "-BLU-> system DOOR LOCKS & ANTI-THEFT SYSTEMS"
+    ],
+    "C40": [
+      "-LT GRN-> system DOOR LOCKS & ANTI-THEFT SYSTEMS"
+    ],
+    "C41": [
+      "-YEL-> system DOOR LOCKS & ANTI-THEFT SYSTEMS"
+    ],
+    "C42": [
+      "-WHT-> system DOOR LOCKS & ANTI-THEFT SYSTEMS"
+    ],
+    "C45": [
+      "-WHT-> system ENGINE CONTROLS SYSTEM"
+    ],
+    "C46": [
+      "-BLU-> system DOOR LOCKS & ANTI-THEFT SYSTEMS"
+    ],
+    "C47": [
+      "-GRY-> system DOOR LOCKS & ANTI-THEFT SYSTEMS"
+    ],
+    "C48": [
+      "-TAN-> system DOOR LOCKS & ANTI-THEFT SYSTEMS"
+    ],
+    "C49": [
+      "-LT GRN-> system DOOR LOCKS & ANTI-THEFT SYSTEMS"
+    ],
+    "C50": [
+      "-BLU-> system DOOR LOCKS & ANTI-THEFT SYSTEMS"
+    ],
+    "C51": [
+      "-BLK-> system POWER DISTRIBUTION & DOOR LOCKS SYSTEMS"
+    ],
+    "C52": [
+      "-RED-> system POWER DISTRIBUTION & DOOR LOCKS SYSTEMS"
+    ],
+    "C53": [
+      "-YEL-> system POWER DISTRIBUTION & DOOR LOCKS SYSTEMS"
+    ],
+    "C54": [
+      "-LT BLU-> system POWER DISTRIBUTION & DOOR LOCKS SYSTEMS"
+    ],
+    "C55": [
+      "-GRN-> system POWER DISTRIBUTION & DOOR LOCKS SYSTEMS"
+    ],
+    "C56": [
+      "-GRY-> system POWER DISTRIBUTION & DOOR LOCKS SYSTEMS"
+    ],
+    "C57": [
+      "-PPL-> system POWER DISTRIBUTION & DOOR LOCKS SYSTEMS"
+    ],
+    "C58": [
+      "-RED-> system SHIFT INTERLOCK SYSTEM"
+    ],
+    "C59": [
+      "-BRN-> system DOOR LOCKS & ANTI-THEFT SYSTEMS"
+    ],
+    "C60": [
+      "-GRN-> system DOOR LOCKS & ANTI-THEFT SYSTEMS"
+    ],
+    "C61": [
+      "-PNK-> system DOOR LOCKS SYSTEM"
+    ],
+    "C62": [
+      "-BRN-> system DOOR LOCKS SYSTEM"
+    ],
+    "C63": [
+      "-LT GRN-> system DOOR LOCKS SYSTEM"
+    ],
+    "C64": [
+      "-BLU-> system DOOR LOCKS SYSTEM"
+    ],
+    "C65": [
+      "-WHT-> system DOOR LOCKS SYSTEM"
+    ],
+    "C66": [
+      "-YEL-> system DOOR LOCKS SYSTEM"
+    ]
+  }
+}

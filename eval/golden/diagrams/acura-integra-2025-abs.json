@@ -14,7 +14,7 @@
     "5": ["-BLK-> C224 pin 4 -BLK-> (page 2 of 3) -BLK-> C222 [2]/C230 [1] pin 2 -colour not given-> RIGHT REAR ELECTRIC PARKING BRAKE ACTUATOR pin 2"],
     "6": ["-GRN-> C224 pin 3 -GRN-> C223 [2]/C229 [1] pin 2 -colour not given-> LEFT REAR ELECTRIC PARKING BRAKE ACTUATOR pin 2"],
     "7": ["-YEL-> C224 pin 1 -YEL-> C223 [2]/C229 [1] pin 1 -colour not given-> LEFT REAR ELECTRIC PARKING BRAKE ACTUATOR pin 1"],
-    "9": ["-BLU-> J/C C007 pin 11 J/C C007 pin 12 -BLU-> UNDER-DASH FUSE/ RELAY BOX pin A24 (FUSE 28 10A)"],
+    "9": ["-BLU-> J/C C007 pin 11 J/C C007 pin 12 -BLU-> UNDER-DASH FUSE/RELAY BOX pin A24 (FUSE 28 10A)"],
     "31": ["-RED-> C224 pin 8 -PPL/GRY-> [1] -PPL/GRY-> C229 pin 4 -colour not given-> LEFT REAR WHEEL SPEED SENSOR pin 1",
            "-RED-> C224 pin 8 -PPL/GRY-> [2] -PPL/GRY-> C223 pin 3 -colour not given-> LEFT REAR WHEEL SPEED SENSOR pin ?"],
     "30": ["-YEL-> C224 pin 13 -PPL/YEL-> [1] -PPL/YEL-> C229 pin 5 -colour not given-> LEFT REAR WHEEL SPEED SENSOR pin 2",

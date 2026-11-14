@@ -166,3 +166,143 @@ def test_a_route_that_stops_at_an_unattached_end_is_marked_incomplete():
     assert [is_complete(route) for route in trace(diagram, "TEST UNIT", "1")] == [False]
     assert [is_complete(route) for route in trace(diagram, "TEST UNIT", "2")] == [True]
     assert assess(diagram).unattached_ends == 1
+
+
+# -- arrows to other systems --------------------------------------------------------------------
+def arrow(page, x, y, side=1):
+    """An arrowhead at the end of a wire: its back at x, its tip pointing to the side."""
+    shape = page.new_shape()
+    shape.draw_polyline([(x, y - 2.3), (x + 4.1 * side, y), (x, y + 2.3)])
+    shape.finish(color=(0, 0, 0), fill=(0, 0, 0), width=0.36, closePath=False)  # two lines, filled: as in the real files
+    shape.commit()
+
+
+def group_brace(page, x, top, bottom, side=1):
+    """An upright brace beside several arrowheads; its point is on the far side from them."""
+    middle = (top + bottom) / 2
+    shape = page.new_shape()
+    shape.draw_polyline([(x, top), (x + 1.7 * side, top + 1.5), (x + 1.7 * side, middle - 1.5), (x + 3.6 * side, middle),
+                         (x + 1.7 * side, middle + 1.5), (x + 1.7 * side, bottom - 1.5), (x, bottom)])
+    shape.finish(color=(0, 0, 0), width=0.36, closePath=False)
+    shape.commit()
+
+
+def to_another_system(page, pin: str, y: float, label: tuple[str, ...] = ()):
+    """A red wire from a pin of TEST UNIT to an arrowhead, with the label printed beside the arrow."""
+    wire(page, [(103, y), (150, y)], RED)
+    text(page, 104, y - 2, pin)
+    text(page, 120, y - 2, "RED")
+    arrow(page, 150, y)
+    for row, words in enumerate(label):
+        text(page, 157, y + 2 + 5.5 * (row - (len(label) - 1) / 2), words)
+
+
+def arrows_page():
+    doc = pymupdf.open()
+    page = new_page(doc, 1, 1)
+    box(page, (60, 200, 100, 300), "TEST UNIT")
+    to_another_system(page, "1", 211, ("DOOR LOCKS SYSTEM",))
+    to_another_system(page, "2", 220, ("INTERIOR LIGHTS SYSTEM",))  # the next row: its own label, 9 pt lower
+    to_another_system(page, "3", 232, ("WIPER/WASHER &", "HEADLIGHTS SYSTEMS"))  # one arrow, a label of two rows
+    for pin, y in (("4", 250), ("5", 259), ("6", 268)):  # three arrows in a brace, one label at its point
+        to_another_system(page, pin, y)
+    group_brace(page, 154.5, 246, 272)
+    text(page, 160, 258.25, "DOOR LOCKS &")
+    text(page, 160, 263.75, "ANTI-THEFT SYSTEMS")
+    to_another_system(page, "7", 277, ("SHIFT INTERLOCK SYSTEM",))  # just under the brace, outside it
+    return doc, page
+
+
+def test_an_arrow_is_named_by_the_text_on_its_own_row_or_by_its_brace():
+    doc, _ = arrows_page()
+    diagram = read_pdf(doc.tobytes())
+    ends = {pin: trace(diagram, "TEST UNIT", pin)[0][-1].name for pin in "1234567"}
+    assert ends == {"1": "DOOR LOCKS SYSTEM", "2": "INTERIOR LIGHTS SYSTEM", "3": "WIPER/WASHER & HEADLIGHTS SYSTEMS",
+                    "4": "DOOR LOCKS & ANTI-THEFT SYSTEMS", "5": "DOOR LOCKS & ANTI-THEFT SYSTEMS",
+                    "6": "DOOR LOCKS & ANTI-THEFT SYSTEMS", "7": "SHIFT INTERLOCK SYSTEM"}
+    assert assess(diagram).verdict == "traced"
+
+
+def test_an_arrow_with_no_label_is_not_given_its_neighbours_label():
+    doc, page = arrows_page()
+    to_another_system(page, "8", 286)  # 9 pt under pin 7's arrow, and nothing printed beside it
+    diagram = read_pdf(doc.tobytes())
+    (route,) = trace(diagram, "TEST UNIT", "8")
+    assert route[-1].name == "?" and not is_complete(route)
+    quality = assess(diagram)
+    assert quality.verdict == "partial" and any("not named" in reason for reason in quality.reasons)
+
+
+# -- pages ------------------------------------------------------------------------------------
+def sheet(doc, title: str | None, title_y: float = 90):
+    page = doc.new_page(width=612, height=792)
+    text(page, 28, 40, "2025 Test Car L4-1.5L Turbo (T15)")
+    text(page, 28, 55, "Vehicle > Brakes > Diagrams >")
+    if title:
+        text(page, 28, title_y, title)
+    return page
+
+
+def lamp_circuit(page):
+    page.draw_rect((29, 101, 555, 754), color=(0, 0, 0), width=0.87)
+    box(page, (60, 200, 100, 300), "TEST UNIT")
+    wire(page, [(103, 220), (400, 220)], RED)
+    text(page, 104, 218, "1")
+    text(page, 130, 218, "RED")
+    box(page, (403, 205, 440, 235), "LAMP")
+
+
+def test_a_title_printed_on_a_sheet_of_its_own_belongs_to_the_drawing_on_the_next_sheet():
+    doc = pymupdf.open()
+    sheet(doc, "Test Diagram - Page 1 of 2", title_y=120)  # a long header pushed the title down and the drawing off the sheet
+    lamp_circuit(sheet(doc, None))
+    lamp_circuit(sheet(doc, "Test Diagram - Page 2 of 2"))
+    diagram = read_pdf(doc.tobytes())
+    assert diagram.page_labels == ["1 of 2", "2 of 2"] and diagram.title == "Test Diagram"
+    assert assess(diagram).verdict == "traced"
+
+
+def test_a_drawing_with_no_title_is_read_and_reported_never_dropped():
+    doc = pymupdf.open()
+    lamp_circuit(sheet(doc, None))
+    lamp_circuit(sheet(doc, "Test Diagram - Page 2 of 2"))
+    diagram = read_pdf(doc.tobytes())
+    assert diagram.page_labels == ["?", "2 of 2"] and len(trace(diagram, "TEST UNIT", "1")) == 2
+    quality = assess(diagram)
+    assert quality.verdict == "partial" and any("2 page(s); 1 were read" in reason for reason in quality.reasons)
+
+
+# -- component names --------------------------------------------------------------------------
+def rows(page, x, y, *lines):
+    for number, words in enumerate(lines):
+        text(page, x, y + 5.5 * number, words)
+
+
+def test_a_fuse_box_is_named_by_the_text_beside_it_not_by_a_part_inside_it():
+    doc = pymupdf.open()
+    page = new_page(doc, 1, 1)
+    page.draw_rect((60, 150, 200, 190), color=None, fill=COMPONENT_FILL)
+    rows(page, 70, 162, "FUSE", "11", "10A")
+    rows(page, 120, 165, "RELAY", "CONTROL", "MODULE")  # a part inside the box
+    rows(page, 203, 156, "UNDER-HOOD", "FUSE/RELAY", "BOX", "(LEFT SIDE OF", "ENGINE COMPT)")  # the box's name, beside it
+    wire(page, [(75, 193), (75, 300)], RED)
+    text(page, 65, 199, "A45")
+    text(page, 70, 250, "RED")
+    box(page, (60, 303, 100, 330), "LAMP")
+    text(page, 70, 299, "1")
+    diagram = read_pdf(doc.tobytes())
+    names = {(component.name, component.location) for component in diagram.pages[0].components}
+    assert ("UNDER-HOOD FUSE/RELAY BOX", "LEFT SIDE OF ENGINE COMPT") in names
+    assert trace(diagram, "UNDER-HOOD FUSE/RELAY BOX", "A45")
+
+
+def test_a_name_that_was_cut_short_makes_the_diagram_only_partly_trusted():
+    doc = pymupdf.open()
+    page = new_page(doc, 1, 1)
+    box(page, (60, 200, 100, 300), "UNIT")
+    wire(page, [(103, 220), (400, 220)], RED)
+    text(page, 104, 218, "1")
+    text(page, 130, 218, "RED")
+    box(page, (403, 205, 440, 235), "LAMP")
+    quality = assess(read_pdf(doc.tobytes()))
+    assert quality.verdict == "partial"

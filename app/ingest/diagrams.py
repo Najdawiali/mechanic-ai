@@ -42,9 +42,15 @@ COMPONENT_FILL = (0.89, 0.96, 0.99)
 MARGIN_TOP, MARGIN_BOTTOM = 27, 30  # the browser's print header and footer
 MAX_GAP = 11.0  # the widest connector symbol between two wire ends
 MIN_WIRE_LENGTH = 4.0
+# One general word, a leftover of a location note, or nothing: not what a manual calls a component.
+CUT_NAME = re.compile(r"^(\?|(CONTROL )?(BOX|UNIT|MODULE|SWITCH|SENSOR|RELAY|CONVERTER|ACTUATOR|ANTENNA|MOTOR|LEFT|RIGHT|FRONT|REAR)"
+                      r"|(LEFT|RIGHT) (FRONT|REAR)|.*\))$")
+NAME_REACH = 7.0  # a component's name is printed this close to its box
+LABEL_ROW_GAP = 0.4  # rows of one label overlap (measured -0.4 pt); labels of neighbouring arrows are 1.1 pt or more apart
 
 _COLOUR = r"(?:LT |DK )?(?:BLK|WHT|RED|GRN|BLU|YEL|BRN|ORG|PNK|GRY|PPL|VIO|TAN)"
 COLOUR_LABEL = re.compile(rf"^{_COLOUR}(?:/{_COLOUR})?$")
+NO_COLOUR = "NCA"  # printed in place of a colour on wires whose colour the provider does not give
 PIN = re.compile(r"^(?:\d{1,3}|[A-Z]{1,2}\d{1,2})$")  # 31, A11, C20
 CONNECTOR_ID = re.compile(r"^C\d{3}$")
 GROUND_ID = re.compile(r"^G\d{3}$")
@@ -144,25 +150,9 @@ def _labels(page: pymupdf.Page) -> list[Label]:
     return out
 
 
-def _text_blocks(labels: list[Label]) -> list[tuple[tuple[float, float, float, float], str]]:
-    """Descriptive text (component names, locations) regrouped by position into blocks.
-
-    Words on one row with small gaps make a line; lines stacked closely with a shared centre
-    make a block. A line that opens a bracket starts a new block, so a location note is kept
-    apart from the name above it.
-    """
-    def is_fuse_number(lb: Label) -> bool:
-        return _is_fuse_number(lb, labels)
-
-    def names_a_junction_connector(lb: Label) -> bool:
-        return any(o.text == "J/C" and abs(o.y - lb.y) < 1.5 and 0 <= lb.rect[0] - o.rect[2] < 4 for o in labels)
-
-    words = [
-        lb for lb in labels
-        if not ((PIN.match(lb.text) and not is_fuse_number(lb)) or COLOUR_LABEL.match(lb.text) or GROUND_ID.match(lb.text)
-                or (CONNECTOR_ID.match(lb.text) and not names_a_junction_connector(lb)))
-    ]
-    words.sort(key=lambda lb: (round(lb.y), lb.rect[0]))
+def _text_lines(words: list[Label]) -> list[tuple[tuple[float, float, float, float], str]]:
+    """Words on one row with small gaps between them, as one line with its rectangle."""
+    words = sorted(words, key=lambda lb: (round(lb.y), lb.rect[0]))
     lines: list[list[Label]] = []
     for lb in words:
         last = lines[-1][-1] if lines else None
@@ -173,9 +163,62 @@ def _text_blocks(labels: list[Label]) -> list[tuple[tuple[float, float, float, f
     boxed = [((min(w.rect[0] for w in ln), min(w.rect[1] for w in ln), max(w.rect[2] for w in ln), max(w.rect[3] for w in ln)),
               " ".join(w.text for w in ln)) for ln in lines]
     boxed.sort(key=lambda b: (b[0][1], b[0][0]))
+    return boxed
+
+
+def _descriptive(labels: list[Label]) -> list[Label]:
+    """The words that describe something: not pin numbers, wire colours, ground or connector ids."""
+    def names_a_junction_connector(lb: Label) -> bool:
+        return any(o.text == "J/C" and abs(o.y - lb.y) < 1.5 and 0 <= lb.rect[0] - o.rect[2] < 4 for o in labels)
+
+    return [lb for lb in labels
+            if not ((PIN.match(lb.text) and not _is_fuse_number(lb, labels)) or COLOUR_LABEL.match(lb.text) or lb.text == NO_COLOUR
+                    or GROUND_ID.match(lb.text)
+                    or (CONNECTOR_ID.match(lb.text) and not names_a_junction_connector(lb)))]
+
+
+def _label_beside(anchor: tuple[float, float], side: int, lines) -> str | None:
+    """The text printed beside an arrowhead or beside the point of a group brace.
+
+    The label starts just beyond the anchor (`side` +1 = to the right, -1 = to the left), at its
+    height. It may take two or three rows, printed tightly one under the other and lined up on the
+    side nearest the arrow; such a label can stand beside two arrows at once (a pair of data
+    lines). Labels of neighbouring arrows are on rows of their own, further apart, so they are
+    never joined to it and never borrowed.
+    """
+    near = lambda rect: rect[0] if side > 0 else rect[2]  # noqa: E731  the edge nearest the anchor
+    close = sorted((ln for ln in lines if -1.0 <= (near(ln[0]) - anchor[0]) * side <= 12.0), key=lambda ln: ln[0][1])
+    stacks: list[list] = []
+    for line in close:
+        last = stacks[-1][-1] if stacks else None
+        if last and line[0][1] - last[0][3] < LABEL_ROW_GAP and abs(near(line[0]) - near(last[0])) < 2.0:
+            stacks[-1].append(line)
+        else:
+            stacks.append([line])
+    beside = [stack for stack in stacks if stack[0][0][1] - 0.5 <= anchor[1] <= stack[-1][0][3] + 0.5]
+    if len(beside) != 1:
+        return None
+    return " ".join(text for _, text in beside[0])
+
+
+def _text_blocks(labels: list[Label]) -> list[tuple[tuple[float, float, float, float], str]]:
+    """Descriptive text (component names, locations) regrouped by position into blocks.
+
+    Words on one row with small gaps make a line; lines stacked closely make a block when they
+    share a centre (a name printed above or below its box), or when they touch and start or end
+    at the same place (a name printed beside its box). A line that opens a bracket starts a new
+    block, so a location note is kept apart from the name above it.
+    """
+    boxed = _text_lines(_descriptive(labels))
     blocks: list[list] = []  # [rect, [texts]]
+
+    def stacked(brect, rect, centre_within: float) -> bool:
+        gap = rect[1] - brect[3]
+        centred = -2.5 <= gap < 2.5 and abs((brect[0] + brect[2]) / 2 - (rect[0] + rect[2]) / 2) < centre_within
+        lined_up = -2.5 <= gap < LABEL_ROW_GAP and (abs(brect[0] - rect[0]) < 1.5 or abs(brect[2] - rect[2]) < 1.5)
+        return centred or lined_up
+
     for rect, text in boxed:
-        cx = (rect[0] + rect[2]) / 2
         home = None
         if not text.startswith("("):
             for block in blocks:
@@ -183,7 +226,7 @@ def _text_blocks(labels: list[Label]) -> list[tuple[tuple[float, float, float, f
                 closed = not texts[0].startswith("(") or texts[-1].endswith(")")
                 if texts[0].startswith("(") and closed:
                     continue
-                if -2.5 <= rect[1] - brect[3] < 2.5 and abs((brect[0] + brect[2]) / 2 - cx) < 6:
+                if stacked(brect, rect, 6):
                     home = block
         else:
             home = None
@@ -191,8 +234,7 @@ def _text_blocks(labels: list[Label]) -> list[tuple[tuple[float, float, float, f
             # a bracketed note that is still open keeps collecting its lines
             for block in blocks:
                 brect, texts = block
-                if texts[0].startswith("(") and not texts[-1].endswith(")") and -2.5 <= rect[1] - brect[3] < 2.5 \
-                        and abs((brect[0] + brect[2]) / 2 - cx) < 10:
+                if texts[0].startswith("(") and not texts[-1].endswith(")") and stacked(brect, rect, 10):
                     home = block
         if home is None:
             blocks.append([rect, [text]])
@@ -200,7 +242,8 @@ def _text_blocks(labels: list[Label]) -> list[tuple[tuple[float, float, float, f
             b = home[0]
             home[0] = (min(b[0], rect[0]), min(b[1], rect[1]), max(b[2], rect[2]), max(b[3], rect[3]))
             home[1].append(text)
-    return [(rect, re.sub(r"- ", "-", " ".join(texts))) for rect, texts in blocks]
+    # a row that ends in a hyphen or a slash continues on the next row without a space: FUSE/ + RELAY BOX
+    return [(rect, re.sub(r"([-/]) ", r"\1", " ".join(texts))) for rect, texts in blocks]
 
 
 # -- drawing ---------------------------------------------------------------------------
@@ -232,6 +275,7 @@ def _direction(tip, before) -> tuple[int, int]:
 
 def _read_shapes(page: pymupdf.Page):
     plain, bases, tops, dots, boxes, rings, braces, dashed, arrows, links = [], [], [], [], [], [], [], [], [], []
+    groups = []
     for path in page.get_drawings():
         kinds = {item[0] for item in path["items"]}
         width = round(path.get("width") or 0, 2)
@@ -258,6 +302,13 @@ def _read_shapes(page: pymupdf.Page):
             peak, tip = points[3], points[0]  # the point in the middle, and one of the two outer tips
             if abs(peak.x - (rect.x0 + rect.x1) / 2) < rect.width / 4 and abs(peak.y - tip.y) > 1.5:
                 braces.append((rect.x0, rect.x1, peak.x, peak.y, tip.y))  # left, right, middle, point, tips
+        elif kinds == {"l"} and len(path["items"]) == 6 and rect.height > 12 and rect.width < 6 and not path.get("fill") \
+                and _rgb(path["color"]) == (0.0, 0.0, 0.0):
+            # an upright brace: the arrows it spans all go where the text at its point says
+            points = [path["items"][0][1]] + [item[2] for item in path["items"]]
+            peak, tip = points[3], points[0]
+            if abs(peak.y - (rect.y0 + rect.y1) / 2) < rect.height / 4 and abs(peak.x - tip.x) > 1.5:
+                groups.append((rect.y0, rect.y1, tip.x, peak.x, peak.y))  # top, bottom, tips, point x, point y
         elif kinds == {"l"} and path.get("color") and not path.get("fill"):
             points = [path["items"][0][1]] + [item[2] for item in path["items"]]
             points = [(p.x, p.y) for p in points]
@@ -268,7 +319,7 @@ def _read_shapes(page: pymupdf.Page):
                       tops if STRIPE_TOP_WIDTH[0] <= width <= STRIPE_TOP_WIDTH[1] else None)
             if target is not None and _rgb(path["color"]) != (0.0, 0.0, 0.0) or target is plain:
                 target.append((points, _rgb(path["color"])))
-    return plain, bases, tops, dots, boxes, rings, braces, dashed, arrows, links
+    return plain, bases, tops, dots, boxes, rings, braces, dashed, arrows, links, groups
 
 
 def _same_path(a, b) -> bool:
@@ -287,7 +338,7 @@ def _merge_boxes(boxes):
 
 def read_page(page: pymupdf.Page, number: int = 0) -> Page:
     labels = _labels(page)
-    plain, bases, tops, dots, boxes, rings, braces, dashed, arrows, links = _read_shapes(page)
+    plain, bases, tops, dots, boxes, rings, braces, dashed, arrows, links, groups = _read_shapes(page)
     frame = max((p["rect"] for p in page.get_drawings() if p["rect"].width > 400 and p["rect"].height > 400),
                 key=lambda r: r.width * r.height, default=page.rect)
     labels = [lb for lb in labels if frame.x0 <= lb.x <= frame.x1 and frame.y0 <= lb.y <= frame.y1]
@@ -306,7 +357,10 @@ def read_page(page: pymupdf.Page, number: int = 0) -> Page:
 
     _name_colours(wires, labels)
     components = _components(boxes, labels)
-    _attach_ends(wires, dots, components, pin_labels, labels, problems, braces, markers, arrows, links)
+    for component in components:
+        if CUT_NAME.match(component.name):
+            problems.append(f"a component's name looks cut short or was not found: {component.name!r}")
+    _attach_ends(wires, dots, components, pin_labels, labels, problems, braces, markers, arrows, links, groups)
     for i, wire in enumerate(wires):
         if wire.colour_agrees is False:
             problems.append(f"wire {i}: drawn {wire.drawn_as}, labelled {wire.colour}")
@@ -362,22 +416,38 @@ def _name_colours(wires: list[Wire], labels: list[Label]) -> None:
             wire.drawn_as = base
 
 
+def _rects_apart(a, b) -> float:
+    """The gap between two rectangles (0 when they touch or overlap)."""
+    return math.hypot(max(a[0] - b[2], b[0] - a[2], 0), max(a[1] - b[3], b[1] - a[3], 0))
+
+
 def _components(boxes, labels: list[Label]) -> list[Component]:
     blocks = _text_blocks(labels)
-    not_a_name = re.compile(r"^(HOT |\d+A$|FUSE \d|RELAY ENERGIZED|ENERGIZED|ALL TIMES|M$|EXCEPT |\d)")
-    names = [(rect, text) for rect, text in blocks if not text.startswith("(") and not not_a_name.match(text)]
+    # What feeds a fuse ("HOT W/ DC-DC CONVERTER IG1 RELAY ENERGIZED") and what a fuse is are not names.
+    not_a_name = re.compile(r"^(HOT |\d+A$|FUSE \d|RELAY ENERGIZED|ENERGIZED|CONVERTER$|RELAY$|ALL TIMES|M$|EXCEPT )")
+    names = [(rect, text) for rect, text in blocks
+             if not text.startswith("(") and not text.endswith(")") and not not_a_name.match(text) and re.search(r"[A-Z]{3}|J/C", text)]
     notes = [(rect, text) for rect, text in blocks if text.startswith("(")]
     out = []
     for box in _merge_boxes(boxes):
-        inside = [text for rect, text in names if _rect_distance(((rect[0] + rect[2]) / 2, (rect[1] + rect[3]) / 2), box) == 0
-                  and re.search(r"BOX|UNIT|MODULE", text)]
+        centre_of = lambda rect: ((rect[0] + rect[2]) / 2, (rect[1] + rect[3]) / 2)  # noqa: E731
+        fuses = [((rect[0] + rect[2]) / 2, text) for rect, text in blocks
+                 if text.startswith("FUSE ") and _rect_distance(centre_of(rect), box) == 0]
+        inside = [text for rect, text in names if _rect_distance(centre_of(rect), box) == 0 and re.search(r"BOX|UNIT|MODULE", text)]
         if not inside:  # a fuse box prints its name across the top edge of the box
-            inside = [text for rect, text in names if re.search(r"BOX", text) and _rect_distance(
-                ((rect[0] + rect[2]) / 2, (rect[1] + rect[3]) / 2), box) < 6 and box[0] <= (rect[0] + rect[2]) / 2 <= box[2]]
-        outside = sorted(
-            (( _rect_distance(((rect[0] + rect[2]) / 2, (rect[1] + rect[3]) / 2), box), text, rect) for rect, text in names
-             if _rect_distance(((rect[0] + rect[2]) / 2, (rect[1] + rect[3]) / 2), box) > 0), key=lambda t: t[0])
-        if inside:
+            inside = [text for rect, text in names if re.search(r"BOX", text) and _rect_distance(centre_of(rect), box) < 6
+                      and box[0] <= (rect[0] + rect[2]) / 2 <= box[2]]
+        # The name of a component is printed against its box: above, below or beside it. Text inside
+        # the box names a part within it (a relay control module in a fuse box, a control unit in a switch).
+        against = sorted(((_rects_apart(rect, box), text, rect) for rect, text in names
+                          if _rect_distance(centre_of(rect), box) > 0 and _rects_apart(rect, box) < NAME_REACH), key=lambda t: t[0])
+        if fuses:  # a box of fuses is a fuse box or a fuse holder, whatever else is printed near it
+            against = [a for a in against if re.search(r"BOX|HOLDER", a[1])] or against
+        outside = sorted(((_rect_distance(centre_of(rect), box), text, rect) for rect, text in names
+                          if _rect_distance(centre_of(rect), box) > 0), key=lambda t: t[0])
+        if against:
+            name, anchor = against[0][1], against[0][2]
+        elif inside:
             name, anchor = inside[0], box
         elif outside and outside[0][0] < 24:
             name, anchor = outside[0][1], outside[0][2]
@@ -386,8 +456,6 @@ def _components(boxes, labels: list[Label]) -> list[Component]:
         centre = ((anchor[0] + anchor[2]) / 2, (anchor[1] + anchor[3]) / 2)
         note = min(notes, key=lambda n: _rect_distance(centre, n[0]), default=None)
         location = note[1].strip("()") if note and _rect_distance(centre, note[0]) < 14 else None
-        fuses = [((rect[0] + rect[2]) / 2, text) for rect, text in blocks
-                 if text.startswith("FUSE ") and _rect_distance(((rect[0] + rect[2]) / 2, (rect[1] + rect[3]) / 2), box) == 0]
         out.append(Component(box, name, location, fuses))
     return out
 
@@ -407,7 +475,8 @@ def _pin_beside(end: End, pin_labels: list[Label]) -> str | None:
     return best
 
 
-def _attach_ends(wires, dots, components, pin_labels, labels, problems, braces=(), markers=(), arrows=(), links=()) -> None:
+def _attach_ends(wires, dots, components, pin_labels, labels, problems, braces=(), markers=(), arrows=(), links=(),
+                 groups=()) -> None:
     for wire in wires:
         first, last = wire.points[0], wire.points[-1]
         wire.ends = [End(first, _direction(first, wire.points[1])), End(last, _direction(last, wire.points[-2]))]
@@ -451,9 +520,21 @@ def _attach_ends(wires, dots, components, pin_labels, labels, problems, braces=(
             if _rect_distance(end.xy, arrow) < 1.0:
                 tip = (arrow[2] if end.out[0] > 0 else arrow[0] if end.out[0] < 0 else end.xy[0],
                        arrow[3] if end.out[1] > 0 else arrow[1] if end.out[1] < 0 else end.xy[1])
-                named = min(_text_blocks(labels), key=lambda b: _rect_distance(tip, b[0]), default=None)
                 end.kind = "system"
-                end.ids = (named[1],) if named and _rect_distance(tip, named[0]) < 12 else ("?",)
+                if end.out[0]:
+                    # A sideways arrow is named by the text on its own row; an arrow inside an upright
+                    # brace by the text at the brace's point. Never by the nearest text of another row.
+                    side = end.out[0]
+                    group = next((g for g in groups if g[0] - 1 <= tip[1] <= g[1] + 1 and -2.5 <= (g[2] - tip[0]) * side < 6
+                                  and (g[3] - g[2]) * side > 0), None)
+                    name = _label_beside((group[3], group[4]) if group else tip, side, _text_lines(_descriptive(labels)))
+                else:
+                    named = min(_text_blocks(labels), key=lambda b: _rect_distance(tip, b[0]), default=None)
+                    name = named[1] if named and _rect_distance(tip, named[0]) < 12 else None
+                end.ids = (name or "?",)
+                if name is None:
+                    problems.append(f"an arrow at ({tip[0]:.0f}, {tip[1]:.0f}) has no system named beside it")
+                break
         if end.kind != "open":
             continue
         # a version brace: wires above it continue as the wires below it
@@ -590,6 +671,7 @@ class Diagram:
     pages: list[Page]
     page_labels: list[str]  # "1 of 3", one per page
     diagram_ids: list[str]
+    pages_in_title: int | None = None  # the "of 3" printed in the titles: how many pages the diagram has
 
     @property
     def problems(self) -> list[str]:
@@ -597,10 +679,16 @@ class Diagram:
 
 
 def read_pdf(source: str | bytes) -> Diagram:
-    """Read every diagram page of a PDF. Pages that carry only a header are skipped."""
+    """Read every page of a PDF that has a drawing.
+
+    A page that carries only a header is skipped, but its "Page x of y" title is kept: when the
+    browser pushed a drawing to the next sheet of paper, that title belongs to the drawing that
+    follows. A drawing is never dropped for want of a title.
+    """
     doc = pymupdf.open(stream=source, filetype="pdf") if isinstance(source, bytes) else pymupdf.open(source)
     vehicle_line, system_path, title = "", [], ""
     pages, page_labels, diagram_ids = [], [], []
+    waiting, pages_in_title = None, None  # a title printed on a sheet with no drawing
     for number, raw in enumerate(doc):
         header = [line.strip() for line in raw.get_text("text", clip=pymupdf.Rect(0, MARGIN_TOP, raw.rect.width, 101)).splitlines()
                   if line.strip()]
@@ -609,16 +697,25 @@ def read_pdf(source: str | bytes) -> Diagram:
         path_line = next((line for line in header if " > " in line), "")
         system_path = system_path or [part.strip() for part in path_line.split(">") if part.strip() and part.strip() != "Vehicle"]
         label = next((m for m in (HEADER_PAGE.match(line) for line in header) if m), None)
-        if label is None:
-            continue
-        title = title or label["title"]
+        if label is not None:
+            title = title or label["title"]
+            pages_in_title = max(pages_in_title or 0, int(label["m"]))
         page = read_page(raw, number)
-        if not page.wires:  # a page that carries only the header
+        if not page.wires:  # a page that carries only the header; a long system line can push the title down
+            everywhere = (HEADER_PAGE.match(line.strip()) for line in raw.get_text("text").splitlines())
+            label = label or next((m for m in everywhere if m), None)
+            if label is not None:
+                title = title or label["title"]
+                pages_in_title = max(pages_in_title or 0, int(label["m"]))
+            waiting = label or waiting
             continue
+        label, waiting = label or waiting, None
+        if label is None:
+            page.problems.append('this page has a drawing and no "Page x of y" title')
         pages.append(page)
-        page_labels.append(f"{label['n']} of {label['m']}")
+        page_labels.append(f"{label['n']} of {label['m']}" if label else "?")
         diagram_ids += [lb.text for lb in page.labels if re.fullmatch(r"\d{6}", lb.text)][:1] or ["?"]
-    return Diagram(vehicle_line, system_path, title, pages, page_labels, diagram_ids)
+    return Diagram(vehicle_line, system_path, title, pages, page_labels, diagram_ids, pages_in_title)
 
 
 @dataclass(frozen=True)
@@ -651,6 +748,7 @@ def assess(diagram: Diagram) -> Quality:
     agree = sum(wire.colour_agrees is True for wire in wires)
     disagree = sum(wire.colour_agrees is False for wire in wires)
     unattached = sum(end.kind == "open" for wire in wires for end in wire.ends)
+    unnamed = sum(end.kind == "system" and end.ids == ("?",) for wire in wires for end in wire.ends)
     ends = sum(len(wire.ends) for wire in wires)
     reasons = []
     if not wires:
@@ -661,7 +759,12 @@ def assess(diagram: Diagram) -> Quality:
         reasons.append(f"{disagree} wire(s) are drawn in one colour and labelled another")
     if unattached:
         reasons.append(f"{unattached} wire end(s) are attached to nothing")
-    other = len(diagram.problems) - disagree - unattached
+    read = len({label for label in diagram.page_labels if label != "?"})
+    if diagram.pages_in_title and read != diagram.pages_in_title:
+        reasons.append(f"the titles say the diagram has {diagram.pages_in_title} page(s); {read} were read")
+    if unnamed:
+        reasons.append(f"{unnamed} arrow(s) point to a system that is not named beside them")
+    other = len(diagram.problems) - disagree - unattached - unnamed
     if other > 0:
         reasons.append(f"{other} other problem(s), such as a connector with no id")
     if not wires or agree == 0 or unattached > MAX_UNATTACHED_SHARE * ends or disagree > MAX_DISAGREE_SHARE * len(wires):
@@ -674,9 +777,9 @@ def assess(diagram: Diagram) -> Quality:
 
 
 def is_complete(route: list[Hop]) -> bool:
-    """False when the route stops at an end the reader could not attach: it must not be
-    presented as the whole path."""
-    return route[-1].kind != "open"
+    """False when the route stops at an end the reader could not attach, or at an arrow whose
+    system it could not name: it must not be presented as the whole path."""
+    return route[-1].kind != "open" and not (route[-1].kind == "system" and route[-1].name in (None, "?"))
 
 
 @dataclass(frozen=True)
