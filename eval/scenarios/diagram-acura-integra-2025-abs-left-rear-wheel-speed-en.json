@@ -1,0 +1,68 @@
+{
+  "scenario_id": "scn:acura-integra-2025:diagram:abs-left-rear-wss:en",
+  "group": "diagram",
+  "language": "en",
+  "dialect": null,
+  "vehicle": {
+    "make": "Acura",
+    "model": "Integra",
+    "year": 2025,
+    "engine_code": "L15CA",
+    "powertrain": "ICE"
+  },
+  "codes": [],
+  "turns": [
+    {
+      "mechanic": "2025 Integra 1.5 turbo. Which pins on the VSA modulator-control unit are for the left rear wheel speed sensor, and what colour are the wires?",
+      "attachments": [],
+      "expect": {
+        "standard": {
+          "reply_type": "conclusion",
+          "label": "verified",
+          "evidence_types": [
+            "diagram"
+          ],
+          "diagrams_sent": [],
+          "message_must_contain": [
+            "31",
+            "30",
+            "RED",
+            "YEL",
+            "C224",
+            "PPL/GRY",
+            "PPL/YEL"
+          ]
+        }
+      }
+    }
+  ],
+  "related_case_id": null,
+  "related_procedure_id": null,
+  "expected": {
+    "standard": {
+      "must_do": [
+        "Give VSA modulator-control unit pin 31 (RED) and pin 30 (YEL)",
+        "Say both wires pass through connector C224, pin 8 and pin 13, and continue to the sensor as PPL/GRY and PPL/YEL",
+        "Name the diagram used: Anti-Lock Brakes, page 1 of 3, diagram 910112"
+      ],
+      "must_not": [
+        "State a pin, colour or connector that is not on the diagram",
+        "Report NCA as a wire colour",
+        "Send the diagram image when the mechanic did not ask for it"
+      ],
+      "final_cause": null
+    }
+  },
+  "source": {
+    "kind": "licensed_diagram",
+    "file": "Anti-Lock Brakes (Antilock Brakes _ Traction Control Systems).pdf",
+    "licensed": true
+  },
+  "review": {
+    "status": "draft",
+    "open_questions": [
+      "The mechanic's messages were written by us. The client's mechanic should check they sound natural.",
+      "The expected pins, colours and connectors were read by eye from the diagram page. Compare with the extracted record in Milestone 2."
+    ]
+  }
+}

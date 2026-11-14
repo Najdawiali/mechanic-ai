@@ -1,0 +1,108 @@
+{
+  "scenario_id": "scn:tesla-model-3-2020:vcfront-a490-di-a190:ar",
+  "group": "case",
+  "language": "ar",
+  "dialect": "Jordanian",
+  "vehicle": {
+    "make": "Tesla",
+    "model": "Model 3",
+    "year": 2020,
+    "engine_code": null,
+    "powertrain": "EV"
+  },
+  "codes": [
+    "VCFRONT_a490_coolantPumpsNotIdentified",
+    "DI_a190_tireRotationRecommended"
+  ],
+  "turns": [
+    {
+      "mechanic": "تسلا موديل 3 2020 عليها VCFRONT_a490_coolantPumpsNotIdentified و DI_a190_tireRotationRecommended",
+      "expect": {
+        "case_in_kb": {
+          "label": "verified",
+          "evidence_types": [
+            "case"
+          ],
+          "message_must_contain": [
+            "VCFRONT_a490",
+            "DI_a190"
+          ],
+          "message_must_not_contain": []
+        },
+        "case_held_out": {
+          "label_any_of": [
+            "general",
+            "none"
+          ],
+          "evidence_must_not_include": [
+            "case"
+          ],
+          "message_must_not_contain": []
+        }
+      }
+    },
+    {
+      "mechanic": "عملنا Pump Identify من شاشة السيارة وكمّل، وبدلنا أماكن الكوشوك وعملنا Tire Rotation Reset، والتنبيهين راحوا",
+      "expect": {
+        "case_in_kb": {
+          "reply_type": "conclusion",
+          "conclusion_contains": [
+            "Pump Identify"
+          ]
+        },
+        "case_held_out": {
+          "reply_type": "conclusion",
+          "conclusion_contains": [
+            "Pump Identify"
+          ]
+        }
+      }
+    }
+  ],
+  "related_case_id": null,
+  "related_procedure_id": null,
+  "expected": {
+    "case_in_kb": {
+      "must_do": [
+        "Offer the solved case as a hint, with its source, and say it is one earlier repair, not a confirmed fix for this car",
+        "Say which car the case was done on, or that the report did not record it",
+        "Ask for, or point to, the check that shows the case applies before any part is replaced",
+        "Reply in the mechanic's language with codes and part names in English letters",
+        "Explain that DI_a190 is a maintenance reminder, not proof of an electrical fault",
+        "Say that if pump identification fails or the alert stays, the pump's power supply, communication and condition should be checked"
+      ],
+      "must_not": [
+        "Tell the mechanic to replace a part without a check",
+        "Present the case as a manufacturer procedure",
+        "State a pin, value or specification that is not in the case"
+      ],
+      "final_cause": "Coolant pump identification not completed (Pump Identify run from the touchscreen); tire rotation reminder reset"
+    },
+    "case_held_out": {
+      "must_do": [
+        "Say there is no verified information for this vehicle and fault in the knowledge base",
+        "Label any explanation as general knowledge, not verified",
+        "Ask follow-up questions that narrow the fault",
+        "When the mechanic confirms the fix, record it as a pending case for admin approval"
+      ],
+      "must_not": [
+        "Present the fix from the held-out case as a known or verified fix",
+        "Cite a solved case",
+        "State a pin, value or specification"
+      ],
+      "final_cause": "Coolant pump identification not completed (Pump Identify run from the touchscreen); tire rotation reminder reset"
+    }
+  },
+  "source": {
+    "kind": "client_case_file",
+    "file": "Tesla_Models_3_Y_S_X_VCFRONT_a490_DI_a190_EN.txt",
+    "licensed": false
+  },
+  "review": {
+    "status": "draft",
+    "open_questions": [
+      "The mechanic's messages were written by us from the case report. The client's mechanic should check they sound natural.",
+      "The scenario car (Model 3 2020) is ours: the report names no model or year."
+    ]
+  }
+}

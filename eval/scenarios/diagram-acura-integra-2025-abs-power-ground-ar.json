@@ -1,0 +1,82 @@
+{
+  "scenario_id": "scn:acura-integra-2025:diagram:abs-power-ground:ar",
+  "group": "diagram",
+  "language": "ar",
+  "dialect": "Jordanian",
+  "vehicle": {
+    "make": "Acura",
+    "model": "Integra",
+    "year": 2025,
+    "engine_code": "L15CA",
+    "powertrain": "ICE"
+  },
+  "codes": [],
+  "turns": [
+    {
+      "mechanic": "اكيورا انتيجرا 2025 1.5 تيربو، وحدة الـ ABS ما بتوصلها كهربا. أي فيوزات لازم أفحص ووين الأرضي تبعها؟",
+      "attachments": [],
+      "expect": {
+        "standard": {
+          "reply_type": "conclusion",
+          "label": "verified",
+          "evidence_types": [
+            "diagram"
+          ],
+          "diagrams_sent": [],
+          "message_must_contain": [
+            "5-5",
+            "4-2",
+            "28",
+            "G020"
+          ]
+        }
+      }
+    },
+    {
+      "mechanic": "ابعثلي المخطط",
+      "attachments": [],
+      "expect": {
+        "standard": {
+          "diagrams_sent": [
+            "910112"
+          ],
+          "evidence_types": [
+            "diagram"
+          ]
+        }
+      },
+      "note": "The image is sent only now, because the mechanic asked for it."
+    }
+  ],
+  "related_case_id": null,
+  "related_procedure_id": null,
+  "expected": {
+    "standard": {
+      "must_do": [
+        "Give the two 40A supplies in the under-hood fuse/relay box, both hot at all times: Fuse 5-5 to pin 1 (WHT) and Fuse 4-2 to pin 2 (RED)",
+        "Give Fuse 28 (10A) in the under-dash fuse/relay box, hot with the IG1A relay energized, to pin 9 (BLU) through J/C C007",
+        "Give the ground: pin 3 (BLK) to G020, lower right rear of the engine compartment",
+        "Send the diagram page when the mechanic asks for it, and not before",
+        "Reply in Arabic with fuse numbers, pin numbers, colours and ground names in English letters"
+      ],
+      "must_not": [
+        "State a pin, colour or connector that is not on the diagram",
+        "Report NCA as a wire colour"
+      ],
+      "final_cause": null
+    }
+  },
+  "source": {
+    "kind": "licensed_diagram",
+    "file": "Anti-Lock Brakes (Antilock Brakes _ Traction Control Systems).pdf",
+    "licensed": true
+  },
+  "review": {
+    "status": "draft",
+    "open_questions": [
+      "The mechanic's messages were written by us. The client's mechanic should check they sound natural.",
+      "The expected pins, colours and connectors were read by eye from the diagram page. Compare with the extracted record in Milestone 2.",
+      "The unit has more supplies on this page than the three checked here. Complete the list from the extracted record in Milestone 2."
+    ]
+  }
+}

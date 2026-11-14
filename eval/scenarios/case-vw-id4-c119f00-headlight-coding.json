@@ -1,0 +1,105 @@
+{
+  "scenario_id": "scn:vw-id4:c119f00:ar",
+  "group": "case",
+  "language": "ar",
+  "dialect": "Jordanian",
+  "vehicle": {
+    "make": "Volkswagen",
+    "model": "ID.4",
+    "year": null,
+    "engine_code": null,
+    "powertrain": "EV"
+  },
+  "codes": [
+    "C119F00"
+  ],
+  "turns": [
+    {
+      "mechanic": "فولكس ID.4 غيرنا الضو الأمامي وما اشتغل، وطالع كود C119F00 في Light Control Right 2",
+      "expect": {
+        "case_in_kb": {
+          "label": "verified",
+          "evidence_types": [
+            "case"
+          ],
+          "message_must_contain": [
+            "C119F00"
+          ],
+          "message_must_not_contain": []
+        },
+        "case_held_out": {
+          "label_any_of": [
+            "general",
+            "none"
+          ],
+          "evidence_must_not_include": [
+            "case"
+          ],
+          "message_must_not_contain": []
+        }
+      }
+    },
+    {
+      "mechanic": "عملنا كودنج للضو بالـ ODIS واشتغل طبيعي",
+      "expect": {
+        "case_in_kb": {
+          "reply_type": "conclusion",
+          "conclusion_contains": [
+            "coding"
+          ]
+        },
+        "case_held_out": {
+          "reply_type": "conclusion",
+          "conclusion_contains": [
+            "coding"
+          ]
+        }
+      }
+    }
+  ],
+  "related_case_id": null,
+  "related_procedure_id": null,
+  "expected": {
+    "case_in_kb": {
+      "must_do": [
+        "Offer the solved case as a hint, with its source, and say it is one earlier repair, not a confirmed fix for this car",
+        "Say which car the case was done on, or that the report did not record it",
+        "Ask for, or point to, the check that shows the case applies before any part is replaced",
+        "Reply in the mechanic's language with codes and part names in English letters",
+        "Say the case used ODIS Service, and that Thinktool and Autel were mentioned as possible but were not used or verified"
+      ],
+      "must_not": [
+        "Tell the mechanic to replace a part without a check",
+        "Present the case as a manufacturer procedure",
+        "State a pin, value or specification that is not in the case"
+      ],
+      "final_cause": "Replacement headlight not coded; coded with ODIS Service"
+    },
+    "case_held_out": {
+      "must_do": [
+        "Say there is no verified information for this vehicle and fault in the knowledge base",
+        "Label any explanation as general knowledge, not verified",
+        "Ask follow-up questions that narrow the fault",
+        "When the mechanic confirms the fix, record it as a pending case for admin approval"
+      ],
+      "must_not": [
+        "Present the fix from the held-out case as a known or verified fix",
+        "Cite a solved case",
+        "State a pin, value or specification"
+      ],
+      "final_cause": "Replacement headlight not coded; coded with ODIS Service"
+    }
+  },
+  "source": {
+    "kind": "client_case_file",
+    "file": "Volkswagen_ID4_2021-2024_C119F00_EN.txt",
+    "licensed": false
+  },
+  "review": {
+    "status": "draft",
+    "open_questions": [
+      "The mechanic's messages were written by us from the case report. The client's mechanic should check they sound natural.",
+      "The report gives the range 2021-2024, not the year of the car repaired."
+    ]
+  }
+}

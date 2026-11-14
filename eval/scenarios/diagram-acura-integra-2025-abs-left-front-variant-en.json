@@ -1,0 +1,87 @@
+{
+  "scenario_id": "scn:acura-integra-2025:diagram:abs-left-front-wss-variant:en",
+  "group": "diagram",
+  "language": "en",
+  "dialect": null,
+  "vehicle": {
+    "make": "Acura",
+    "model": "Integra",
+    "year": 2025,
+    "engine_code": "L15CA",
+    "powertrain": "ICE"
+  },
+  "codes": [],
+  "turns": [
+    {
+      "mechanic": "2025 Integra 1.5 turbo. I need the wiring from the VSA unit to the left front wheel speed sensor.",
+      "attachments": [],
+      "expect": {
+        "standard": {
+          "label": "verified",
+          "evidence_types": [
+            "diagram"
+          ],
+          "diagrams_sent": [],
+          "message_must_contain": [
+            "33",
+            "32",
+            "BRN",
+            "BLU",
+            "CVT"
+          ]
+        }
+      },
+      "note": "The diagram draws this circuit twice: (1) except 1.5L Turbo CVT Integra, (2) 1.5L Turbo CVT Integra. The reply must give both, marked, or ask which car it is."
+    },
+    {
+      "mechanic": "It's the CVT.",
+      "attachments": [],
+      "expect": {
+        "standard": {
+          "reply_type": "conclusion",
+          "label": "verified",
+          "evidence_types": [
+            "diagram"
+          ],
+          "diagrams_sent": [],
+          "message_must_contain": [
+            "BRN",
+            "BLU"
+          ]
+        }
+      }
+    }
+  ],
+  "related_case_id": null,
+  "related_procedure_id": null,
+  "expected": {
+    "standard": {
+      "must_do": [
+        "Give the part common to both versions: VSA modulator-control unit pin 33 (BRN) and pin 32 (BLU)",
+        "Say the diagram has two versions of this circuit and ask which car it is, or give both versions clearly marked",
+        "For the 1.5L Turbo CVT Integra: BRN to sensor pin 1 and BLU to sensor pin 2",
+        "For the other version: through connector C304 (pin 2 on the BRN wire, pin 1 on the BLU wire), and say the diagram gives no colour for the sensor-side wires"
+      ],
+      "must_not": [
+        "State a pin, colour or connector that is not on the diagram",
+        "Report NCA as a wire colour",
+        "Send the diagram image when the mechanic did not ask for it",
+        "Give one version's wiring as if it applied to every car"
+      ],
+      "final_cause": null
+    }
+  },
+  "source": {
+    "kind": "licensed_diagram",
+    "file": "Anti-Lock Brakes (Antilock Brakes _ Traction Control Systems).pdf",
+    "licensed": true
+  },
+  "review": {
+    "status": "draft",
+    "open_questions": [
+      "The mechanic's messages were written by us. The client's mechanic should check they sound natural.",
+      "The expected pins, colours and connectors were read by eye from the diagram page. Compare with the extracted record in Milestone 2.",
+      "Confirm that NCA on these diagrams means the wire colour is not available."
+    ]
+  }
+}

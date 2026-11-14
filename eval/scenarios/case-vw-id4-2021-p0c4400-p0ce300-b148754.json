@@ -1,0 +1,131 @@
+{
+  "scenario_id": "scn:vw-id4-2021:p0c4400-p0ce300-b148754:en",
+  "group": "case",
+  "language": "en",
+  "dialect": null,
+  "vehicle": {
+    "make": "Volkswagen",
+    "model": "ID.4",
+    "year": 2021,
+    "engine_code": null,
+    "powertrain": "EV"
+  },
+  "codes": [
+    "P0C4400",
+    "P0CE300",
+    "B148754"
+  ],
+  "turns": [
+    {
+      "mechanic": "VW ID.4 2021. Codes P0C4400, P0CE300 and B148754.",
+      "expect": {
+        "case_in_kb": {
+          "label": "verified",
+          "evidence_types": [
+            "case"
+          ],
+          "message_must_contain": [
+            "P0C4400",
+            "P0CE300",
+            "B148754"
+          ],
+          "message_must_not_contain": []
+        },
+        "case_held_out": {
+          "label_any_of": [
+            "general",
+            "none"
+          ],
+          "evidence_must_not_include": [
+            "case"
+          ],
+          "message_must_not_contain": []
+        }
+      }
+    },
+    {
+      "mechanic": "The battery coolant temperature sensor connector and the coolant control valve A connector were not seated. Reconnected and secured both.",
+      "expect": {
+        "case_in_kb": {
+          "evidence_types": [
+            "case"
+          ],
+          "message_must_contain": [],
+          "message_must_not_contain": []
+        },
+        "case_held_out": {
+          "label_any_of": [
+            "general",
+            "none"
+          ],
+          "evidence_must_not_include": [
+            "case"
+          ],
+          "message_must_not_contain": []
+        }
+      }
+    },
+    {
+      "mechanic": "Did the window regulator basic setting with the scan tool and cleared the codes. Cooling and the rear window work normally.",
+      "expect": {
+        "case_in_kb": {
+          "reply_type": "conclusion",
+          "conclusion_contains": [
+            "connector"
+          ]
+        },
+        "case_held_out": {
+          "reply_type": "conclusion",
+          "conclusion_contains": [
+            "connector"
+          ]
+        }
+      }
+    }
+  ],
+  "related_case_id": null,
+  "related_procedure_id": null,
+  "expected": {
+    "case_in_kb": {
+      "must_do": [
+        "Offer the solved case as a hint, with its source, and say it is one earlier repair, not a confirmed fix for this car",
+        "Say which car the case was done on, or that the report did not record it",
+        "Ask for, or point to, the check that shows the case applies before any part is replaced",
+        "Reply in the mechanic's language with codes and part names in English letters",
+        "Point to the sensor and valve connectors and wiring before any component is replaced",
+        "Treat B148754 as a separate fault, resolved by the window regulator basic setting"
+      ],
+      "must_not": [
+        "Tell the mechanic to replace a part without a check",
+        "Present the case as a manufacturer procedure",
+        "State a pin, value or specification that is not in the case"
+      ],
+      "final_cause": "Open circuits at the battery coolant temperature sensor connector and the coolant control valve A connector; rear passenger window regulator basic setting not done"
+    },
+    "case_held_out": {
+      "must_do": [
+        "Say there is no verified information for this vehicle and fault in the knowledge base",
+        "Label any explanation as general knowledge, not verified",
+        "Ask follow-up questions that narrow the fault",
+        "When the mechanic confirms the fix, record it as a pending case for admin approval"
+      ],
+      "must_not": [
+        "Present the fix from the held-out case as a known or verified fix",
+        "Cite a solved case",
+        "State a pin, value or specification"
+      ],
+      "final_cause": "Open circuits at the battery coolant temperature sensor connector and the coolant control valve A connector; rear passenger window regulator basic setting not done"
+    }
+  },
+  "source": {
+    "kind": "client_case_file",
+    "file": "Volkswagen_ID4_2021_P0C4400_P0CE300_B148754_EN.txt",
+    "licensed": false
+  },
+  "review": {
+    "status": "draft",
+    "open_questions": [
+      "The mechanic's messages were written by us from the case report. The client's mechanic should check they sound natural."
+    ]
+  }
+}

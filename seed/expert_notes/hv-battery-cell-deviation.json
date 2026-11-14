@@ -1,0 +1,106 @@
+{
+  "note_id": "note:hv-battery:cell-deviation-imbalance",
+  "title": "HV battery cell deviation / imbalance: diagnose, balance or replace the block",
+  "applies_to": {
+    "makes": [],
+    "models": [],
+    "year_from": null,
+    "year_to": null,
+    "powertrains": ["Hybrid", "PHEV", "EV"],
+    "scope_note": "The expert states that the voltage limits below hold for all batteries. That is his position from experience. No manufacturer or standard document has been checked, and limits can differ by pack design, so show these as workshop rules and let a manufacturer value win where one exists."
+  },
+  "systems": ["High-voltage battery", "Cell balancing"],
+  "fault_codes": [],
+  "fault_texts": ["Cell deviation", "Cell imbalance"],
+  "symptoms": [],
+  "claims": [
+    {
+      "text": "Start with live data. If an EV-specific diagnostic tool is available, read the battery directly to see every cell voltage and locate the weak cell.",
+      "origin": "expert_stated"
+    },
+    {
+      "text": "Then open the battery, check all cells, find the faulty cell and record its readings.",
+      "origin": "expert_stated"
+    },
+    {
+      "text": "Balancing can keep a battery working for a limited time, possibly not more than a year. Do it when the customer asks for it.",
+      "origin": "expert_stated"
+    },
+    {
+      "text": "If all cells are good except one: connect a charger to that cell, observing its positive and negative terminals, and raise its voltage to match the others. If it holds after monitoring, the car can be handed over, without a strong warranty on the battery.",
+      "origin": "expert_stated"
+    },
+    {
+      "text": "If many cells in the same block or module are out of balance: connect a balancer (active or not) to balance the pack. The balancer is an external device used only during the repair and removed afterwards.",
+      "origin": "expert_stated"
+    },
+    {
+      "text": "Tell the customer the imbalance may return.",
+      "origin": "expert_stated"
+    },
+    {
+      "text": "Above 100 mV: replace the whole block that contains the cell, balance the blocks so all read alike, and confirm with live data before fully reassembling the battery.",
+      "origin": "expert_stated"
+    },
+    {
+      "text": "Equal voltage alone does not prove a cell is healthy; capacity, internal resistance and behaviour under load also matter.",
+      "origin": "ai_added"
+    },
+    {
+      "text": "Some battery controllers show voltages of cell groups, not of single cells.",
+      "origin": "ai_added"
+    }
+  ],
+  "thresholds": [
+    {
+      "quantity": "cell voltage deviation",
+      "range": {"op": "le", "max": 40, "unit": "mV"},
+      "meaning": "Fine, or within the acceptable range.",
+      "origin": "expert_stated",
+      "note": "He attributed this to an ISO specification. No ISO document has been identified, so do not cite ISO."
+    },
+    {
+      "quantity": "cell voltage deviation",
+      "range": {"op": "ge", "min": 50, "unit": "mV"},
+      "meaning": "Problems that do not resolve, or the cells must be replaced. Balancing sometimes keeps it working for a limited time.",
+      "origin": "expert_stated"
+    },
+    {
+      "quantity": "cell voltage deviation",
+      "range": {"op": "gt", "min": 100, "unit": "mV"},
+      "meaning": "Replace the whole block that contains the cell, then balance the blocks.",
+      "origin": "expert_stated"
+    }
+  ],
+  "customer_advice": [
+    {"text": "Do not leave the car unused for long with the battery fully charged.", "origin": "expert_stated"},
+    {"text": "Do not leave the car unused for long with the battery below 20%.", "origin": "expert_stated"},
+    {"text": "Frequent daily DC fast charging can harm the battery.", "origin": "expert_stated"},
+    {"text": "Look after the battery coolant and battery temperature.", "origin": "expert_stated"},
+    {"text": "How much fast charging harms a battery depends on its thermal management, charge rate and chemistry.", "origin": "ai_added"}
+  ],
+  "safety": {
+    "level": "high_voltage",
+    "qualification": "Technician qualified to open and work inside high-voltage battery packs",
+    "warnings": [
+      "Work inside an open high-voltage battery. Isolate the pack and verify zero voltage first.",
+      "Charging or balancing single cells carries a fire risk. Use equipment made for that cell type and never leave it unattended."
+    ]
+  },
+  "source": {
+    "kind": "expert_transcript",
+    "file": "data/raw/transcripts/hv-battery-sensors-and-cells.chatgpt.txt",
+    "captured_via": "voice conversation with ChatGPT (speech-to-text)",
+    "licensed": false
+  },
+  "review": {
+    "status": "draft",
+    "open_questions": [
+      "Between 40 and 50 mV he gave no rule. What does he do in that band?",
+      "Are the 40 / 50 / 100 mV limits measured at rest, and at what state of charge?",
+      "Which charger and which balancer does he use, and for which cell chemistries?",
+      "The transcript mentions a first topic, CAN bus faults. That part was not sent. Can he send it?",
+      "The safety warnings above were written by us. Does the expert approve this wording, given the client is responsible for safety text?"
+    ]
+  }
+}

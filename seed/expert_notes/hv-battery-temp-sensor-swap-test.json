@@ -1,0 +1,67 @@
+{
+  "note_id": "note:hv-battery:temp-sensor-swap-test",
+  "title": "HV battery temperature sensor fault: swap test to separate sensor from circuit",
+  "applies_to": {
+    "makes": [],
+    "models": [],
+    "year_from": null,
+    "year_to": null,
+    "powertrains": ["Hybrid", "PHEV", "EV"],
+    "scope_note": "General method for packs that have more than one identical temperature sensor. No specific make or model was named."
+  },
+  "systems": ["High-voltage battery", "Battery temperature sensing"],
+  "fault_codes": [],
+  "fault_texts": ["Temperature sensor deviation", "Temperature sensor open circuit"],
+  "symptoms": [],
+  "claims": [
+    {
+      "text": "When the battery controller reports deviation or open circuit on a temperature sensor and the pack has several sensors, swap the suspect sensor with one that has no fault.",
+      "origin": "expert_stated"
+    },
+    {
+      "text": "If the fault moves with the sensor, the sensor is faulty.",
+      "origin": "expert_stated"
+    },
+    {
+      "text": "If the fault stays at the same position, the problem is in the circuit (wiring, connector) or in the control module.",
+      "origin": "expert_stated"
+    },
+    {
+      "text": "A substitute sensor can replace a faulty one if it fits mechanically and matches electrically (sensor type, resistance curve, readings). Confirm with live data before relying on it.",
+      "origin": "expert_summarised",
+      "note": "We only have the assistant's summary; the expert's own words are not in the file."
+    },
+    {
+      "text": "Locate the suspect sensor and its position from live data before opening the pack.",
+      "origin": "ai_added"
+    },
+    {
+      "text": "For a deviation fault, compare under similar thermal conditions, because real temperature differences between positions affect the result.",
+      "origin": "ai_added"
+    }
+  ],
+  "thresholds": [],
+  "customer_advice": [],
+  "safety": {
+    "level": "high_voltage",
+    "qualification": "Technician qualified to open and work inside high-voltage battery packs",
+    "warnings": [
+      "Work inside a high-voltage battery. Isolate the pack and verify zero voltage before touching sensors or wiring.",
+      "Swap only sensors that are identical and interchangeable in that pack design."
+    ]
+  },
+  "source": {
+    "kind": "expert_transcript",
+    "file": "data/raw/transcripts/hv-battery-sensors-and-cells.chatgpt.txt",
+    "captured_via": "voice conversation with ChatGPT (speech-to-text)",
+    "licensed": false
+  },
+  "review": {
+    "status": "draft",
+    "open_questions": [
+      "On which vehicles has he used the swap test?",
+      "For the substitute sensor: which sensor did he fit in place of which, and on which vehicle?",
+      "The safety warnings above were written by us. Does the expert approve this wording?"
+    ]
+  }
+}

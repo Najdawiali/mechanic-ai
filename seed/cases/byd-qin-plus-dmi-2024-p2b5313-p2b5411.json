@@ -1,0 +1,76 @@
+{
+  "case_id": "case:byd-qin-plus-dmi-2024:p2b5313-p2b5411",
+  "make": "BYD",
+  "models": ["Qin Plus DM-i"],
+  "year_from": 2024,
+  "year_to": 2024,
+  "powertrain": "PHEV",
+  "engine": null,
+  "system": "Cooling (engine thermostat / water pump control, hybrid system coolant pump)",
+  "modules": ["Power domain controller (TI) (BYD) (PDC)"],
+  "fault_codes": [
+    {
+      "code": "P2B5313",
+      "text_on_tool": "Electronic thermostat open circuit",
+      "tool": null,
+      "module": "Power domain controller (TI) (BYD) (PDC)",
+      "tool_note": "Generic Type DTC, reference Only"
+    },
+    {
+      "code": "P2B5411",
+      "text_on_tool": "Engine electronic water pump PWM control line short circuit to ground",
+      "tool": null,
+      "module": "Power domain controller (TI) (BYD) (PDC)",
+      "tool_note": "Generic Type DTC, reference Only"
+    }
+  ],
+  "symptoms": [
+    "Both codes stored together in the PDC",
+    "After clearing, both codes return immediately at ignition ON"
+  ],
+  "findings": [
+    "Wiring checked: no fault found",
+    "Water pump checked with the scan tool Active Test: the pump responded",
+    "The scan tool marks both code definitions as generic, for reference only"
+  ],
+  "diagnosis": "The two codes name the engine thermostat circuit and the engine water pump PWM line, but wiring and the pump tested good. The fault cleared after replacing the coolant pump of the hybrid electric system. The engine (ICE) coolant pump was not replaced.",
+  "root_cause": null,
+  "repair_steps": [
+    "Replaced the coolant pump of the hybrid electric system",
+    "Cleared the codes and monitored the vehicle: no fault returned"
+  ],
+  "parts_replaced": [
+    {"part": "Coolant pump of the hybrid electric system (mechanic's wording: مضخة تبريد النظام الكهربائي الهجين)", "part_source": "unknown"}
+  ],
+  "parts_not_replaced": ["Engine (ICE) coolant pump", "Electronic thermostat", "Power domain controller (PDC)"],
+  "outcome": "confirmed_fixed",
+  "occurrences": [],
+  "sensitive": false,
+  "technician": null,
+  "date": null,
+  "screenshots_text": [
+    "PROFESSIONAL REPORT. Fault Code Count: 4. System Count: 27.",
+    "(BYD) multimedia system_Android (Media): fault present (codes not shown in the screenshot)",
+    "Power domain controller (TI) (BYD) (PDC): DTC Qty (2)",
+    "P2B5313 Electronic thermostat open circuit. Generic Type DTC,reference Only",
+    "P2B5411 Engine electronic water pump PWM control line short circuit to ground. Generic Type DTC,reference Only",
+    "Live Data Qty (0)"
+  ],
+  "source": {
+    "kind": "expert_transcript",
+    "file": "data/raw/transcripts/byd-qin-plus-2024-pdc-cooling.chatgpt.txt",
+    "captured_via": "typed conversation with ChatGPT plus one scan-report photo",
+    "licensed": false
+  },
+  "review": {
+    "status": "draft",
+    "open_questions": [
+      "Which scan tool produced the report? (one of the 5 essentials for a case)",
+      "Which pump was run in the Active Test: the engine water pump, or the hybrid system pump that was later replaced?",
+      "What is the exact name or part number of the replaced pump, and was it OEM, used or aftermarket?",
+      "Did the electronic thermostat itself get tested (resistance, supply, ground)?",
+      "The report shows 4 codes; 2 are in the multimedia system. Were they unrelated?",
+      "Technician name, repair date and vehicle mileage?"
+    ]
+  }
+}

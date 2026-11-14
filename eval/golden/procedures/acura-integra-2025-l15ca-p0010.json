@@ -1,0 +1,110 @@
+{
+  "procedure_id": "proc:acura-integra-2025-l15ca:P0010",
+  "vehicle": {"make": "Acura", "model": "Integra", "year": 2025, "engine_code": "L15CA", "powertrain": "ICE"},
+  "code": "P0010",
+  "meaning": "Variable Valve Timing Control (VTC) Oil Control Solenoid Valve A Malfunction",
+  "overview": "If the difference between the VTC oil control solenoid valve A commanded current and the actual current is out of a specified range, the PCM determines an abnormality and stores the DTC.",
+  "warnings": [],
+  "related_docs": [
+    "How to Troubleshoot",
+    "Component Location Index: VTC Oil Control Solenoid Valve A, PCM",
+    "Circuit Diagram",
+    "PCM Connector for Inputs and Outputs",
+    "Advanced Diagnostic",
+    "Open/Shorted Wire Inspection Description"
+  ],
+  "confirmation": [
+    "Start the engine.",
+    "Hold the engine speed at 3,000 rpm without load (CVT in P or N, M/T in neutral) until the radiator fan comes on, then let it idle.",
+    "Select the HDS [IN-VTC]."
+  ],
+  "tool_functions": [{"tool": "HDS", "path": "PGM-FI > Function Test > VTC TEST > IN-VTC"}],
+  "steps": [
+    {
+      "id": "1",
+      "section": "VTC Oil Control Solenoid Valve A Component Inspection",
+      "check": "Valve internal circuit inspection",
+      "prepare": [
+        "VTC oil control solenoid valve A connector (2P): disconnected",
+        "IG mode: OFF"
+      ],
+      "measure": {
+        "from": {"label": "VTC oil control solenoid valve A connector (2P), male terminals, pin 1", "connector": "VTC oil control solenoid valve A connector (2P)", "pin": "1", "terminal_side": "male"},
+        "to": {"label": "VTC oil control solenoid valve A connector (2P), male terminals, pin 2", "connector": "VTC oil control solenoid valve A connector (2P)", "pin": "2", "terminal_side": "male"}
+      },
+      "normal": {"op": "between", "min": 7.14, "max": 7.90, "unit": "ohm", "approximate": true, "condition": "at room temperature"},
+      "if_abnormal": "There is a problem with VTC oil control solenoid valve A.",
+      "if_normal": "2"
+    },
+    {
+      "id": "2",
+      "section": "VTC(IN), PG Circuit Inspection",
+      "check": "PG open wire inspection",
+      "prepare": [
+        "Before disconnecting the PCM connector, jump the SCS line with the HDS, and wait more than 1 minute.",
+        "PCM connector E (80P): disconnected",
+        "VTC oil control solenoid valve A connector (2P): disconnected",
+        "IG mode: OFF"
+      ],
+      "measure": {
+        "from": {"label": "VTC oil control solenoid valve A connector (2P), female terminals, pin 2", "connector": "VTC oil control solenoid valve A connector (2P)", "pin": "2", "terminal_side": "female"},
+        "to": {"label": "ground", "ground": true}
+      },
+      "normal": {"op": "lt", "max": 1, "unit": "ohm"},
+      "if_abnormal": "There is a problem in the circuit (PG open wire inspection).",
+      "if_normal": "3",
+      "requires_tool": "HDS"
+    },
+    {
+      "id": "3",
+      "section": "VTC(IN), PG Circuit Inspection",
+      "check": "VTC(IN) open wire inspection",
+      "prepare": [
+        "PCM connector E (80P): disconnected",
+        "VTC oil control solenoid valve A connector (2P): disconnected",
+        "IG mode: OFF"
+      ],
+      "measure": {
+        "from": {"label": "VTC oil control solenoid valve A connector (2P), female terminals, pin 1", "connector": "VTC oil control solenoid valve A connector (2P)", "pin": "1", "terminal_side": "female"},
+        "to": {"label": "PCM connector E (80P), female terminals, pin 64", "connector": "PCM connector E (80P)", "pin": "64", "terminal_side": "female"}
+      },
+      "normal": {"op": "lt", "max": 1, "unit": "ohm"},
+      "if_abnormal": "There is a problem in the circuit (VTC(IN) open wire inspection).",
+      "if_normal": "4"
+    },
+    {
+      "id": "4",
+      "section": "VTC(IN), PG Circuit Inspection",
+      "check": "VTC(IN) shorted to ground inspection",
+      "prepare": [
+        "PCM connector E (80P): disconnected",
+        "VTC oil control solenoid valve A connector (2P): disconnected",
+        "IG mode: OFF"
+      ],
+      "notices": [
+        "Refer to the Open/Shorted Wire Inspection Description for the method to inspect the shorted circuit below, then start to inspect according to circumstances."
+      ],
+      "measure": {
+        "from": {"label": "PCM connector E (80P), female terminals, pin 64", "connector": "PCM connector E (80P)", "pin": "64", "terminal_side": "female"},
+        "to": {"label": "ground", "ground": true}
+      },
+      "normal": {"op": "gt", "min": 1, "unit": "Mohm"},
+      "if_abnormal": "There is a problem in the circuit (VTC(IN) shorted to ground inspection).",
+      "if_normal": null
+    }
+  ],
+  "elimination_conclusion": "There is a problem with the PCM.",
+  "source": {
+    "kind": "licensed_procedure",
+    "file": "DTC Troubleshooting (1.5L Engine) (ALL Diagnostic Trouble Codes ( DTC )) p0010.pdf",
+    "captured_via": "written by hand from the PDF on 2026-11-13; pins read by eye from the four test-point icons",
+    "licensed": true
+  },
+  "review": {
+    "status": "draft",
+    "open_questions": [
+      "Pins 1, 2 and 64 were read by eye from the test-point icons on pages 3 and 4 of the PDF. The client's mechanic should confirm them.",
+      "The manual gives one result for the whole circuit table: 'If abnormal, there is a problem in the circuit.' The inspection name in brackets is added from the table row, so the mechanic knows which wire failed. Is that wording acceptable?"
+    ]
+  }
+}
