@@ -45,6 +45,8 @@ MIN_WIRE_LENGTH = 4.0
 # One general word, a leftover of a location note, or nothing: not what a manual calls a component.
 CUT_NAME = re.compile(r"^(\?|(CONTROL )?(BOX|UNIT|MODULE|SWITCH|SENSOR|RELAY|CONVERTER|ACTUATOR|ANTENNA|MOTOR|LEFT|RIGHT|FRONT|REAR)"
                       r"|(LEFT|RIGHT) (FRONT|REAR)|.*\))$")
+# A bracketed note that says which cars have the part, not where the part is.
+FITTED_NOTE = re.compile(r"^(M/T|A/T|CVT|[246]WD|AWD|IF EQUIPPED|(WITH|WITHOUT|W/|W/O|EXCEPT) .+|\d\.\dL( .+)?)$")
 NAME_REACH = 7.0  # a component's name is printed this close to its box
 LABEL_ROW_GAP = 0.4  # rows of one label overlap (measured -0.4 pt); labels of neighbouring arrows are 1.1 pt or more apart
 
@@ -73,6 +75,7 @@ class End:
     out: tuple[int, int]  # the direction the wire points at this end
     kind: str = "open"  # pin | connector | junction | branch | ground | system | page | open
     component: str | None = None  # the component, for a pin
+    box: int | None = None  # which box of the page (a page can draw one component twice, once per version)
     pin: str | None = None
     ids: tuple[str, ...] = ()  # connector ids, a ground id, the other system, or the page-join number
     other: tuple[int, int] | None = None  # for a connector: the wire end across the gap
@@ -111,6 +114,7 @@ class Component:
     name: str
     location: str | None = None
     fuses: list[tuple[float, str]] = field(default_factory=list)  # (x position, "FUSE 28 10A") inside a fuse box
+    fitted: str | None = None  # a bracketed note that says which cars have it ("M/T", "IF EQUIPPED"), not where it is
 
 
 @dataclass
@@ -166,13 +170,22 @@ def _text_lines(words: list[Label]) -> list[tuple[tuple[float, float, float, flo
     return boxed
 
 
+def _ends_a_name(lb: Label, labels: list[Label]) -> bool:
+    """A number printed straight after a word on the same row is part of that name
+    ("BRAKE BOOSTER PRESSURE SENSOR 2"), not a pin."""
+    return bool(PAGE_REF.match(lb.text)) and any(
+        o is not lb and abs(o.y - lb.y) < 1.5 and 0 <= lb.rect[0] - o.rect[2] < 3.0 and re.fullmatch(r"[A-Z]{3,}", o.text)
+        and not COLOUR_LABEL.match(o.text) and o.text != NO_COLOUR for o in labels)
+
+
 def _descriptive(labels: list[Label]) -> list[Label]:
     """The words that describe something: not pin numbers, wire colours, ground or connector ids."""
     def names_a_junction_connector(lb: Label) -> bool:
         return any(o.text == "J/C" and abs(o.y - lb.y) < 1.5 and 0 <= lb.rect[0] - o.rect[2] < 4 for o in labels)
 
     return [lb for lb in labels
-            if not ((PIN.match(lb.text) and not _is_fuse_number(lb, labels)) or COLOUR_LABEL.match(lb.text) or lb.text == NO_COLOUR
+            if not ((PIN.match(lb.text) and not _is_fuse_number(lb, labels) and not _ends_a_name(lb, labels))
+                    or COLOUR_LABEL.match(lb.text) or lb.text == NO_COLOUR
                     or GROUND_ID.match(lb.text)
                     or (CONNECTOR_ID.match(lb.text) and not names_a_junction_connector(lb)))]
 
@@ -353,7 +366,8 @@ def read_page(page: pymupdf.Page, number: int = 0) -> Page:
     # A number inside a small ring is a version marker (1 = one version of the car, 2 = another),
     # not a pin.
     markers = [lb for lb in labels if PAGE_REF.match(lb.text) and any(_rect_distance((lb.x, lb.y), r) == 0 for r in rings)]
-    pin_labels = [lb for lb in labels if PIN.match(lb.text) and lb not in markers and not _is_fuse_number(lb, labels)]
+    pin_labels = [lb for lb in labels if PIN.match(lb.text) and lb not in markers and not _is_fuse_number(lb, labels)
+                  and not _ends_a_name(lb, labels)]
 
     _name_colours(wires, labels)
     components = _components(boxes, labels)
@@ -377,6 +391,16 @@ def read_page(page: pymupdf.Page, number: int = 0) -> Page:
                     break
                 words.append(lb)
             versions[marker.text] = " ".join(lb.text for lb in words)
+    # A marker means what the legend of ITS page says: "1" on one page of a diagram and "1" on the
+    # next can be different cars. So the meaning is written into every end that carries a marker.
+    spelled = lambda mark: f"{mark} = {versions[mark]}" if mark in versions else mark  # noqa: E731
+    for wire in wires:
+        for end in wire.ends:
+            if end.version is not None and PAGE_REF.match(end.version):
+                if end.version not in versions:
+                    problems.append(f"version marker {end.version} is used on this page and its legend does not explain it")
+                end.version = spelled(end.version)
+            end.ids = tuple(re.sub(r"\[(\d+)\]", lambda m: f"[{spelled(m.group(1))}]", text) for text in end.ids)
     return Page(number, wires, components, labels, versions, problems)
 
 
@@ -454,9 +478,11 @@ def _components(boxes, labels: list[Label]) -> list[Component]:
         else:
             name, anchor = "?", box
         centre = ((anchor[0] + anchor[2]) / 2, (anchor[1] + anchor[3]) / 2)
-        note = min(notes, key=lambda n: _rect_distance(centre, n[0]), default=None)
-        location = note[1].strip("()") if note and _rect_distance(centre, note[0]) < 14 else None
-        out.append(Component(box, name, location, fuses))
+        beside = sorted((n for n in notes if _rect_distance(centre, n[0]) < 14), key=lambda n: _rect_distance(centre, n[0]))
+        said = [note[1].strip("()") for note in beside]
+        location = next((text for text in said if not FITTED_NOTE.match(text)), None)
+        fitted = next((text for text in said if FITTED_NOTE.match(text)), None)
+        out.append(Component(box, name, location, fuses, fitted))
     return out
 
 
@@ -557,6 +583,7 @@ def _attach_ends(wires, dots, components, pin_labels, labels, problems, braces=(
         owner = min(components, key=lambda c: _rect_distance(end.xy, c.rect), default=None)
         if owner is not None and _rect_distance(end.xy, owner.rect) < 8:
             end.kind, end.component, end.pin = "pin", owner.name, _pin_beside(end, pin_labels)
+            end.box = next(i for i, c in enumerate(components) if c is owner)
             above = min(owner.fuses, key=lambda f: abs(f[0] - end.xy[0]), default=None)
             if above is not None and abs(above[0] - end.xy[0]) < 10:
                 end.fuse = above[1]
@@ -828,8 +855,15 @@ def trace(diagram: Diagram, component: str, pin: str, *, exact: bool = False) ->
         for wi, wire in enumerate(page.wires):
             for ei, end in enumerate(wire.ends):
                 if end.kind == "pin" and end.pin == pin and (end.component == component if exact else _same(end.component, component)):
-                    start = Hop("pin", end.component, end.pin, end.fuse)
-                    _walk(diagram, pi, wi, ei, [start], {(pi, wi)}, routes)
+                    routes += trace_from(diagram, pi, wi, ei)
+    return routes
+
+
+def trace_from(diagram: Diagram, pi: int, wi: int, ei: int) -> list[list[Hop]]:
+    """The routes of one wire, starting at one of its ends (a component pin)."""
+    end = diagram.pages[pi].wires[wi].ends[ei]
+    routes: list[list[Hop]] = []
+    _walk(diagram, pi, wi, ei, [Hop("pin", end.component, end.pin, end.fuse)], {(pi, wi)}, routes)
     return routes
 
 

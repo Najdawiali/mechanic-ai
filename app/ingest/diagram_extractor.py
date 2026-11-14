@@ -73,37 +73,58 @@ def extract_diagram(document: SourceDocument) -> list[Extracted]:
             clip = pymupdf.Rect(0, diagrams.MARGIN_TOP, raw.rect.width, raw.rect.height - diagrams.MARGIN_BOTTOM)
             image_key = f"derived/diagrams/{document.file_id}/{_slug(label)}.png"
             assets.append(Asset(image_key, raw.get_pixmap(dpi=IMAGE_DPI, clip=clip).tobytes("png"), "image/png"))
-            sheets.append(DiagramSheet(page=label, diagram_id=diagram_id, image_key=image_key))
+            sheets.append(DiagramSheet(page=label, diagram_id=diagram_id, image_key=image_key, versions=page.versions))
 
-    components = {(c.name, c.location, label) for page, label in zip(diagram.pages, diagram.page_labels)
+    components = {(c.name, c.location, c.fitted, label) for page, label in zip(diagram.pages, diagram.page_labels)
                   for c in page.components if c.name != "?"}
-    versions = {marker: meaning for page in diagram.pages for marker, meaning in page.versions.items()}
+    # A marker can mean one car on one page and another on the next: only meanings every page agrees on are kept here.
+    legends = [page.versions for page in diagram.pages]
+    versions = {marker: meaning for legend in legends for marker, meaning in legend.items()
+                if all(other.get(marker, meaning) == meaning for other in legends)}
 
-    pins: dict[tuple[str, str], DiagramPin] = {}
+    # One stored pin per wire end at a component: the pin, the colour of THAT wire and where it goes.
+    pins: list[DiagramPin] = []
     if quality.verdict != "show_only":
-        for page, label in zip(diagram.pages, diagram.page_labels):
-            for wire in page.wires:
-                for end in wire.ends:
+        for pi, (page, label) in enumerate(zip(diagram.pages, diagram.page_labels)):
+            in_box: dict[int | None, list[tuple[DiagramPin, set[str]]]] = {}
+            for wi, wire in enumerate(page.wires):
+                for ei, end in enumerate(wire.ends):
                     if end.kind != "pin" or not end.pin or not end.component or end.component == "?":
                         continue
-                    found = pins.get((end.component, end.pin))
-                    if found is None:
-                        routes = [
-                            Route(hops=[RouteHop(kind=h.kind, name=h.name, pin=h.pin, detail=h.detail) for h in route],
-                                  text=" ".join(str(h) for h in route), complete=diagrams.is_complete(route))
-                            for route in diagrams.trace(diagram, end.component, end.pin, exact=True)
-                        ]
-                        pins[(end.component, end.pin)] = DiagramPin(component=end.component, pin=end.pin, wire_colour=wire.colour,
-                                                                    page=label, fuse=end.fuse, routes=routes)
-                    elif found.wire_colour is None and wire.colour:
-                        found.wire_colour = wire.colour
+                    traced = diagrams.trace_from(diagram, pi, wi, ei)
+                    routes = [Route(hops=[RouteHop(kind=h.kind, name=h.name, pin=h.pin, detail=h.detail) for h in route],
+                                    text=" ".join(str(h) for h in route), complete=diagrams.is_complete(route)) for route in traced]
+                    pin = DiagramPin(component=end.component, pin=end.pin, wire_colour=wire.colour, page=label, fuse=end.fuse,
+                                     routes=routes)
+                    passed = {hop.name for route in traced for hop in route if hop.kind == "version" and hop.name}
+                    in_box.setdefault(end.box, []).append((pin, passed))
+                    pins.append(pin)
+            # A page that draws a component twice draws it once per version of the car. A drawing whose
+            # wires all lead through one version only is the drawing for that version, pins to ground included.
+            names = [c.name for c in page.components]
+            for box, members in in_box.items():
+                if box is None or names.count(names[box]) < 2:
+                    continue
+                passed = set().union(*(versions_passed for _, versions_passed in members))
+                if len(passed) == 1:
+                    for pin, _ in members:
+                        pin.version = next(iter(passed))
 
+    # One pin with two different wires is either two drawings of one terminal or a slip in the diagram: a person decides.
+    wires_at: dict[tuple, set] = {}
+    for pin in pins:
+        wires_at.setdefault((pin.component, pin.pin, pin.version), set()).add((pin.wire_colour or "no colour printed", pin.page))
+    for (component, number, _), wires in sorted(wires_at.items(), key=str):
+        if len({colour for colour, _ in wires}) > 1:
+            drawn = " and ".join(f"{colour} on page {page}" for colour, page in sorted(wires))
+            questions.append(f"Pin {number} of {component} is drawn with two different wires ({drawn}). Check both against the pages.")
     if quality.verdict != "traced":
         questions.append("The reader could not attach everything on this diagram: " + "; ".join(quality.reasons))
     record = WiringDiagram(
         diagram_key=key, vehicle=vehicle, system_path=diagram.system_path, title=title, sheets=sheets,
-        components=[DiagramComponent(name=n, location=loc, page=label) for n, loc, label in sorted(components, key=str)],
-        versions=versions, pins=list(pins.values()), verdict=quality.verdict, verdict_reasons=list(quality.reasons),
+        components=[DiagramComponent(name=n, location=loc, fitted=fitted, page=label)
+                    for n, loc, fitted, label in sorted(components, key=str)],
+        versions=versions, pins=pins, verdict=quality.verdict, verdict_reasons=list(quality.reasons),
         source=Source(kind="licensed_diagram", file=document.original_name, licensed=True),
         review=Review(open_questions=questions),
     )

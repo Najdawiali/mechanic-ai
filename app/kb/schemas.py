@@ -182,12 +182,16 @@ class DiagramPin(Record):
     wire_colour: str | None = None  # None = the diagram prints no colour for this wire
     page: str  # "1 of 3"
     fuse: str | None = None
+    # When the page draws this component more than once, the version of the car this drawing is for
+    # ("1.5L TURBO", "2 = 1.5L TURBO CVT INTEGRA"). None = drawn once, or the drawing does not say.
+    version: str | None = None
     routes: list[Route] = Field(default_factory=list)
 
 
 class DiagramComponent(Record):
     name: str
     location: str | None = None
+    fitted: str | None = None  # which cars have it, when the diagram says so: "M/T", "IF EQUIPPED"
     page: str
 
 
@@ -195,6 +199,7 @@ class DiagramSheet(Record):
     page: str  # "1 of 3"
     diagram_id: str  # the provider's id printed on the page
     image_key: str | None = None  # where the page image is in storage, to send when the mechanic asks
+    versions: dict[str, str] = Field(default_factory=dict)  # this page's legend: marker -> meaning
 
 
 class WiringDiagram(Record):
@@ -206,7 +211,9 @@ class WiringDiagram(Record):
     title: str
     sheets: list[DiagramSheet]
     components: list[DiagramComponent] = Field(default_factory=list)
-    versions: dict[str, str] = Field(default_factory=dict)  # marker -> meaning, from the diagram's legend
+    # marker -> meaning, only for markers that mean the same on every page; each sheet has its own legend,
+    # and every route spells out the meaning of the markers it passes
+    versions: dict[str, str] = Field(default_factory=dict)
     pins: list[DiagramPin] = Field(default_factory=list)
     # How far the reading can be trusted (see app/ingest/diagrams.py):
     # traced = pins and routes usable; partial = incomplete routes are marked; show_only = no pins taken.
@@ -278,6 +285,9 @@ class Case(Record):
     repair_steps: list[str] = Field(default_factory=list)
     parts_replaced: list[PartReplaced] = Field(default_factory=list)
     parts_not_replaced: list[str] = Field(default_factory=list)  # ruled out; stops a wrong purchase
+    # What the technician explains beyond the steps done: how and where to measure, cautions, what the
+    # fault does not prove. One point per item, in the report's own words.
+    notes: list[str] = Field(default_factory=list)
     outcome: Outcome
     occurrences: list[str] = Field(default_factory=list)
     sensitive: bool = False

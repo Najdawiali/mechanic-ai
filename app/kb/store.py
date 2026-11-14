@@ -82,6 +82,7 @@ class PinHit:
     page: str
     fuse: str | None
     routes: list[dict]  # each: {"hops": [...], "text": "...", "complete": bool}
+    version: str | None = None  # the drawn version this pin belongs to, when the component is drawn more than once
 
 
 @dataclass(frozen=True)
@@ -204,9 +205,9 @@ class KnowledgeStore:
                 [(record_id, u.kind, u.ordinal, u.text, u.origin) for u in index.unit_rows(record)],
             )
             cur.executemany(
-                "INSERT INTO kb.diagram_pin (record_id, component_key, component, pin_key, pin, wire_colour, page, fuse, routes) "
-                "VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s)",
-                [(record_id, r.component_key, r.component, r.pin_key, r.pin, r.wire_colour, r.page, r.fuse, Jsonb(r.routes))
+                "INSERT INTO kb.diagram_pin (record_id, component_key, component, pin_key, pin, wire_colour, page, fuse, routes, version) "
+                "VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s)",
+                [(record_id, r.component_key, r.component, r.pin_key, r.pin, r.wire_colour, r.page, r.fuse, Jsonb(r.routes), r.version)
                  for r in index.pin_rows(record)],
             )
 
@@ -328,7 +329,7 @@ class KnowledgeStore:
             params,
         ).fetchall()
         return [PinHit(row["record_id"], row["record_key"], row["title"], row["verdict"], row["component"], row["pin"],
-                       row["wire_colour"], row["page"], row["fuse"], row["routes"]) for row in rows]
+                       row["wire_colour"], row["page"], row["fuse"], row["routes"], row["version"]) for row in rows]
 
     # -- search by words ---------------------------------------------------------
     def search_text(

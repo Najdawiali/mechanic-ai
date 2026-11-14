@@ -116,3 +116,25 @@ def test_a_diagram_that_is_not_approved_is_not_served(auto_conn, storage, databa
     store = KnowledgeStore(auto_conn)
     assert store.get_pins(CAR, "TEST UNIT", "1") == []
     assert len(store.get_pins(CAR, "TEST UNIT", "1", statuses=APPROVED_AND_DRAFT)) == 1
+
+
+# -- one component drawn once per version of the car ------------------------------------------
+def test_a_component_drawn_twice_is_stored_once_per_version_with_its_own_wire():
+    import pymupdf
+
+    from tests.test_diagrams import two_versions_page
+
+    doc = pymupdf.open()
+    two_versions_page(doc, 1, 2, "EXCEPT CVT", "CVT")
+    two_versions_page(doc, 2, 2, "TYPE-S", "EXCEPT TYPE-S")
+    document = SourceDocument(file_id=1, storage_key="k", original_name="Versions.pdf", kind="licensed_diagram", declared={},
+                              data=doc.tobytes())
+    record = extract_diagram(document)[0].record
+    sensors = sorted((p.page, p.pin, p.wire_colour, p.version) for p in record.pins if p.component == "SPEED SENSOR")
+    assert sensors == [("1 of 2", "1", "BLU", "2 = CVT"), ("1 of 2", "1", "RED", "1 = EXCEPT CVT"),
+                       ("2 of 2", "1", "BLU", "2 = EXCEPT TYPE-S"), ("2 of 2", "1", "RED", "1 = TYPE-S")]
+    # the unit the two drawings share is not tied to a version
+    assert {p.version for p in record.pins if p.component == "TEST UNIT"} == {None}
+    # the markers mean different cars on the two pages: no single legend for the whole diagram
+    assert record.versions == {} and [sheet.versions for sheet in record.sheets] == [
+        {"1": "EXCEPT CVT", "2": "CVT"}, {"1": "TYPE-S", "2": "EXCEPT TYPE-S"}]

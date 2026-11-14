@@ -154,3 +154,12 @@ def test_a_diagram_page_shows_its_car_pages_components_and_pins_in_order():
     hidden = [where for where, text in text_fields(body) if not where.startswith(shown_differently) and html.escape(text) not in page]
     assert hidden == []
     assert page.index("<b>1</b>") < page.index("<b>2</b>") < page.index("<b>3</b>")  # TEST UNIT's pins, as numbered
+
+
+def test_a_case_is_shown_in_the_order_of_its_fields_not_the_database_order():
+    from app.api.review import render_record
+
+    body = json.loads((REPO / "seed/cases").glob("*.json").__next__().read_text(encoding="utf-8"))
+    shuffled = dict(sorted(body.items(), key=lambda item: (len(item[0]), item[0])))  # how the database returns it
+    page = render_record("case", shuffled, 1)
+    assert page.index("<dt>make</dt>") < page.index("<dt>fault codes</dt>") < page.index("<dt>diagnosis</dt>") < page.index("<dt>outcome</dt>")

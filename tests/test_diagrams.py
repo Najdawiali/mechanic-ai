@@ -306,3 +306,86 @@ def test_a_name_that_was_cut_short_makes_the_diagram_only_partly_trusted():
     box(page, (403, 205, 440, 235), "LAMP")
     quality = assess(read_pdf(doc.tobytes()))
     assert quality.verdict == "partial"
+
+
+# -- versions of the car ------------------------------------------------------------------------
+def ringed(page, x, y, mark):
+    """A version marker: a number inside a small ring."""
+    page.draw_circle((x, y), 2.6, color=(0, 0, 0), width=0.36)
+    text(page, x - 1.4, y + 1.7, mark)
+
+
+def version_brace(page, left, right, y):
+    """A brace with its point up: the wire above it continues as the wire under each half."""
+    middle = (left + right) / 2
+    shape = page.new_shape()
+    shape.draw_polyline([(left, y + 4), (left + 2, y + 2), (middle - 2, y + 2), (middle, y), (middle + 2, y + 2),
+                         (right - 2, y + 2), (right, y + 4)])
+    shape.finish(color=(0, 0, 0), width=0.36, closePath=False)
+    shape.commit()
+
+
+def two_versions_page(doc, number, of, meaning_of_1, meaning_of_2):
+    """TEST UNIT pin 1 goes to a speed sensor that is drawn twice: once for version 1, once for version 2."""
+    page = new_page(doc, number, of)
+    page.draw_rect((250, 150, 350, 180), color=None, fill=COMPONENT_FILL)
+    text(page, 250, 146, "TEST UNIT")
+    wire(page, [(300, 183), (300, 240)], RED)
+    text(page, 294.5, 190, "1")
+    text(page, 292, 215, "RED")
+    version_brace(page, 260, 340, 244)
+    ringed(page, 268, 238, "1")
+    ringed(page, 332, 238, "2")
+    for x, colour, name in ((275, RED, "RED"), (325, BLUE, "BLU")):
+        wire(page, [(x, 251), (x, 330)], colour)
+        text(page, x - 8, 290, name)
+        text(page, x - 5.5, 328, "1")
+        box(page, (x - 15, 333, x + 15, 360), "SPEED SENSOR")
+    ringed(page, 60, 700, "1")
+    text(page, 66, 701.7, meaning_of_1)
+    ringed(page, 60, 712, "2")
+    text(page, 66, 713.7, meaning_of_2)
+    return page
+
+
+def test_a_version_marker_means_what_the_legend_of_its_own_page_says():
+    doc = pymupdf.open()
+    two_versions_page(doc, 1, 2, "EXCEPT CVT", "CVT")
+    two_versions_page(doc, 2, 2, "TYPE-S", "EXCEPT TYPE-S")  # the same markers, other cars
+    diagram = read_pdf(doc.tobytes())
+    assert [page.versions for page in diagram.pages] == [{"1": "EXCEPT CVT", "2": "CVT"}, {"1": "TYPE-S", "2": "EXCEPT TYPE-S"}]
+    first, second = (sorted(" ".join(str(hop) for hop in route) for route in routes_of)
+                     for routes_of in (trace_page(diagram, 0), trace_page(diagram, 1)))
+    assert first == ["TEST UNIT pin 1 -RED-> [1 = EXCEPT CVT] -RED-> SPEED SENSOR pin 1",
+                     "TEST UNIT pin 1 -RED-> [2 = CVT] -BLU-> SPEED SENSOR pin 1"]
+    assert second == ["TEST UNIT pin 1 -RED-> [1 = TYPE-S] -RED-> SPEED SENSOR pin 1",
+                      "TEST UNIT pin 1 -RED-> [2 = EXCEPT TYPE-S] -BLU-> SPEED SENSOR pin 1"]
+
+
+def trace_page(diagram, number):
+    from app.ingest.diagrams import trace_from
+
+    page = diagram.pages[number]
+    return [route for wi, w in enumerate(page.wires) for ei, end in enumerate(w.ends)
+            if end.kind == "pin" and end.component == "TEST UNIT" for route in trace_from(diagram, number, wi, ei)]
+
+
+def test_a_number_after_a_name_belongs_to_the_name_and_a_fitted_note_is_not_a_place():
+    doc = pymupdf.open()
+    page = new_page(doc, 1, 1)
+    for x, name in ((60, "PRESSURE SENSOR 2"), (160, "PRESSURE SENSOR 1")):
+        page.draw_rect((x, 150, x + 60, 180), color=None, fill=COMPONENT_FILL)
+        text(page, x + 18, 135, "(M/T)")  # notes and name centred over the box, as on the real pages
+        text(page, x + 8, 140.5, "(ON BOOSTER)")
+        text(page, x, 146, name)
+        wire(page, [(x + 20, 183), (x + 20, 300)], RED)
+        text(page, x + 14.5, 190, "1")
+        text(page, x + 12, 240, "RED")
+    box(page, (60, 303, 240, 330), "CONTROL UNIT A")
+    text(page, 74.5, 298, "7")
+    text(page, 174.5, 298, "8")
+    diagram = read_pdf(doc.tobytes())
+    sensors = {(c.name, c.location, c.fitted) for c in diagram.pages[0].components if "SENSOR" in c.name}
+    assert sensors == {("PRESSURE SENSOR 2", "ON BOOSTER", "M/T"), ("PRESSURE SENSOR 1", "ON BOOSTER", "M/T")}
+    assert [str(route[-1]) for route in trace(diagram, "PRESSURE SENSOR 2", "1", exact=True)] == ["CONTROL UNIT A pin 7"]
+    assert [str(route[-1]) for route in trace(diagram, "PRESSURE SENSOR 1", "1", exact=True)] == ["CONTROL UNIT A pin 8"]

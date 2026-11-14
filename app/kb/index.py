@@ -173,6 +173,7 @@ def unit_rows(record: KbRecord) -> list[UnitRow]:
             found += [("finding", f, None) for f in record.findings]
             found += [("diagnosis", record.diagnosis, None), ("root_cause", record.root_cause, None)]
             found += [("repair", r, None) for r in record.repair_steps]
+            found += [("note", n, None) for n in record.notes]
         case ExpertNote():
             found += [("title", record.title, None)]
             found += [("symptom", s, None) for s in record.symptoms]
@@ -199,6 +200,7 @@ class PinRow:
     page: str
     fuse: str | None
     routes: list[dict]
+    version: str | None = None
 
 
 def pin_rows(record: KbRecord) -> list[PinRow]:
@@ -207,6 +209,6 @@ def pin_rows(record: KbRecord) -> list[PinRow]:
         return []
     return [
         PinRow(norm_key(p.component) or "?", p.component, norm_key(p.pin) or "?", p.pin, p.wire_colour, p.page, p.fuse,
-               [r.model_dump(mode="json") for r in p.routes])
+               [r.model_dump(mode="json") for r in p.routes], p.version)
         for p in record.pins
     ]

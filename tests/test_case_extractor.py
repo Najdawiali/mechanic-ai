@@ -187,3 +187,30 @@ def test_an_answer_that_is_not_a_case_is_sent_back_once():
 def test_an_empty_file_is_refused():
     with pytest.raises(PermanentError):
         extract_case(document("too short"), FakeGateway(ANSWER))
+
+
+# -- nothing technical in the report may be left behind ----------------------------------------
+ADVICE = ("\nMeasure vertically from a level floor to the underbody reference points near the subframes. "
+          "This alert alone does not establish a failed height sensor.\n")
+
+
+def test_sentences_the_record_does_not_carry_are_pointed_out():
+    case = extract(ANSWER, REPORT + ADVICE)
+    (note,) = [q for q in case.review.open_questions if "not carried into the record" in q]
+    assert note.startswith("CHECK: 2 sentence(s)") and "Measure vertically" in note and "does not establish" in note
+
+
+def test_notes_carry_them_and_then_nothing_is_pointed_out():
+    kept = ANSWER | {"notes": ["Measure vertically from a level floor to the underbody reference points near the subframes.",
+                               "This alert alone does not establish a failed height sensor."]}
+    case = extract(kept, REPORT + ADVICE)
+    assert len(case.notes) == 2 and not any("not carried" in q for q in case.review.open_questions)
+
+
+def test_a_note_the_report_does_not_say_is_caught():
+    case = extract(ANSWER | {"notes": ["Always replace both rear height sensors together with new brackets."]})
+    assert any(q.startswith("CHECK FAILED: this note is not in the report's own words") for q in case.review.open_questions)
+
+
+def test_the_plain_report_has_nothing_left_out():
+    assert not any("not carried" in q for q in extract(ANSWER).review.open_questions)

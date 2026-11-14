@@ -22,6 +22,7 @@ from fastapi.security import HTTPBasic, HTTPBasicCredentials
 
 from app.config import get_settings
 from app.db import connect
+from app.kb.index import RECORD_TYPES
 from app.kb.store import KnowledgeStore
 from app.storage import ObjectNotFound, S3Store, get_store
 
@@ -131,6 +132,11 @@ def before_measuring(step: dict) -> str:
     return as_html(step.get("prepare")) + notices + tool
 
 
+def drawn_for(pin: dict) -> str:
+    """Which version of the car this drawing of the component is for, when the page draws it more than once."""
+    return f"<div class='muted'>drawn for: {e(pin['version'])}</div>" if pin.get("version") else ""
+
+
 def render_record(record_type: str, body: dict, record_id: int) -> str:
     if record_type == "procedure":
         rows = "".join(
@@ -145,26 +151,35 @@ def render_record(record_type: str, body: dict, record_id: int) -> str:
                 + as_html({k: body.get(k) for k in ("overview", "warnings", "tool_functions", "confirmation", "related_docs")}))
     if record_type == "diagram":
         # In the order a reviewer reads the page: one component after another, pins as numbered (A2 before A10).
-        in_order = sorted(body.get("pins", []), key=lambda p: (p["component"], [int(part) if part.isdigit() else part
-                                                                                 for part in re.findall(r"\d+|\D+", p["pin"] or "")]))
+        in_order = sorted(body.get("pins", []), key=lambda p: (p["component"], p.get("version") or "", [
+            (0, int(part), "") if part.isdigit() else (1, 0, part) for part in re.findall(r"\d+|\D+", p["pin"] or "")]))
         rows = "".join(
-            f"<tr><td>{e(p['component'])}</td><td><b>{e(p['pin'])}</b></td><td>{e(p.get('wire_colour') or 'not given')}</td>"
+            f"<tr><td>{e(p['component'])}{drawn_for(p)}</td>"
+            f"<td><b>{e(p['pin'])}</b></td><td>{e(p.get('wire_colour') or 'not given')}</td>"
             f"<td style='white-space:nowrap'>{e(p['page'])}</td><td>"
             + "<br>".join(("" if r["complete"] else "<b>INCOMPLETE</b> ") + e(r["text"]) for r in p.get("routes", [])) + "</td></tr>"
             for p in in_order)
-        versions = "; ".join(f"{e(mark)} = {e(meaning)}" for mark, meaning in (body.get("versions") or {}).items())
+        # Each page has its own legend: the same marker can stand for different cars on different pages.
+        legends = "".join(
+            f"<li>page {e(s['page'])}: " + ("; ".join(f"{e(mark)} = {e(meaning)}" for mark, meaning in s["versions"].items()) or "no markers")
+            + "</li>" for s in body.get("sheets", []) if s.get("versions"))
         return (f"{car(body)}<p><b>{e(body.get('title'))}</b> <span class='tag'>reading: {e(body.get('verdict'))}</span></p>"
                 f"{as_html(body.get('verdict_reasons')) if body.get('verdict_reasons') else ''}"
                 f"<p class='muted'>System: {e(' > '.join(body.get('system_path') or []))}</p>"
-                f"<p class='muted'>Versions drawn: {versions or 'one only'}</p>"
+                f"<p class='muted'>Versions drawn: {'' if legends else 'one only'}</p>{f'<ul class=muted>{legends}</ul>' if legends else ''}"
                 f"<p class='muted'>Pages: {'; '.join(e(s['page']) + ' (drawing ' + e(s['diagram_id']) + ')' for s in body.get('sheets', []))}</p>"
-                "<table><tr><th>Component</th><th>Where it is on the car</th><th>Page</th></tr>"
-                + "".join(f"<tr><td>{e(c['name'])}</td><td>{e(c.get('location') or 'not printed')}</td><td>{e(c['page'])}</td></tr>"
+                "<table><tr><th>Component</th><th>Where it is on the car</th><th>Fitted on</th><th>Page</th></tr>"
+                + "".join(f"<tr><td>{e(c['name'])}</td><td>{e(c.get('location') or 'not printed')}</td>"
+                          f"<td>{e(c.get('fitted') or '')}</td><td>{e(c['page'])}</td></tr>"
                           for c in sorted(body.get("components", []), key=lambda c: (c["name"], c["page"])))
                 + "</table><p></p>"
                 f"<table><tr><th>Component</th><th>Pin</th><th>Wire</th><th>Page</th><th>Where the wire goes</th></tr>{rows}</table>")
     skip = {"source", "case_id", "note_id"}
-    return as_html({k: v for k, v in body.items() if k not in skip})
+    # The database returns the fields in an order of its own; show them in the order of the record
+    # type: the car first, then codes, symptoms, findings, diagnosis, repair, outcome.
+    order = {name: place for place, name in enumerate(RECORD_TYPES[record_type].model_fields)} if record_type in RECORD_TYPES else {}
+    fields = sorted((k for k in body if k not in skip), key=lambda k: order.get(k, len(order)))
+    return as_html({k: body[k] for k in fields})
 
 
 def vehicle_text(record_type: str, body: dict) -> str:

@@ -47,6 +47,9 @@ Rules:
   also applies to goes into "occurrences" as a sentence, never into "cars".
 - "findings" are the checks that were done and what each showed, one per item.
 - "parts_not_replaced" are parts that were checked or suspected and found good.
+- "notes" keep everything technical the report says that fits no other field: how and where to
+  measure, reference points, cautions, what the fault does not prove, advice for the next
+  technician. One point per item, in the report's own words. Leave nothing technical out.
 - "outcome": "confirmed_fixed" if the report says the fault was gone after the repair and that was
   verified; "fixed_not_verified" if a repair was done with no verification reported; "expected" if
   the fix is the technician's expectation; "not_fixed" if the fault remained.
@@ -61,7 +64,7 @@ Answer with JSON only, in this shape:
  "fault_codes": [{"code": string or null, "text_on_tool": string or null, "tool": string or null, "module": string or null, "tool_note": string or null}],
  "symptoms": ["..."], "findings": ["..."], "diagnosis": "...", "root_cause": string or null,
  "repair_steps": ["..."], "parts_replaced": [{"part": "...", "part_source": "OEM" | "used" | "aftermarket" | "unknown"}],
- "parts_not_replaced": ["..."], "outcome": "...", "occurrences": ["..."], "sensitive": false,
+ "parts_not_replaced": ["..."], "notes": ["..."], "outcome": "...", "occurrences": ["..."], "sensitive": false,
  "technician": string or null, "date": "YYYY-MM-DD" or null,
  "specific_car": true}"""
 
@@ -179,11 +182,50 @@ def check_case(case: Case, text: str) -> list[str]:
             notes.append(f"CHECK FAILED: the year {year} is not written in the report")
     if case.technician and (norm_key(case.technician) or "?") not in flat:
         notes.append(f"CHECK FAILED: the technician name {case.technician!r} is not written in the report")
+    said = set(re.findall(r"[a-z][a-z0-9/\-]{3,}", text.lower()))
+    for note in case.notes:
+        wanted = set(re.findall(r"[a-z][a-z0-9/\-]{3,}", note.lower()))
+        if wanted and len(wanted & said) / len(wanted) < 0.8:
+            notes.append(f"CHECK FAILED: this note is not in the report's own words: {note!r}")
     recorded = {code_stem(fault.code) for fault in case.fault_codes if fault.code}
     for found in dict.fromkeys(OBD_CODE.findall(text) + ALERT_NAME.findall(text)):
         if code_stem(found) not in recorded:
             notes.append(f"CHECK: the report mentions {found}, which is not among the record's fault codes")
     return notes
+
+
+def left_out(data: dict, text: str, *, share: float = 0.5) -> list[str]:
+    """Sentences of the report that the record does not carry.
+
+    The other checks ask "is everything in the record written in the report?". This one asks the
+    opposite, with no answer key: a sentence counts as carried when at least half of its longer
+    words appear somewhere in the record. Headings, the file's own labels and short lines are
+    not sentences.
+    """
+    def words(value) -> set[str]:
+        return set(re.findall(r"[a-z][a-z0-9/\-]{3,}", str(value).lower()))
+
+    def strings(value):
+        if isinstance(value, dict):
+            for inner in value.values():
+                yield from strings(inner)
+        elif isinstance(value, list):
+            for inner in value:
+                yield from strings(inner)
+        elif isinstance(value, str):
+            yield value
+
+    kept = set().union(*(words(part) for part in strings(data))) if data else set()
+    missing = []
+    for line in text.splitlines():
+        line = line.strip().lstrip("-•* ").strip()
+        if not line or line.isupper() or re.match(r"^\d+[.)]\s+[A-Z /&-]+$", line) or re.match(r"^[A-Za-z /]+:\s", line):
+            continue  # empty, a heading, or a labelled line such as "DTC: ..." (checked field by field)
+        for sentence in re.split(r"(?<=[.!?])\s+", line):
+            said = words(sentence)
+            if len(said) >= 5 and len(said & kept) / len(said) < share:
+                missing.append(sentence.strip())
+    return missing
 
 
 def case_name(file_name: str) -> str:
@@ -221,6 +263,11 @@ def extract_case(document: SourceDocument, gateway=None) -> list[Extracted]:
     case = Case(**data, **_fixed(document, case_id))
 
     questions = check_case(case, text)
+    dropped = left_out(data, text)
+    if dropped:
+        shown = "; ".join(f'"{sentence}"' for sentence in dropped[:5])
+        questions.append(f"CHECK: {len(dropped)} sentence(s) of the report are not carried into the record: {shown}"
+                         + (" ..." if len(dropped) > 5 else ""))
     if not specific:
         questions.append("The report describes no particular car: it may belong with the expert notes, not the cases.")
     # What a complete report should carry, worked out from the record itself.
