@@ -35,13 +35,22 @@ def advance(procedure: Procedure, step_id: str, reading: Reading) -> Outcome:
 
     Raises ReadingError (with a question to ask) when the reading cannot be compared.
     """
-    step = get_step(procedure, step_id)
+    return walk(procedure.steps, step_id, reading, procedure.elimination_conclusion, name=procedure.procedure_id)
+
+
+def walk(steps: list[Step], step_id: str, reading: Reading, when_all_normal: str | None, *, name: str = "these steps") -> Outcome:
+    """The same decision for any list of linked steps: a manufacturer's procedure, or the checks
+    worked out from a wiring diagram (app/engine/circuit_plan.py)."""
+    by_id = {step.id: step for step in steps}
+    if step_id not in by_id:
+        raise KeyError(f"{name} has no step {step_id!r}")
+    step = by_id[step_id]
     if step.normal is None:
         raise ValueError(f"step {step_id!r} has no normal range to compare with")
     if compare(reading, step.normal) == "abnormal":
         return Outcome(conclusion=step.if_abnormal, decided_by_step=step.id)
     if step.if_normal is not None:
-        return Outcome(step=get_step(procedure, step.if_normal))
-    if procedure.elimination_conclusion is None:
-        raise ValueError(f"{procedure.procedure_id}: all steps normal and no conclusion by elimination")
-    return Outcome(conclusion=procedure.elimination_conclusion)
+        return Outcome(step=by_id[step.if_normal])
+    if when_all_normal is None:
+        raise ValueError(f"{name}: all steps normal and no conclusion by elimination")
+    return Outcome(conclusion=when_all_normal)
