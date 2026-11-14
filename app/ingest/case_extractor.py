@@ -202,19 +202,21 @@ PLAIN_WORDS = frozenset("""after also been before being both case cases could do
     only other same should some such than that their them then there these they this those through under upon used using
     vehicle vehicles very were when where which while will with within without would following described reported""".split())
 # The lines of a report's header: each is a field of the record, checked field by field.
-FIELD_LABEL = re.compile(r"^(?:vehicle|make|models?(?: mentioned)?|model year|years?|systems?|dtcs?|codes?|fault codes?|date|"
-                         r"documentation date|technician|vin|address|engine|powertrain|tools?|scan tools?|modules?)\s*:", re.IGNORECASE)
+FIELD_LABEL = re.compile(r"^(?:vehicle|make(?: and model)?|models?(?: mentioned)?|model year|years?|systems?|dtcs?|codes?|"
+                         r"fault codes?|date|documentation date|technician|vin|address|engine|powertrain|tools?|scan tools?|"
+                         r"modules?|mileage|odometer|case title|title)\s*:", re.IGNORECASE)
+# The heading of a section that lists what the report lacks or still needs.
+MISSING_SECTION = re.compile(r"missing|not (?:recorded|provided|available)|to (?:be )?confirm(?:ed)?|still needed|unknowns?\b", re.IGNORECASE)
 BULLET = re.compile(r"^\s*(?:[-•*–]|\d{1,2}[.)])\s+")
 # A line that names a part of the report, not something the report says.
 HEADING = re.compile(r"^(#+\s.*|\d{1,2}[.)]\s+[A-Z][A-Za-z /&,\-]{0,60}|[A-Z][A-Za-z /&,\-]{0,60}:|[^a-z]+)$")
 # A sentence about the report itself or about what it lacks: nothing to carry into a record.
 NOT_CONTENT = re.compile(
-    r"\b(?:not|no|never|nor)\b[^.;]{0,140}\b(?:provided|recorded|supplied|reported|given|identified|documented|included|"
-    r"available|confirmed|verified|established)\b"
+    r"\b(?:not|no|never|nor)\b[^.;]{0,140}\b(?:provided|recorded|supplied|reported|given|identified|documented|included)\b"
+    r"|\bdoes not (?:confirm|include|state|say|record)\b|\bnot been (?:independently )?(?:confirmed|verified)\b"
     r"|\bonly in the (?:English|Arabic) (?:PDF|file|version)\b|\bscreenshots?\b"
     r"|\b(?:this|the) (?:report|record|case record|document|section)\b (?:records|documents|does|is|covers|describes)"
-    r"|\brecorded as (?:reported|stated)\b|\bas (?:reported|stated) (?:verbally|by the technician)\b.*\bapplicability\b"
-    r"|^vehicle applicability\b|^applicability\b", re.IGNORECASE)
+    r"|\brecorded as (?:reported|stated)\b|\bas (?:reported|stated) (?:verbally|by the technician)\b.*\bapplicability\b", re.IGNORECASE)
 
 
 def statements(text: str) -> list[list[str]]:
@@ -237,10 +239,13 @@ def statements(text: str) -> list[list[str]]:
             continue
         starts_item = bool(BULLET.match(raw))
         line = BULLET.sub("", raw).strip()
-        if HEADING.match(raw.strip()):
+        before = lines[number - 1].strip() if number else ""
+        # a heading with no mark: a few capitalised words on a line of their own, with text straight under them ("Repair Performed")
+        bare_heading = (not before and following and not starts_item and len(line.split()) <= 5 and line[:1].isupper()
+                        and not re.search(r"[.!?:;,]$", line))
+        if HEADING.match(raw.strip()) or bare_heading:
             # a section that lists what the report lacks ("Information not recorded") says nothing to carry
-            in_missing = bool(re.search(r"missing|not (?:recorded|provided|available)", raw, re.IGNORECASE)) \
-                and not re.search(r"\bnotes?\b", raw, re.IGNORECASE)
+            in_missing = bool(MISSING_SECTION.search(raw)) and not re.search(r"\bnotes?\b", raw, re.IGNORECASE)
             open_block = False
             continue
         if in_missing or FIELD_LABEL.match(line):
@@ -350,8 +355,10 @@ def extract_case(document: SourceDocument, gateway=None) -> list[Extracted]:
     years_removed = data.pop("_years_removed", [])
     # Whatever technical sentence the model left out is kept as a note, as the report writes it:
     # the fields are the model's reading, the notes make sure nothing is lost.
+    # A note that only says what the report lacks ("VIN was not provided") is not a note about the repair.
+    data["notes"] = [note for note in data.get("notes") or [] if isinstance(note, str) and not NOT_CONTENT.search(note)]
     added = left_out(data, text)
-    data["notes"] = [*(data.get("notes") or []), *added]
+    data["notes"] += added
 
     # The record is named after its file, not after what the model read: reading the same report
     # again must update the same record, and the model's reading of the car varies between runs.

@@ -255,3 +255,28 @@ def test_a_year_written_only_as_the_end_of_a_range_is_not_a_repaired_cars_year()
     assert "The report names model years 2019–2021." in case.occurrences
     assert any("2019, 2020, 2021" in q and "left unknown" in q for q in case.review.open_questions)
     assert not any(q.startswith("CHECK FAILED: the year") for q in case.review.open_questions)
+
+
+def test_bare_headings_and_sections_of_things_to_confirm_are_not_content():
+    from app.ingest.case_extractor import left_out
+
+    report = """Case Title: Voltage Sampling Faults After Installation of a Mismatched Battery
+
+Vehicle Information
+- Make and model: BYD Zero Six (model name as provided by the technician)
+
+Outcome
+The recorded corrective action was installation of a battery with the matching configuration.
+
+## Information to confirm
+- Exact Toolbox menu wording and path; update this procedure when provided.
+- Software versions before and after the procedure and final scan results.
+"""
+    assert left_out({}, report) == ["The recorded corrective action was installation of a battery with the matching configuration."]
+
+
+def test_a_note_that_only_says_what_the_report_lacks_is_dropped_and_a_real_caution_is_kept():
+    notes = ["VIN, battery part number, and complete numeric fault codes were not provided.",
+             "The alert cleared; the clearing function is not available in every version of Tesla Toolbox."]
+    report = REPORT + "The alert cleared; the clearing function is not available in every version of Tesla Toolbox.\n"
+    assert extract(ANSWER | {"notes": notes}, report).notes == notes[1:]
