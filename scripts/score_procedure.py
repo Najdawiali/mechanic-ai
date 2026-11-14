@@ -18,7 +18,7 @@ REPO = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(REPO))
 
 from app.ingest.extractors import SourceDocument  # noqa: E402
-from app.ingest.procedure_extractor import IGNITION, extract_with_readings  # noqa: E402
+from app.ingest.procedure_extractor import IGNITION, _path_key, extract_with_readings  # noqa: E402
 from app.kb.schemas import Procedure  # noqa: E402
 
 
@@ -54,7 +54,8 @@ def main() -> int:
             print(f"  {step.id}  {point(step.measure.from_point)}  <->  {point(step.measure.to_point)}   "
                   f"normal: {n.op} {n.min} {n.max} {n.unit}"
                   f"{'  (about)' if n.approximate else ''}{f'  ({n.condition})' if n.condition else ''}"
-                  f"{f'  printed: {n.as_printed}' if n.as_printed else ''}\n       inspection: {step.check}\n       if abnormal: {step.if_abnormal}")
+                  f"{f'  printed: {n.as_printed}' if n.as_printed else ''}\n       inspection: {step.check}\n       if abnormal: {step.if_abnormal}"
+                  f"\n       needs tool: {step.requires_tool}   notices: {len(step.notices)}   preparations: {len(step.prepare)}")
         else:
             print(f"  {step.id}  {step.check}")
     print(f"  all normal: {record.elimination_conclusion}")
@@ -87,6 +88,9 @@ def main() -> int:
             ):
                 if a != b:
                     differences.append(f"step {want.id} {label}: got {a}, reference {b}")
+        tools = lambda r: sorted((f.tool, _path_key(f.path)) for f in r.tool_functions)  # noqa: E731
+        if tools(record) != tools(reference):
+            differences.append(f"tool functions: got {tools(record)}, reference {tools(reference)}")
         if squeeze(record.elimination_conclusion) != squeeze(reference.elimination_conclusion):
             differences.append(f"all-normal conclusion: got {record.elimination_conclusion!r}, reference {reference.elimination_conclusion!r}")
         print(f"\nAgainst the reference record: {'identical in every checked field' if not differences else ''}")

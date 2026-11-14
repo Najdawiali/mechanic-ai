@@ -240,13 +240,46 @@ def settle_normals(data: dict, pdf_text: str) -> None:
         normal["condition"] = _without_brackets(condition) or None
 
 
+ARROW = re.compile(r"\s*[>＞›»→]\s*")
+
+
+def _path_key(text: str) -> str:
+    """A menu path without its spacing and with one kind of arrow, so "A ＞ B" equals "A > B"."""
+    return "".join(ARROW.sub(">", text).lower().split())
+
+
+def settle_tools(data: dict, pdf_text: str) -> None:
+    """Name the tool of each tool function from the manual's own heading, and mark the steps that need it.
+
+    A manual prints a menu path under a heading such as "HDS Function". A model sometimes gives an
+    item of the path as the tool. The heading printed directly above the path decides. A step
+    needs a tool when its own preparations or notices name one of the procedure's tools.
+    """
+    lines = [line.strip(" \t■•－-–") for line in pdf_text.splitlines()]
+    functions = [f for f in data.get("tool_functions") or [] if isinstance(f, dict) and f.get("path")]
+    for function in functions:
+        key = _path_key(str(function["path"]))
+        at = next((i for i, line in enumerate(lines) if line and _path_key(line) == key), None)
+        above = next((line for line in reversed(lines[:at]) if line), "") if at is not None else ""
+        heading = re.fullmatch(r"(.+?)\s+functions?", above, re.IGNORECASE)
+        if heading:
+            function["tool"] = heading.group(1)
+    tools = [str(f["tool"]) for f in functions if f.get("tool")]
+    for step in data.get("steps") or []:
+        if not isinstance(step, dict) or step.get("requires_tool"):
+            continue
+        told = " ".join(str(line) for line in [*(step.get("prepare") or []), *(step.get("notices") or [])])
+        step["requires_tool"] = next((tool for tool in tools if re.search(rf"(?<!\w){re.escape(tool)}(?!\w)", told)), None)
+
+
 def _printed(sentence: str, pdf_text: str) -> bool:
     """Is this sentence in the PDF? Compared without spaces, capitals or the final full stop, so a
     line break in the PDF does not matter and a changed letter does. An inspection name added in
     brackets at the end (see the writing rules) is not part of the printed sentence."""
     squeeze = lambda t: "".join(t.lower().split())  # noqa: E731
     core = sentence.split(" (")[0] if sentence.rstrip(".").endswith(")") else sentence
-    return squeeze(core.rstrip(".!?")) in squeeze(pdf_text)
+    # An image printed beside a sentence (a NOTICE badge) leaves its marker inside the sentence's text.
+    return squeeze(core.rstrip(".!?")) in squeeze(re.sub(r"\[image \d+\]", " ", pdf_text))
 
 
 # -- checks that need no answer key ------------------------------------------------------
@@ -265,8 +298,18 @@ def check_procedure(procedure: Procedure, pdf_text: str, readings: list[ImageRea
 
     if procedure.elimination_conclusion and not _printed(procedure.elimination_conclusion, pdf_text):
         problems.append(f"the all-normal conclusion is not printed in the PDF as written: {procedure.elimination_conclusion!r}")
+    for function in procedure.tool_functions:
+        if _path_key(function.path) not in _path_key(pdf_text):
+            problems.append(f"the tool menu path is not printed in the PDF as written: {function.path!r}")
+        if function.tool not in pdf_text:
+            problems.append(f"the tool name {function.tool!r} is not printed in the PDF")
+        elif _path_key(function.tool) in _path_key(function.path).split(">"):
+            problems.append(f"the tool name {function.tool!r} is an item of its own menu path, not the tool")
     for step in procedure.steps:
         where = f"step {step.id}"
+        for notice in step.notices:
+            if not _printed(notice, pdf_text):
+                problems.append(f"{where}: the notice is not printed in the PDF as written: {notice!r}")
         if step.if_abnormal and not _printed(step.if_abnormal, pdf_text):
             problems.append(f"{where}: the conclusion is not printed in the PDF as written: {step.if_abnormal!r}")
         if (step.measure is None) != (step.normal is None):
@@ -326,6 +369,7 @@ def extract_with_readings(document: SourceDocument, gateway=None) -> tuple[Extra
     data = write_procedure(gateway, text_with_readings(pdf, readings))
     name_conclusions(data)
     settle_normals(data, pdf.text)
+    settle_tools(data, pdf.text)
 
     # The code is taken from the PDF's own heading; the model's answer must agree with it.
     in_header = [m.group(1) for line in pdf.header for m in CODE.finditer(line)]

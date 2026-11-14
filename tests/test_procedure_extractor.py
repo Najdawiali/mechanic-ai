@@ -18,7 +18,7 @@ import pytest
 from app.ingest.extractors import SourceDocument
 from app.ingest.jobs import PermanentError
 from app.ingest.pdf_text import read_pdf_text
-from app.ingest.procedure_extractor import ImageReading, check_procedure, extract_procedure, settle_normals, text_with_readings
+from app.ingest.procedure_extractor import ImageReading, check_procedure, extract_procedure, settle_normals, settle_tools, text_with_readings
 from app.kb.schemas import Procedure
 
 REPO = Path(__file__).resolve().parents[1]
@@ -40,7 +40,11 @@ def build_pdf(images: int = 4) -> bytes:
              "PG open wire inspection OFF There is less than 1 Ω", "VTC(IN) shorted to ground inspection OFF There is more than 1 MΩ",
              "If abnormal, there is a problem with VTC oil control solenoid valve A.",
              "If abnormal, there is a problem in the circuit. If the other inspection item(s) indicated a normal condition, then it is",
-             "determined that the remaining PCM is the cause. There is a problem with the PCM." + " filler" * 20]
+             "determined that the remaining PCM is the cause. There is a problem with the PCM." + " filler" * 20,
+             "HDS Function", "PGM-FI > Function Test > VTC TEST > IN-VTC",
+             "Before disconnecting the PCM connector, jump the SCS line with the HDS, and wait more than 1 minute.",
+             "Refer to the Open/Shorted Wire Inspection Description for the method to inspect the shorted circuit below,",
+             "then start to inspect according to circumstances."]
     for i, line in enumerate(lines):
         page.insert_text((40, 60 + 22 * i), line, fontsize=8, fontname="china-s" if "Ω" in line else "helv")
     icon = pymupdf.Pixmap(pymupdf.csRGB, pymupdf.IRect(0, 0, 120, 24), False)
@@ -255,3 +259,39 @@ def test_an_ignition_state_already_among_the_preparations_is_not_added_twice():
 def test_a_condition_the_manual_does_not_print_is_caught():
     problems = check_procedure(change(0, ["normal", "condition"], "at 20 degrees"), TEXT, readings())
     assert any("condition" in p and "step 1" in p for p in problems)
+
+
+def test_the_tool_is_named_from_the_heading_above_its_menu_path():
+    data = json.loads(json.dumps(GOLDEN))
+    data["tool_functions"] = [{"tool": "VTC TEST", "path": "PGM-FI › Function Test › VTC TEST › IN-VTC"}]  # as the real model wrote it
+    for step in data["steps"]:
+        step["requires_tool"] = None
+    notice = data["steps"][1]["prepare"].pop(0)  # the real model kept this sentence as a notice on every step of the section
+    for step in data["steps"][1:]:
+        step["notices"] = [notice]
+    settle_tools(data, TEXT)
+    assert data["tool_functions"][0]["tool"] == "HDS"
+    assert [step["requires_tool"] for step in data["steps"]] == [None, "HDS", "HDS", "HDS"]
+
+
+def test_a_menu_item_given_as_the_tool_is_caught():
+    data = json.loads(json.dumps(GOLDEN))
+    data["tool_functions"] = [{"tool": "VTC TEST", "path": GOLDEN["tool_functions"][0]["path"]}]
+    assert any("item of its own menu path" in p for p in check_procedure(Procedure(**data), TEXT, readings()))
+
+
+def test_a_menu_path_or_a_notice_the_manual_does_not_print_is_caught():
+    data = json.loads(json.dumps(GOLDEN))
+    data["tool_functions"][0]["path"] = "PGM-FI > Function Test > VTC TEST > EX-VTC"
+    data["steps"][0]["notices"] = ["Wear insulated gloves."]
+    problems = check_procedure(Procedure(**data), TEXT, readings())
+    assert any("menu path" in p for p in problems) and any("notice" in p and "step 1" in p for p in problems)
+
+
+def test_an_image_marker_inside_a_sentence_does_not_fail_it():
+    data = json.loads(json.dumps(GOLDEN))
+    notice = data["steps"][3]["notices"][0]
+    broken = TEXT.replace("circuit below,", "circuit\n[image 12]\nbelow,")
+    assert "[image 12]" in broken
+    assert not any("notice" in p for p in check_procedure(Procedure(**data), broken, readings()))
+    assert notice
