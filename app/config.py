@@ -38,6 +38,10 @@ class Settings(BaseSettings):
     s3_secret_access_key: SecretStr | None = None
     ingest_max_file_mb: int = 50
 
+    # The review screen (/review). It is switched off until a password is set here. A reviewer signs
+    # in with their own name as the user name and this password; the name is recorded on what they approve.
+    review_password: SecretStr | None = None
+
 
 @lru_cache
 def get_settings() -> Settings:

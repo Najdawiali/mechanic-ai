@@ -211,6 +211,20 @@ python scripts/check_embeddings.py
 python scripts/search_kb.py Tesla "Model S" 2022 "the air conditioning cuts out while driving"
 ```
 
+### The review screen
+
+Nothing reaches a mechanic until a person approves it. Set `REVIEW_PASSWORD` in `.env`, then:
+
+```bash
+uvicorn app.api.main:app --reload
+```
+
+and open http://localhost:8000/review. Sign in with your own name as the user name and the review
+password; the name is recorded on what you approve. Each record is shown beside the file it was
+read from (the PDF, the report text, or the diagram's page images), with failed checks first.
+Approving a record that has failed checks asks for a confirmation. Without `REVIEW_PASSWORD` the
+screen does not exist. `python scripts/kb_status.py` shows what is waiting.
+
 Rules the store enforces, each covered by tests:
 
 - **Only approved records are served.** Drafts are visible only when the caller asks for them
