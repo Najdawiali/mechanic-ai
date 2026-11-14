@@ -138,3 +138,19 @@ def test_every_text_field_of_a_record_is_on_its_page(path):
     page = render_record(kind, body, 1)
     hidden = [where for where, text in text_fields(body) if not where.startswith(SHOWN_DIFFERENTLY) and html.escape(text) not in page]
     assert hidden == []
+
+
+def test_a_diagram_page_shows_its_car_pages_components_and_pins_in_order():
+    from app.api.review import render_record
+    from app.ingest.diagram_extractor import extract_diagram
+    from app.ingest.extractors import SourceDocument
+    from tests.test_diagrams import build
+
+    document = SourceDocument(file_id=1, storage_key="k", original_name="Test Diagram.pdf", kind="licensed_diagram",
+                              declared={}, data=build())
+    body = json.loads(extract_diagram(document)[0].record.model_dump_json())
+    page = render_record("diagram", body, 1)
+    shown_differently = (".source", ".review", ".diagram_key", ".sheets.image_key", ".pins.routes.hops", ".verdict")
+    hidden = [where for where, text in text_fields(body) if not where.startswith(shown_differently) and html.escape(text) not in page]
+    assert hidden == []
+    assert page.index("<b>1</b>") < page.index("<b>2</b>") < page.index("<b>3</b>")  # TEST UNIT's pins, as numbered

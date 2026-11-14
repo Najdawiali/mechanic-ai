@@ -11,6 +11,7 @@ from __future__ import annotations
 
 import html
 import json
+import re
 import secrets
 from collections.abc import Iterator
 
@@ -143,13 +144,24 @@ def render_record(record_type: str, body: dict, record_id: int) -> str:
                 f"<p><b>If every reading is normal:</b> {e(body.get('elimination_conclusion'))}</p>"
                 + as_html({k: body.get(k) for k in ("overview", "warnings", "tool_functions", "confirmation", "related_docs")}))
     if record_type == "diagram":
+        # In the order a reviewer reads the page: one component after another, pins as numbered (A2 before A10).
+        in_order = sorted(body.get("pins", []), key=lambda p: (p["component"], [int(part) if part.isdigit() else part
+                                                                                 for part in re.findall(r"\d+|\D+", p["pin"] or "")]))
         rows = "".join(
-            f"<tr><td>{e(p['component'])}</td><td><b>{e(p['pin'])}</b></td><td>{e(p.get('wire_colour') or 'not given')}</td><td>{e(p['page'])}</td><td>"
+            f"<tr><td>{e(p['component'])}</td><td><b>{e(p['pin'])}</b></td><td>{e(p.get('wire_colour') or 'not given')}</td>"
+            f"<td style='white-space:nowrap'>{e(p['page'])}</td><td>"
             + "<br>".join(("" if r["complete"] else "<b>INCOMPLETE</b> ") + e(r["text"]) for r in p.get("routes", [])) + "</td></tr>"
-            for p in body.get("pins", []))
+            for p in in_order)
+        versions = "; ".join(f"{e(mark)} = {e(meaning)}" for mark, meaning in (body.get("versions") or {}).items())
         return (f"{car(body)}<p><b>{e(body.get('title'))}</b> <span class='tag'>reading: {e(body.get('verdict'))}</span></p>"
                 f"{as_html(body.get('verdict_reasons')) if body.get('verdict_reasons') else ''}"
-                f"<p class='muted'>Versions: {e(json.dumps(body.get('versions') or {}))}</p>"
+                f"<p class='muted'>System: {e(' > '.join(body.get('system_path') or []))}</p>"
+                f"<p class='muted'>Versions drawn: {versions or 'one only'}</p>"
+                f"<p class='muted'>Pages: {'; '.join(e(s['page']) + ' (drawing ' + e(s['diagram_id']) + ')' for s in body.get('sheets', []))}</p>"
+                "<table><tr><th>Component</th><th>Where it is on the car</th><th>Page</th></tr>"
+                + "".join(f"<tr><td>{e(c['name'])}</td><td>{e(c.get('location') or 'not printed')}</td><td>{e(c['page'])}</td></tr>"
+                          for c in sorted(body.get("components", []), key=lambda c: (c["name"], c["page"])))
+                + "</table><p></p>"
                 f"<table><tr><th>Component</th><th>Pin</th><th>Wire</th><th>Page</th><th>Where the wire goes</th></tr>{rows}</table>")
     skip = {"source", "case_id", "note_id"}
     return as_html({k: v for k, v in body.items() if k not in skip})
