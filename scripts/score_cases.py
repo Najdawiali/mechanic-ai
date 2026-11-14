@@ -61,7 +61,10 @@ def main() -> int:
               f"   wordings without a code: {sum(1 for f in case.fault_codes if not f.code)}"
               f"   tools: {', '.join(case.scan_tools) or '(none)'}\n"
               f"  outcome: {case.outcome}   parts replaced: {', '.join(p.part for p in case.parts_replaced) or '(none)'}\n"
-              f"  root cause: {case.root_cause}")
+              f"  root cause: {case.root_cause}\n"
+              f"  notes: {len(case.notes)}")
+        for note in case.notes:
+            print(f"      . {note[:160]}{'...' if len(note) > 160 else ''}")
         for question in case.review.open_questions:
             print(f"  - {question}")
             failed += question.startswith("CHECK FAILED")

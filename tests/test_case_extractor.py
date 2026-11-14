@@ -66,7 +66,8 @@ def test_a_code_mentioned_in_the_report_but_left_out_is_pointed_out():
     ("change", "expected"),
     [
         ({"fault_codes": [{"code": "TAS_a212_noRideHeightCalib"}]}, "CHECK FAILED: the fault code TAS_a212_noRideHeightCalib is not written in the report"),
-        ({"cars": [{"model": "Model X", "year": 2019}]}, "CHECK FAILED: the year 2019 is not written in the report"),
+        ({"cars": [{"model": "Model X", "year": 2019}]}, "CHECK: the model gave 2019 as the year of a repaired car; the report writes that only "
+                                                         "as part of a range, or not at all, so the car's year is left unknown."),
         ({"cars": [{"model": "Model X", "year": 2020}, {"model": "Model 3", "year": None}]}, "CHECK FAILED: the model 'Model 3' is not written in the report"),
         ({"make": "BYD"}, "CHECK FAILED: the make 'BYD' is not written in the report"),
         ({"technician": "Nasoh"}, "CHECK FAILED: the technician name 'Nasoh' is not written in the report"),
@@ -194,17 +195,18 @@ ADVICE = ("\nMeasure vertically from a level floor to the underbody reference po
           "This alert alone does not establish a failed height sensor.\n")
 
 
-def test_sentences_the_record_does_not_carry_are_pointed_out():
+def test_what_the_model_leaves_out_is_kept_as_a_note_in_the_reports_words():
     case = extract(ANSWER, REPORT + ADVICE)
-    (note,) = [q for q in case.review.open_questions if "not carried into the record" in q]
-    assert note.startswith("CHECK: 2 sentence(s)") and "Measure vertically" in note and "does not establish" in note
+    assert case.notes == ["Measure vertically from a level floor to the underbody reference points near the subframes. "
+                          "This alert alone does not establish a failed height sensor."]
+    assert any(q.startswith("CHECK: the model left out 1 passage(s)") for q in case.review.open_questions)
 
 
-def test_notes_carry_them_and_then_nothing_is_pointed_out():
+def test_when_the_model_keeps_them_nothing_is_added():
     kept = ANSWER | {"notes": ["Measure vertically from a level floor to the underbody reference points near the subframes.",
                                "This alert alone does not establish a failed height sensor."]}
     case = extract(kept, REPORT + ADVICE)
-    assert len(case.notes) == 2 and not any("not carried" in q for q in case.review.open_questions)
+    assert len(case.notes) == 2 and not any("left out" in q for q in case.review.open_questions)
 
 
 def test_a_note_the_report_does_not_say_is_caught():
@@ -213,4 +215,43 @@ def test_a_note_the_report_does_not_say_is_caught():
 
 
 def test_the_plain_report_has_nothing_left_out():
-    assert not any("not carried" in q for q in extract(ANSWER).review.open_questions)
+    case = extract(ANSWER)
+    assert case.notes == [] and not any("left out" in q for q in case.review.open_questions)
+
+
+def test_headings_labels_keywords_and_what_the_report_lacks_are_not_content():
+    from app.ingest.case_extractor import left_out
+
+    report = """# Tesla Model 3 - Reduced Charging Limit
+
+## Diagnostic steps
+1. From the vehicle display, navigate to CAN Viewer; do not search for
+   CAN Viewer within the Toolbox menus.
+2. Calculate the difference between the highest and lowest readings.
+
+## Notes
+- Model year, VIN, replacement module identifier, and scan screenshots were not provided.
+- Real-world technician case; the fault screenshot is included only in the English PDF.
+
+## Information not recorded
+- Exact diagnostic trouble code(s) and wording of the message.
+- Replacement module part number and serial number.
+
+## Search keywords
+Tesla, Model 3, Model Y, Long Range, Charge level reduced, BMS, CAN Viewer, Brick Voltage Min, Brick Voltage Max, Toolbox
+"""
+    assert left_out({}, report) == [
+        "From the vehicle display, navigate to CAN Viewer; do not search for CAN Viewer within the Toolbox menus.",
+        "Calculate the difference between the highest and lowest readings."]
+    assert left_out({"notes": ["navigate to CAN Viewer from the vehicle display, not within the Toolbox menus"]}, report) == [
+        "Calculate the difference between the highest and lowest readings."]
+
+
+def test_a_year_written_only_as_the_end_of_a_range_is_not_a_repaired_cars_year():
+    report = REPORT.replace("Tesla Model X, 2020,", "Tesla Model X, model years 2019-2021,")
+    answer = ANSWER | {"cars": [{"model": "Model X", "year": year} for year in (2019, 2020, 2021)], "occurrences": []}
+    case = extract(answer, report)
+    assert [(car.model, car.year) for car in case.repaired_cars] == [("Model X", None)] and case.year_from is None
+    assert "The report names model years 2019–2021." in case.occurrences
+    assert any("2019, 2020, 2021" in q and "left unknown" in q for q in case.review.open_questions)
+    assert not any(q.startswith("CHECK FAILED: the year") for q in case.review.open_questions)

@@ -13,6 +13,7 @@ something in the report that the record may have missed.
 from __future__ import annotations
 
 import json
+from collections import Counter
 import re
 
 from pydantic import ValidationError
@@ -104,8 +105,9 @@ def write_case(gateway, text: str, document: SourceDocument, *, attempts: int = 
         reply = gateway.chat(messages, role="reasoning", json_mode=True, max_tokens=4000).text
         try:
             data = _json(reply)
+            data["_years_removed"] = settle_years(data, text)
             tidy(data)
-            Case(**{k: v for k, v in data.items() if k != "specific_car"}, **_fixed(document))
+            Case(**{k: v for k, v in data.items() if k not in ("specific_car", "_years_removed")}, **_fixed(document))
             return data
         except (ValueError, json.JSONDecodeError, ValidationError) as exc:
             problem = str(exc)[:1500]
@@ -194,17 +196,85 @@ def check_case(case: Case, text: str) -> list[str]:
     return notes
 
 
+LONG_WORD = re.compile(r"[a-z][a-z0-9/\-]{3,}")
+# Words that carry nothing by themselves: a sentence made mostly of these says no more than a field already does.
+PLAIN_WORDS = frozenset("""after also been before being both case cases could does done each from have having into more most
+    only other same should some such than that their them then there these they this those through under upon used using
+    vehicle vehicles very were when where which while will with within without would following described reported""".split())
+# The lines of a report's header: each is a field of the record, checked field by field.
+FIELD_LABEL = re.compile(r"^(?:vehicle|make|models?(?: mentioned)?|model year|years?|systems?|dtcs?|codes?|fault codes?|date|"
+                         r"documentation date|technician|vin|address|engine|powertrain|tools?|scan tools?|modules?)\s*:", re.IGNORECASE)
+BULLET = re.compile(r"^\s*(?:[-•*–]|\d{1,2}[.)])\s+")
+# A line that names a part of the report, not something the report says.
+HEADING = re.compile(r"^(#+\s.*|\d{1,2}[.)]\s+[A-Z][A-Za-z /&,\-]{0,60}|[A-Z][A-Za-z /&,\-]{0,60}:|[^a-z]+)$")
+# A sentence about the report itself or about what it lacks: nothing to carry into a record.
+NOT_CONTENT = re.compile(
+    r"\b(?:not|no|never|nor)\b[^.;]{0,140}\b(?:provided|recorded|supplied|reported|given|identified|documented|included|"
+    r"available|confirmed|verified|established)\b"
+    r"|\bonly in the (?:English|Arabic) (?:PDF|file|version)\b|\bscreenshots?\b"
+    r"|\b(?:this|the) (?:report|record|case record|document|section)\b (?:records|documents|does|is|covers|describes)"
+    r"|\brecorded as (?:reported|stated)\b|\bas (?:reported|stated) (?:verbally|by the technician)\b.*\bapplicability\b"
+    r"|^vehicle applicability\b|^applicability\b", re.IGNORECASE)
+
+
+def statements(text: str) -> list[list[str]]:
+    """The report as sentences, grouped by the paragraph or list item they stand in.
+
+    Reports come as plain text, Markdown or PDF text: lines broken in mid-sentence are joined,
+    list marks are dropped, and headings, titles, "Label: value" lines and keyword lists are left out.
+    """
+    blocks: list[str] = []
+    open_block = in_missing = False
+    lines = [line for line in text.splitlines() if not re.fullmatch(r"\s*=== page \d+ ===\s*", line)]
+    # A line printed on every page of a PDF (its running title, "Page 3") is not part of the report's text.
+    seen = Counter(re.sub(r"\d+", "#", line.strip()) for line in lines if len(line.strip()) >= 10)
+    lines = ["" if seen[re.sub(r"\d+", "#", line.strip())] > 1 else line for line in lines]
+    for number, raw in enumerate(lines):
+        line = raw.strip()
+        following = lines[number + 1].strip() if number + 1 < len(lines) else ""
+        if not line:
+            open_block = False
+            continue
+        starts_item = bool(BULLET.match(raw))
+        line = BULLET.sub("", raw).strip()
+        if HEADING.match(raw.strip()):
+            # a section that lists what the report lacks ("Information not recorded") says nothing to carry
+            in_missing = bool(re.search(r"missing|not (?:recorded|provided|available)", raw, re.IGNORECASE)) \
+                and not re.search(r"\bnotes?\b", raw, re.IGNORECASE)
+            open_block = False
+            continue
+        if in_missing or FIELD_LABEL.match(line):
+            open_block = False
+            continue
+        line = re.sub(r"^[A-Z][A-Za-z /]{0,30}:\s+(?=\S)", "", line)  # "Note: Coding may also be possible..." keeps its sentence
+        untitled = not re.search(r"[.!?:;,]$", line) and not following and not open_block and not starts_item
+        if untitled and len(line.split()) <= 14:  # a title: a short line on its own with no full stop
+            continue
+        if open_block and not starts_item:
+            blocks[-1] += " " + line
+        else:
+            blocks.append(line)
+        open_block = True
+    grouped = []
+    for block in blocks:
+        if block.count(",") >= 4 and not re.search(r"[.!?]", block):  # a list of search keywords: commas and no full stop
+            continue
+        if "[screenshot]" in block:  # the caption of a picture; pictures are counted and reported separately
+            continue
+        sentences = [part.strip() for part in re.split(r"(?<=[.!?])\s+", block) if part.strip()]
+        if sentences:
+            grouped.append(sentences)
+    return grouped
+
+
 def left_out(data: dict, text: str, *, share: float = 0.5) -> list[str]:
-    """Sentences of the report that the record does not carry.
+    """What the report says that the record does not carry, in the report's own words.
 
     The other checks ask "is everything in the record written in the report?". This one asks the
-    opposite, with no answer key: a sentence counts as carried when at least half of its longer
-    words appear somewhere in the record. Headings, the file's own labels and short lines are
-    not sentences.
+    opposite, with no answer key: a sentence is carried when at least half of its longer words are
+    somewhere in the record. Sentences about the report itself, or about what it lacks, are not
+    counted. Sentences left out of one paragraph come back together, so each keeps its context.
     """
-    def words(value) -> set[str]:
-        return set(re.findall(r"[a-z][a-z0-9/\-]{3,}", str(value).lower()))
-
     def strings(value):
         if isinstance(value, dict):
             for inner in value.values():
@@ -215,17 +285,41 @@ def left_out(data: dict, text: str, *, share: float = 0.5) -> list[str]:
         elif isinstance(value, str):
             yield value
 
-    kept = set().union(*(words(part) for part in strings(data))) if data else set()
+    kept = {word for part in strings(data) for word in LONG_WORD.findall(part.lower())}
     missing = []
-    for line in text.splitlines():
-        line = line.strip().lstrip("-•* ").strip()
-        if not line or line.isupper() or re.match(r"^\d+[.)]\s+[A-Z /&-]+$", line) or re.match(r"^[A-Za-z /]+:\s", line):
-            continue  # empty, a heading, or a labelled line such as "DTC: ..." (checked field by field)
-        for sentence in re.split(r"(?<=[.!?])\s+", line):
-            said = words(sentence)
-            if len(said) >= 5 and len(said & kept) / len(said) < share:
-                missing.append(sentence.strip())
+    for paragraph in statements(text):
+        dropped = []
+        for sentence in paragraph:
+            said = set(LONG_WORD.findall(sentence.lower())) - PLAIN_WORDS
+            if len(said) >= 5 and len(said & kept) / len(said) < share and not NOT_CONTENT.search(sentence):
+                dropped.append(sentence)
+        if dropped:
+            missing.append(" ".join(dropped))
     return missing
+
+
+def settle_years(data: dict, text: str) -> list[str]:
+    """A year is the year of a repaired car only when the report writes it as that car's year.
+
+    A year written only as the end of a range ("model years 2021–2024") is what the report says
+    the fix applies to; so is a year the report does not write at all. Such years are taken off
+    the cars, and the range is kept as a sentence under "occurrences".
+    """
+    ranges = re.findall(r"\b((?:19|20)\d{2})\s*(?:[–—-]|to)\s*((?:19|20)\d{2})\b", text)
+    outside = re.sub(r"\b(?:19|20)\d{2}\s*(?:[–—-]|to)\s*(?:19|20)\d{2}\b", " ", text)
+    single = {int(year) for year in re.findall(r"\b((?:19|20)\d{2})\b", outside)}
+    removed = []
+    for car in data.get("cars") or []:
+        if isinstance(car, dict) and isinstance(car.get("year"), int) and car["year"] not in single:
+            removed.append(car["year"])
+            car["year"] = None
+    if removed:
+        occurrences = data["occurrences"] if isinstance(data.get("occurrences"), list) else []
+        for first, last in dict.fromkeys(ranges):
+            if not any(first in str(line) and last in str(line) for line in occurrences):
+                occurrences.append(f"The report names model years {first}–{last}.")
+        data["occurrences"] = occurrences
+    return sorted(set(removed))
 
 
 def case_name(file_name: str) -> str:
@@ -253,6 +347,11 @@ def extract_case(document: SourceDocument, gateway=None) -> list[Extracted]:
         gateway = LLMGateway()
     data = write_case(gateway, text, document)
     specific = data.pop("specific_car", True)
+    years_removed = data.pop("_years_removed", [])
+    # Whatever technical sentence the model left out is kept as a note, as the report writes it:
+    # the fields are the model's reading, the notes make sure nothing is lost.
+    added = left_out(data, text)
+    data["notes"] = [*(data.get("notes") or []), *added]
 
     # The record is named after its file, not after what the model read: reading the same report
     # again must update the same record, and the model's reading of the car varies between runs.
@@ -263,11 +362,12 @@ def extract_case(document: SourceDocument, gateway=None) -> list[Extracted]:
     case = Case(**data, **_fixed(document, case_id))
 
     questions = check_case(case, text)
-    dropped = left_out(data, text)
-    if dropped:
-        shown = "; ".join(f'"{sentence}"' for sentence in dropped[:5])
-        questions.append(f"CHECK: {len(dropped)} sentence(s) of the report are not carried into the record: {shown}"
-                         + (" ..." if len(dropped) > 5 else ""))
+    if added:
+        questions.append(f"CHECK: the model left out {len(added)} passage(s) of the report. They were added to the notes as "
+                         "written; move them to the right field if one fits.")
+    if years_removed:
+        questions.append(f"CHECK: the model gave {', '.join(map(str, years_removed))} as the year of a repaired car; the report "
+                         "writes that only as part of a range, or not at all, so the car's year is left unknown.")
     if not specific:
         questions.append("The report describes no particular car: it may belong with the expert notes, not the cases.")
     # What a complete report should carry, worked out from the record itself.
