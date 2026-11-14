@@ -1,0 +1,59 @@
+{
+  "file_contains": "Anti-Lock Brakes",
+  "vehicle_line": "2025 Acura Integra L4-1.5L Turbo (L15CA)",
+  "title": "Anti-Lock Brakes",
+  "diagram_ids": [
+    "910112",
+    "910113",
+    "910114"
+  ],
+  "versions": {
+    "1": "EXCEPT 1.5L TURBO CVT INTEGRA",
+    "2": "1.5L TURBO CVT INTEGRA"
+  },
+  "verified": "Each route was read by eye from the rendered pages on 2026-11-13, before the reader was written.",
+  "component": "VSA MODULATOR-CONTROL UNIT",
+  "routes": {
+    "1": [
+      "-WHT-> UNDER-HOOD FUSE/RELAY BOX pin A11 (FUSE 5-5 40A)"
+    ],
+    "2": [
+      "-RED-> UNDER-HOOD FUSE/RELAY BOX pin A24 (FUSE 4-2 40A)"
+    ],
+    "3": [
+      "-BLK-> ground G020"
+    ],
+    "4": [
+      "-RED-> C224 pin 2 -RED-> (page 2 of 3) -RED-> C222 [2 = 1.5L TURBO CVT INTEGRA]/C230 [1 = EXCEPT 1.5L TURBO CVT INTEGRA] pin 1 -colour not given-> RIGHT REAR ELECTRIC PARKING BRAKE ACTUATOR pin 1"
+    ],
+    "5": [
+      "-BLK-> C224 pin 4 -BLK-> (page 2 of 3) -BLK-> C222 [2 = 1.5L TURBO CVT INTEGRA]/C230 [1 = EXCEPT 1.5L TURBO CVT INTEGRA] pin 2 -colour not given-> RIGHT REAR ELECTRIC PARKING BRAKE ACTUATOR pin 2"
+    ],
+    "6": [
+      "-GRN-> C224 pin 3 -GRN-> C223 [2 = 1.5L TURBO CVT INTEGRA]/C229 [1 = EXCEPT 1.5L TURBO CVT INTEGRA] pin 2 -colour not given-> LEFT REAR ELECTRIC PARKING BRAKE ACTUATOR pin 2"
+    ],
+    "7": [
+      "-YEL-> C224 pin 1 -YEL-> C223 [2 = 1.5L TURBO CVT INTEGRA]/C229 [1 = EXCEPT 1.5L TURBO CVT INTEGRA] pin 1 -colour not given-> LEFT REAR ELECTRIC PARKING BRAKE ACTUATOR pin 1"
+    ],
+    "9": [
+      "-BLU-> J/C C007 pin 11 J/C C007 pin 12 -BLU-> UNDER-DASH FUSE/RELAY BOX pin A24 (FUSE 28 10A)"
+    ],
+    "31": [
+      "-RED-> C224 pin 8 -PPL/GRY-> [1 = EXCEPT 1.5L TURBO CVT INTEGRA] -PPL/GRY-> C229 pin 4 -colour not given-> LEFT REAR WHEEL SPEED SENSOR pin 1",
+      "-RED-> C224 pin 8 -PPL/GRY-> [2 = 1.5L TURBO CVT INTEGRA] -PPL/GRY-> C223 pin 3 -colour not given-> LEFT REAR WHEEL SPEED SENSOR pin ?"
+    ],
+    "30": [
+      "-YEL-> C224 pin 13 -PPL/YEL-> [1 = EXCEPT 1.5L TURBO CVT INTEGRA] -PPL/YEL-> C229 pin 5 -colour not given-> LEFT REAR WHEEL SPEED SENSOR pin 2",
+      "-YEL-> C224 pin 13 -PPL/YEL-> [2 = 1.5L TURBO CVT INTEGRA] -PPL/YEL-> C223 pin 4 -colour not given-> LEFT REAR WHEEL SPEED SENSOR pin ?"
+    ],
+    "33": [
+      "-BRN-> C304 [1 = EXCEPT 1.5L TURBO CVT INTEGRA] pin 2 -colour not given-> [1 = EXCEPT 1.5L TURBO CVT INTEGRA] -colour not given-> LEFT FRONT WHEEL SPEED SENSOR pin ?",
+      "-BRN-> C304 [1 = EXCEPT 1.5L TURBO CVT INTEGRA] pin 2 -colour not given-> [2 = 1.5L TURBO CVT INTEGRA] -BRN-> LEFT FRONT WHEEL SPEED SENSOR pin 1"
+    ],
+    "32": [
+      "-BLU-> C304 [1 = EXCEPT 1.5L TURBO CVT INTEGRA] pin 1 -colour not given-> [1 = EXCEPT 1.5L TURBO CVT INTEGRA] -colour not given-> LEFT FRONT WHEEL SPEED SENSOR pin ?",
+      "-BLU-> C304 [1 = EXCEPT 1.5L TURBO CVT INTEGRA] pin 1 -colour not given-> [2 = 1.5L TURBO CVT INTEGRA] -BLU-> LEFT FRONT WHEEL SPEED SENSOR pin 2"
+    ]
+  },
+  "versions_note": "The legend of pages 1 and 2. Page 3 uses the same markers for other cars (1 = 2.0L TURBO M/T TYPE-S, 2 = EXCEPT 2.0L TURBO M/T TYPE-S), so every route spells out the meaning of each marker it passes."
+}

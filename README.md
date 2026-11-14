@@ -93,6 +93,151 @@ a hint, with its source) and with the case held out (the assistant must not inve
 diagram answers expected by the four diagram scenarios were read by eye from the rendered pages; they
 are compared with the extracted records in Milestone 2.
 
+## Knowledge base (Milestone 2)
+
+The knowledge base lives in PostgreSQL. Tables are created by migrations, never by hand.
+
+```bash
+uv pip install -e ".[dev]"     # picks up the new packages (alembic, sqlalchemy)
+docker compose up -d           # PostgreSQL with pgvector
+alembic upgrade head           # create or update the tables
+python scripts/load_seed.py    # load the records kept in this repository, as drafts
+pytest -q
+```
+
+`python scripts/check_storage.py` checks file storage the same way `scripts/check_db.py` checks the
+database. Locally, storage is the `storage` service in `docker-compose.yml`, a stand-in for the S3
+bucket shared with the platform; the values in `.env.example` match it.
+
+With the database running, `pytest` also runs the database tests, in a throw-away database it
+creates and drops itself. Without it those tests are skipped and the rest still run.
+
+```
+migrations/versions/     one file per change to the tables
+app/kb/schemas.py        the record types (the single definition of what a record is)
+app/kb/keys.py           normalised keys, so vehicles and fault codes match exactly
+app/kb/index.py          what is copied out of a record into the lookup tables
+app/kb/store.py          save, approve, exact lookups, keyword search
+```
+
+### Adding files
+
+A file goes into storage, is registered, and a background worker turns it into draft records.
+
+```bash
+python -m app.ingest.add --kind licensed_diagram "C:/path/to/diagrams" --make Acura --model Integra --year 2025
+python -m app.ingest.worker --once     # process what is waiting, then exit
+python -m app.ingest.worker            # or: keep running and pick up new files as they arrive
+```
+
+```
+app/storage.py            the S3 bucket: read, write, short-lived download links
+app/ingest/jobs.py        registering files, and the job queue (a PostgreSQL table)
+app/ingest/extractors.py  one extractor per kind of file, registered here as each is built
+app/ingest/worker.py      takes jobs from the queue and runs the extractor
+app/ingest/add.py         the local way to add files
+```
+
+- The same file added twice is processed once. Changed content becomes a new version.
+- A job that fails for a passing reason is tried again after 30 seconds, then 2 minutes, then 8.
+  One that cannot pass is marked failed at once, with the reason, and can be queued again.
+- Withdrawing a file stops everything extracted from it being served.
+
+### Wiring diagrams
+
+`app/ingest/diagrams.py` reads a diagram PDF from its drawing: wires, pins, connectors, junctions,
+version braces and page joins. No model is used. It can list a component's pins with their wire
+colours and follow a wire from a pin to everything it reaches, across pages.
+
+```bash
+python scripts/score_diagrams.py "C:/path/to/diagrams"
+```
+
+Added as a `licensed_diagram` file, a diagram becomes one record with every pin and where its wire
+goes, plus an image of each page. After `alembic upgrade head`:
+
+```bash
+python -m app.ingest.add --kind licensed_diagram "C:/path/to/diagrams"
+python -m app.ingest.worker --once
+python scripts/show_pin.py Acura Integra 2025 "VSA MODULATOR-CONTROL UNIT" 31
+python scripts/show_pin.py Acura Integra 2025 --find "wheel speed sensor"
+```
+
+Each diagram gets a verdict from checks that need no answer key: `traced` (pins and routes can be
+used), `partial` (routes that hit a problem are marked incomplete) or `show_only` (the file is not
+drawn the way the reader understands: it is stored and shown, and no pin is taken from it).
+
+The scoring script prints, per diagram, how many wires were read, the colour check (the colour a wire is
+drawn in against the colour printed beside it), every wire end the reader could not attach, and
+how many hand-verified routes in `eval/golden/diagrams/` it reproduces.
+
+### DTC procedures
+
+`app/ingest/procedure_extractor.py` turns a troubleshooting PDF into a Procedure record. It does
+not depend on a manufacturer's layout: code takes out the text and leaves a marker where each image
+sits, the vision model reads each image on its own (manuals print the test points of a measurement
+as small images), the reasoning model writes the steps, and code then checks the result against the
+PDF itself: every value must be printed in the PDF, every pin must come from an image and exist on
+its connector, every measurement image must be used once. Failed checks are written into the draft
+for the reviewer.
+
+```bash
+python scripts/score_procedure.py "C:/path/to/P0010.pdf"
+```
+
+This runs the real models (it needs the key in `.env`) and compares the result with the
+hand-written reference record in `eval/golden/procedures/`, where one exists.
+
+### Solved cases
+
+`app/ingest/case_extractor.py` turns a case report (text or PDF) into a Case record. The model reads
+the report; code then checks that every fault code, the make, each model and each year in the record
+are written in the report, and points out codes the report mentions that the record left out. A year
+the report does not give stays empty.
+
+```bash
+python scripts/score_cases.py "C:/path/to/reports_01" --limit 3
+```
+
+### Search by meaning
+
+Every small piece of text in the knowledge base (one symptom, one finding, one claim) gets a vector
+from the embedding model (`LLM_EMBEDDING_MODEL`, Qwen3-Embedding-4B, 1024 numbers kept). The worker
+adds the vectors after each job; `python -m app.kb.embedder` fills in any that are missing.
+`KnowledgeStore.search` combines keyword search with search by meaning.
+
+```bash
+python scripts/check_embeddings.py
+python scripts/search_kb.py Tesla "Model S" 2022 "the air conditioning cuts out while driving"
+```
+
+### The review screen
+
+Nothing reaches a mechanic until a person approves it. Set `REVIEW_PASSWORD` in `.env`, then:
+
+```bash
+uvicorn app.api.main:app --reload
+```
+
+and open http://localhost:8000/review. Sign in with your own name as the user name and the review
+password; the name is recorded on what you approve. Each record is shown beside the file it was
+read from (the PDF, the report text, or the diagram's page images), with failed checks first.
+Approving a record that has failed checks asks for a confirmation. Without `REVIEW_PASSWORD` the
+screen does not exist. `python scripts/kb_status.py` shows what is waiting.
+
+Rules the store enforces, each covered by tests:
+
+- **Only approved records are served.** Drafts are visible only when the caller asks for them
+  (development and evaluation).
+- **A record is used only for its own vehicle and its own fault code.** `P0010` never returns
+  `P0011`; a 7-character code never matches its 5-character base; a procedure needs the same
+  make, model, year and engine.
+- **An approved record is never changed in place.** New content becomes a new draft version, and
+  the approved version keeps being served until the new one is approved.
+- **Search finds a small piece and returns the whole record** (one symptom, one finding or one
+  claim leads to the full case or expert note). Text the chat assistant added and the expert has
+  not confirmed is not searched.
+
 ## Rules
 
 - Only the client's **own** knowledge (their cases, their expert's notes) may be committed under `seed/`.

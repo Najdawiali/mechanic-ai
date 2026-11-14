@@ -3,7 +3,7 @@
 Four kinds of knowledge, each with a different level of authority:
 
   Procedure    manufacturer troubleshooting steps (licensed source, e.g. ALLDATA)
-  DiagramPage  one page of a wiring diagram (licensed source)
+  WiringDiagram  a wiring diagram read into pins and routes (licensed source)
   Case         one real repair done in the client's workshop
   ExpertNote   a rule of thumb from the client's expert; applies across vehicles
 
@@ -71,6 +71,7 @@ class NormalRange(Record):
     unit: str  # ohm, kohm, Mohm, V, mV, A (see app/engine/readings.py)
     approximate: bool = False  # the manual says "about"
     condition: str | None = None  # e.g. "at room temperature"
+    as_printed: str | None = None  # the values and unit with the manual's own digits ("7.14 – 7.90 Ω"); shown, never compared
 
     @model_validator(mode="after")
     def _bounds_match_op(self) -> NormalRange:
@@ -159,29 +160,88 @@ class Procedure(Record):
         return self
 
 
-# -- DiagramPage -------------------------------------------------------------
-class DiagramPage(Record):
-    diagram_id: str
-    vehicle: Vehicle
-    system_path: list[str]  # e.g. ["Brakes", "ABS"]
-    title: str
+# -- WiringDiagram ------------------------------------------------------------
+class RouteHop(Record):
+    kind: Literal["pin", "wire", "connector", "junction_connector", "version", "ground", "system", "page", "open"]
+    name: str | None = None  # component, connector ids, ground id, other system, version, or wire colour
+    pin: str | None = None
+    detail: str | None = None  # the fuse at a fuse-box terminal; "dashed" for a wire fitted on some versions
+
+
+class Route(Record):
+    """Where a wire goes from one pin, worked out once when the diagram is read."""
+
+    hops: list[RouteHop]
+    text: str  # the same route in one line, for showing and for citing
+    complete: bool  # False = it stops at an end the reader could not attach: never present it as the whole path
+
+
+class DiagramPin(Record):
+    component: str
+    pin: str  # a string: pins can be "31", "A11"
+    wire_colour: str | None = None  # None = the diagram prints no colour for this wire
     page: str  # "1 of 3"
-    components: list[str] = Field(default_factory=list)
-    fuses: list[str] = Field(default_factory=list)
-    connectors: list[str] = Field(default_factory=list)
-    wire_colours: list[str] = Field(default_factory=list)
-    image_file: str
+    fuse: str | None = None
+    # When the page draws this component more than once, the version of the car this drawing is for
+    # ("1.5L TURBO", "2 = 1.5L TURBO CVT INTEGRA"). None = drawn once, or the drawing does not say.
+    version: str | None = None
+    routes: list[Route] = Field(default_factory=list)
+
+
+class DiagramComponent(Record):
+    name: str
+    location: str | None = None
+    fitted: str | None = None  # which cars have it, when the diagram says so: "M/T", "IF EQUIPPED"
+    page: str
+
+
+class DiagramSheet(Record):
+    page: str  # "1 of 3"
+    diagram_id: str  # the provider's id printed on the page
+    image_key: str | None = None  # where the page image is in storage, to send when the mechanic asks
+    versions: dict[str, str] = Field(default_factory=dict)  # this page's legend: marker -> meaning
+
+
+class WiringDiagram(Record):
+    """One wiring diagram (all its pages), read into pins and routes."""
+
+    diagram_key: str
+    vehicle: Vehicle
+    system_path: list[str]  # e.g. ["Brakes and Traction Control", "Antilock Brakes / Traction Control Systems"]
+    title: str
+    sheets: list[DiagramSheet]
+    components: list[DiagramComponent] = Field(default_factory=list)
+    # marker -> meaning, only for markers that mean the same on every page; each sheet has its own legend,
+    # and every route spells out the meaning of the markers it passes
+    versions: dict[str, str] = Field(default_factory=dict)
+    pins: list[DiagramPin] = Field(default_factory=list)
+    # How far the reading can be trusted (see app/ingest/diagrams.py):
+    # traced = pins and routes usable; partial = incomplete routes are marked; show_only = no pins taken.
+    verdict: Literal["traced", "partial", "show_only"]
+    verdict_reasons: list[str] = Field(default_factory=list)
     source: Source
     review: Review = Field(default_factory=Review)
+
+    @model_validator(mode="after")
+    def _show_only_has_no_pins(self) -> WiringDiagram:
+        if self.verdict == "show_only" and self.pins:
+            raise ValueError("a show_only diagram carries no pins")
+        return self
 
 
 # -- Case --------------------------------------------------------------------
 class FaultCode(Record):
-    code: str
+    code: str | None = None  # the code number or alert name; None when the tool showed only a wording
     text_on_tool: str | None = None  # the wording the scan tool showed
     tool: str | None = None
     module: str | None = None  # the control unit that stored it
     tool_note: str | None = None  # e.g. "Generic Type DTC, reference only"
+
+    @model_validator(mode="after")
+    def _has_a_code_or_a_wording(self) -> FaultCode:
+        if not (self.code or self.text_on_tool):
+            raise ValueError("a fault needs its code or the wording the tool showed")
+        return self
 
 
 class PartReplaced(Record):
@@ -196,16 +256,27 @@ class Outcome(StrEnum):
     NOT_FIXED = "not_fixed"
 
 
+class RepairedCar(Record):
+    """One car the repair was actually done on."""
+
+    model: str | None = None
+    year: int | None = None  # None = the report does not give it
+
+
 class Case(Record):
     case_id: str
     make: str
     models: list[str]
+    # Each car the repair was done on. When given, lookups match these model-and-year pairs
+    # exactly, so a report on a 2024 Model S and a 2022 Model Y is not offered for a 2022 Model S.
+    repaired_cars: list[RepairedCar] = Field(default_factory=list)
     year_from: int | None = None
     year_to: int | None = None
     powertrain: Powertrain | None = None
     engine: str | None = None
     system: str | None = None
     modules: list[str] = Field(default_factory=list)
+    scan_tools: list[str] = Field(default_factory=list)  # the tools named in the report
     fault_codes: list[FaultCode] = Field(default_factory=list)
     symptoms: list[str] = Field(default_factory=list)
     findings: list[str] = Field(default_factory=list)  # checks done and what each showed
@@ -214,6 +285,9 @@ class Case(Record):
     repair_steps: list[str] = Field(default_factory=list)
     parts_replaced: list[PartReplaced] = Field(default_factory=list)
     parts_not_replaced: list[str] = Field(default_factory=list)  # ruled out; stops a wrong purchase
+    # What the technician explains beyond the steps done: how and where to measure, cautions, what the
+    # fault does not prove. One point per item, in the report's own words.
+    notes: list[str] = Field(default_factory=list)
     outcome: Outcome
     occurrences: list[str] = Field(default_factory=list)
     sensitive: bool = False

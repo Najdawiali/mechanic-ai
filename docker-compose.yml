@@ -17,5 +17,21 @@ services:
       timeout: 3s
       retries: 10
 
+  # Local stand-in for the S3 bucket shared with the platform. Production uses the real bucket.
+  storage:
+    image: andrewgaul/s3proxy
+    container_name: mechanic-ai-storage
+    environment:
+      S3PROXY_AUTHORIZATION: aws-v2-or-v4
+      S3PROXY_IDENTITY: local-identity        # local development only
+      S3PROXY_CREDENTIAL: local-credential
+      JCLOUDS_PROVIDER: filesystem
+      JCLOUDS_FILESYSTEM_BASEDIR: /data
+    ports:
+      - "8333:80"
+    volumes:
+      - s3data:/data
+
 volumes:
   pgdata:
+  s3data:
