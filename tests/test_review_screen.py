@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import html
 import json
 from pathlib import Path
 
@@ -107,3 +108,33 @@ def test_text_from_a_file_cannot_inject_markup_into_the_page(client, auto_conn, 
     rid = jobs.job_status(auto_conn, done.job_id)["result"]["records"][0]["record_id"]
     page = client.get(f"/review/{rid}", auth=NASOH).text
     assert "<script>alert(1)</script>" not in page and "<img src=x" not in page and "&lt;script&gt;" in page
+
+
+# -- nothing a mechanic would be told may be hidden from the reviewer ------------------------
+def text_fields(value, path=""):
+    if isinstance(value, dict):
+        for key, inner in value.items():
+            yield from text_fields(inner, f"{path}.{key}")
+    elif isinstance(value, list):
+        for inner in value:
+            yield from text_fields(inner, path)
+    elif isinstance(value, str) and value.strip():
+        yield path, value
+
+
+# Shown in another form: the id is the page's heading, a test point is shown by its connector, pin
+# and side, and a comparison by its words ("less than").
+SHOWN_DIFFERENTLY = (".source", ".review", ".procedure_id", ".case_id", ".note_id", ".steps.measure.from.label",
+                     ".steps.measure.to.label", ".steps.normal.op")
+
+
+@pytest.mark.parametrize("path", sorted((REPO / "eval/golden/procedures").glob("*.json")) + sorted((REPO / "seed").glob("*/*.json")),
+                         ids=lambda p: p.stem)
+def test_every_text_field_of_a_record_is_on_its_page(path):
+    from app.api.review import render_record
+
+    body = json.loads(path.read_text(encoding="utf-8"))
+    kind = {"procedures": "procedure", "cases": "case", "expert_notes": "expert_note"}[path.parent.name]
+    page = render_record(kind, body, 1)
+    hidden = [where for where, text in text_fields(body) if not where.startswith(SHOWN_DIFFERENTLY) and html.escape(text) not in page]
+    assert hidden == []

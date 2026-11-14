@@ -113,24 +113,41 @@ def normal(n: dict | None) -> str:
             f"<div class='muted'>compared in code as {e(words[n['op']] + compared)}</div>")
 
 
+def car(body: dict) -> str:
+    """The car a procedure or a diagram belongs to, spelled out: a record is used for this car only."""
+    v = body.get("vehicle")
+    if not v:
+        return ""
+    named = " ".join(e(x) for x in (v.get("year"), v.get("make"), v.get("model")) if x)
+    return (f"<p><b>Car:</b> {named} &middot; engine: {e(v.get('engine_code') or 'not given')}"
+            f" &middot; powertrain: {e(v.get('powertrain') or 'not given')}</p>")
+
+
+def before_measuring(step: dict) -> str:
+    """Everything the mechanic is told before the measurement: preparations, notices, a tool that is needed."""
+    notices = "".join(f"<div class='note'><b>NOTICE</b> {e(n)}</div>" for n in step.get("notices") or [])
+    tool = f"<div class='muted'>needs the tool: {e(step['requires_tool'])}</div>" if step.get("requires_tool") else ""
+    return as_html(step.get("prepare")) + notices + tool
+
+
 def render_record(record_type: str, body: dict, record_id: int) -> str:
     if record_type == "procedure":
         rows = "".join(
             f"<tr><td>{e(s['id'])}</td><td>{e(s.get('check'))}<div class='muted'>{e(s.get('section'))}</div></td>"
             f"<td>{point(s['measure']['from']) if s.get('measure') else ''}</td><td>{point(s['measure']['to']) if s.get('measure') else ''}</td>"
-            f"<td>{normal(s.get('normal'))}</td><td>{e(s.get('if_abnormal'))}</td><td>{as_html(s.get('prepare'))}</td></tr>"
+            f"<td>{normal(s.get('normal'))}</td><td>{e(s.get('if_abnormal'))}</td><td>{before_measuring(s)}</td></tr>"
             for s in body.get("steps", []))
-        return (f"<p><b>{e(body.get('code'))}</b> {e(body.get('meaning'))}</p>"
-                "<table><tr><th>Step</th><th>Inspection</th><th>From</th><th>To</th><th>Normal</th><th>If not normal</th><th>Prepare</th></tr>"
-                f"{rows}</table><p><b>If every reading is normal:</b> {e(body.get('elimination_conclusion'))}</p>"
-                f"<dl><dt>tool functions</dt><dd>{as_html(body.get('tool_functions'))}</dd>"
-                f"<dt>confirmation</dt><dd>{as_html(body.get('confirmation'))}</dd></dl>")
+        return (f"{car(body)}<p><b>{e(body.get('code'))}</b> {e(body.get('meaning'))}</p>"
+                "<table><tr><th>Step</th><th>Inspection</th><th>From</th><th>To</th><th>Normal</th><th>If not normal</th>"
+                f"<th>Prepare, notices</th></tr>{rows}</table>"
+                f"<p><b>If every reading is normal:</b> {e(body.get('elimination_conclusion'))}</p>"
+                + as_html({k: body.get(k) for k in ("overview", "warnings", "tool_functions", "confirmation", "related_docs")}))
     if record_type == "diagram":
         rows = "".join(
             f"<tr><td>{e(p['component'])}</td><td><b>{e(p['pin'])}</b></td><td>{e(p.get('wire_colour') or 'not given')}</td><td>{e(p['page'])}</td><td>"
             + "<br>".join(("" if r["complete"] else "<b>INCOMPLETE</b> ") + e(r["text"]) for r in p.get("routes", [])) + "</td></tr>"
             for p in body.get("pins", []))
-        return (f"<p><b>{e(body.get('title'))}</b> <span class='tag'>reading: {e(body.get('verdict'))}</span></p>"
+        return (f"{car(body)}<p><b>{e(body.get('title'))}</b> <span class='tag'>reading: {e(body.get('verdict'))}</span></p>"
                 f"{as_html(body.get('verdict_reasons')) if body.get('verdict_reasons') else ''}"
                 f"<p class='muted'>Versions: {e(json.dumps(body.get('versions') or {}))}</p>"
                 f"<table><tr><th>Component</th><th>Pin</th><th>Wire</th><th>Page</th><th>Where the wire goes</th></tr>{rows}</table>")
