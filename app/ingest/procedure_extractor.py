@@ -187,6 +187,59 @@ def name_conclusions(data: dict) -> None:
             step["if_abnormal"] = f"{step['if_abnormal'].rstrip('.!?')} ({name})."
 
 
+ABOUT = r"(?:about|around|approx(?:imately|\.)?)"
+IGNITION = re.compile(r"\b(?:IG|ignition)(?:\s+(?:mode|switch|key))?\s*[:\-]?\s*"
+                      r"(?:OFF|ON(?:\s*\(II\))?|ACC(?:ESSORY)?|LOCK|START)(?![A-Za-z])", re.IGNORECASE)
+
+
+def _digits_as_printed(value: Any, pdf_text: str) -> str | None:
+    """How the manual writes this number ("7.90"), when it writes it one way only."""
+    try:
+        wanted = float(value)
+    except (TypeError, ValueError):
+        return None
+    forms = {n for n in NUMBER.findall(pdf_text.replace(",", "")) if float(n) == wanted}
+    return forms.pop() if len(forms) == 1 else None
+
+
+def _without_brackets(text: str) -> str:
+    text = text.strip(" ,;:-")
+    while text.startswith("(") and text.endswith(")") and text.count("(") == text.count(")") == 1:
+        text = text[1:-1].strip(" ,;:-")
+    return text
+
+
+def settle_normals(data: dict, pdf_text: str) -> None:
+    """Decide in code the parts of a normal value that a model fills in unevenly.
+
+    - "about": true only when the manual prints "about" (or "approx.") in front of the value.
+    - the values with the manual's own digits (7.90, not 7.9), for the reviewer and for display.
+    - the ignition state is a preparation, not a condition of the value: it is moved to `prepare`,
+      so `condition` holds only what the manual prints with the value ("at room temperature").
+    """
+    for step in data.get("steps") or []:
+        normal = step.get("normal") if isinstance(step, dict) else None
+        if not isinstance(normal, dict):
+            continue
+        digits = [_digits_as_printed(normal[k], pdf_text) for k in ("min", "max") if normal.get(k) is not None]
+        symbol = next((s for s in UNIT_AS_PRINTED.get(str(normal.get("unit")), ()) if s in pdf_text), None)
+        if digits and digits[0]:
+            normal["approximate"] = bool(re.search(rf"\b{ABOUT}\s+{re.escape(digits[0])}(?![\d.])", pdf_text, re.IGNORECASE))
+        normal["as_printed"] = f"{' – '.join(digits)} {symbol}" if digits and all(digits) and symbol else None
+
+        condition = normal.get("condition")
+        if not isinstance(condition, str):
+            continue
+        ignition = IGNITION.search(condition)
+        if ignition:
+            prepare = step["prepare"] if isinstance(step.get("prepare"), list) else []
+            if not any(IGNITION.search(str(line)) for line in prepare):
+                prepare.append(" ".join(ignition.group(0).split()))
+            step["prepare"] = prepare
+            condition = condition[:ignition.start()] + condition[ignition.end():]
+        normal["condition"] = _without_brackets(condition) or None
+
+
 def _printed(sentence: str, pdf_text: str) -> bool:
     """Is this sentence in the PDF? Compared without spaces, capitals or the final full stop, so a
     line break in the PDF does not matter and a changed letter does. An inspection name added in
@@ -224,6 +277,8 @@ def check_procedure(procedure: Procedure, pdf_text: str, readings: list[ImageRea
                     problems.append(f"{where}: the value {value:g} is not printed in the PDF")
             if not any(symbol in pdf_text for symbol in UNIT_AS_PRINTED.get(step.normal.unit, (step.normal.unit,))):
                 problems.append(f"{where}: the unit {step.normal.unit} is not printed in the PDF")
+            if step.normal.condition and not _printed(step.normal.condition, pdf_text):
+                problems.append(f"{where}: the condition of the normal value is not printed in the PDF as written: {step.normal.condition!r}")
         if step.measure is None:
             continue
         points = set()
@@ -270,6 +325,7 @@ def extract_with_readings(document: SourceDocument, gateway=None) -> tuple[Extra
     readings = [read_image(gateway, image) for image in pdf.images]
     data = write_procedure(gateway, text_with_readings(pdf, readings))
     name_conclusions(data)
+    settle_normals(data, pdf.text)
 
     # The code is taken from the PDF's own heading; the model's answer must agree with it.
     in_header = [m.group(1) for line in pdf.header for m in CODE.finditer(line)]

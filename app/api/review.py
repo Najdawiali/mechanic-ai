@@ -99,13 +99,18 @@ def point(p: dict) -> str:
 def normal(n: dict | None) -> str:
     if not n:
         return ""
-    words = {"lt": "less than", "le": "at most", "gt": "more than", "ge": "at least"}
+    words = {"between": "", "lt": "less than ", "le": "at most ", "gt": "more than ", "ge": "at least "}
     if n["op"] == "between":
-        text = f"{'about ' if n.get('approximate') else ''}{n['min']:g} to {n['max']:g} {n['unit']}"
+        compared = f"{n['min']:g} to {n['max']:g} {n['unit']}"
     else:
-        value = n["max"] if n["op"] in ("lt", "le") else n["min"]
-        text = f"{words[n['op']]} {value:g} {n['unit']}"
-    return e(text + (f" ({n['condition']})" if n.get("condition") else ""))
+        compared = f"{(n['max'] if n['op'] in ('lt', 'le') else n['min']):g} {n['unit']}"
+    about = "about " if n.get("approximate") else ""
+    condition = f" ({n['condition']})" if n.get("condition") else ""
+    if not n.get("as_printed"):
+        return e(f"{about}{words[n['op']]}{compared}{condition}")
+    # The manual's own digits first; under it, the numbers a reading is compared with in code.
+    return (f"{e(about + words[n['op']] + n['as_printed'] + condition)}"
+            f"<div class='muted'>compared in code as {e(words[n['op']] + compared)}</div>")
 
 
 def render_record(record_type: str, body: dict, record_id: int) -> str:
@@ -188,7 +193,7 @@ def show_record(record_id: int, who: str = Depends(reviewer), conn: psycopg.Conn
         except ObjectNotFound:
             source = "<p class='note failed'>The source file is no longer in storage.</p>"
     else:
-        source = f"<iframe src='/review/{record_id}/source' title='source file'></iframe>"
+        source = f"<iframe src='/review/{record_id}/source#navpanes=0&view=FitH' title='source file'></iframe>"
     sheets = "".join(f"<img src='/review/{record_id}/sheet/{i}' alt='diagram page {e(s['page'])}'>"
                      for i, s in enumerate(row["body"].get("sheets") or []) if s.get("image_key"))
 

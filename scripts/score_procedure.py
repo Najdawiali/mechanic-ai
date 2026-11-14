@@ -18,7 +18,7 @@ REPO = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(REPO))
 
 from app.ingest.extractors import SourceDocument  # noqa: E402
-from app.ingest.procedure_extractor import extract_with_readings  # noqa: E402
+from app.ingest.procedure_extractor import IGNITION, extract_with_readings  # noqa: E402
 from app.kb.schemas import Procedure  # noqa: E402
 
 
@@ -52,7 +52,9 @@ def main() -> int:
         if step.measure and step.normal:
             n = step.normal
             print(f"  {step.id}  {point(step.measure.from_point)}  <->  {point(step.measure.to_point)}   "
-                  f"normal: {n.op} {n.min} {n.max} {n.unit}\n       inspection: {step.check}\n       if abnormal: {step.if_abnormal}")
+                  f"normal: {n.op} {n.min} {n.max} {n.unit}"
+                  f"{'  (about)' if n.approximate else ''}{f'  ({n.condition})' if n.condition else ''}"
+                  f"{f'  printed: {n.as_printed}' if n.as_printed else ''}\n       inspection: {step.check}\n       if abnormal: {step.if_abnormal}")
         else:
             print(f"  {step.id}  {step.check}")
     print(f"  all normal: {record.elimination_conclusion}")
@@ -76,6 +78,10 @@ def main() -> int:
                 ("terminal side", got.measure and got.measure.from_point.terminal_side, want.measure and want.measure.from_point.terminal_side),
                 ("normal value", got.normal and (got.normal.op, got.normal.min, got.normal.max, got.normal.unit),
                  want.normal and (want.normal.op, want.normal.min, want.normal.max, want.normal.unit)),
+                ("\"about\"", got.normal and got.normal.approximate, want.normal and want.normal.approximate),
+                ("condition of the value", squeeze(got.normal and got.normal.condition), squeeze(want.normal and want.normal.condition)),
+                ("ignition state in the preparation", any(IGNITION.search(line) for line in got.prepare),
+                 any(IGNITION.search(line) for line in want.prepare)),
                 ("conclusion", squeeze(got.if_abnormal), squeeze(want.if_abnormal)),
                 ("next step", got.if_normal, want.if_normal),
             ):

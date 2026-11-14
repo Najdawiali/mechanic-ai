@@ -18,7 +18,7 @@ import pytest
 from app.ingest.extractors import SourceDocument
 from app.ingest.jobs import PermanentError
 from app.ingest.pdf_text import read_pdf_text
-from app.ingest.procedure_extractor import ImageReading, check_procedure, extract_procedure, text_with_readings
+from app.ingest.procedure_extractor import ImageReading, check_procedure, extract_procedure, settle_normals, text_with_readings
 from app.kb.schemas import Procedure
 
 REPO = Path(__file__).resolve().parents[1]
@@ -36,7 +36,7 @@ def build_pdf(images: int = 4) -> bytes:
     page = doc.new_page(width=612, height=792)
     lines = ["2025 Acura Integra L4-1.5L Turbo (L15CA)", "Vehicle > ALL Diagnostic Trouble Codes ( DTC ) > P Code Charts > P0010 >",
              "DTC Troubleshooting: P0010", "DTC P0010: Variable Valve Timing Control (VTC) Oil Control Solenoid Valve A Malfunction",
-             f"{VALVE}: disconnected", f"{PCM}: disconnected", "Valve internal circuit inspection OFF About 7.14 - 7.90 Ω",
+             f"{VALVE}: disconnected", f"{PCM}: disconnected", "Valve internal circuit inspection OFF About 7.14 - 7.90 Ω", "(at room temperature)",
              "PG open wire inspection OFF There is less than 1 Ω", "VTC(IN) shorted to ground inspection OFF There is more than 1 MΩ",
              "If abnormal, there is a problem with VTC oil control solenoid valve A.",
              "If abnormal, there is a problem in the circuit. If the other inspection item(s) indicated a normal condition, then it is",
@@ -182,7 +182,9 @@ def test_a_procedure_is_extracted_with_the_pins_and_values_of_the_reference_reco
     assert (gateway.images_seen, gateway.writes, extracted.extracted_by) == (4, 1, "model")
     assert (record.procedure_id, record.code) == (GOLDEN["procedure_id"], "P0010")
     assert (record.vehicle.make, record.vehicle.model, record.vehicle.year, record.vehicle.engine_code) == ("Acura", "Integra", 2025, "L15CA")
-    assert record.steps == golden().steps and record.elimination_conclusion == golden().elimination_conclusion
+    assert [s.normal.as_printed for s in record.steps] == ["7.14 – 7.90 Ω", "1 Ω", "1 Ω", "1 MΩ"]
+    assert [s.model_copy(update={"normal": s.normal.model_copy(update={"as_printed": None})}) for s in record.steps] == golden().steps
+    assert record.elimination_conclusion == golden().elimination_conclusion
     assert record.review.status == "draft" and record.source.licensed
     assert not any(q.startswith("CHECK FAILED") for q in record.review.open_questions)
 
@@ -198,7 +200,7 @@ def test_an_answer_that_is_not_a_procedure_is_sent_back_once():
     good = FakeGateway().answers[0]
     gateway = FakeGateway(answers=["I could not find any steps.", good])
     [extracted] = extract_procedure(document(build_pdf()), gateway)
-    assert gateway.writes == 2 and extracted.record.steps == golden().steps
+    assert gateway.writes == 2 and [s.measure for s in extracted.record.steps] == [s.measure for s in golden().steps]
     with pytest.raises(RuntimeError):
         extract_procedure(document(build_pdf()), FakeGateway(answers=["not JSON", "still not JSON"]))
 
@@ -208,3 +210,48 @@ def test_a_file_without_text_is_refused():
     doc.new_page()
     with pytest.raises(PermanentError):
         extract_procedure(document(doc.tobytes()), FakeGateway())
+
+
+# -- what a model fills in unevenly is decided in code ---------------------------------------
+def as_a_model_wrote_it() -> dict:
+    """The first real record seen on the review screen: no "about", the ignition state in the condition."""
+    data = json.loads(json.dumps(GOLDEN))
+    for number, step in enumerate(data["steps"]):
+        step["prepare"] = [line for line in step["prepare"] if "IG" not in line]
+        step["normal"].update(approximate=False, condition="IG Mode OFF (at room temperature)" if number == 0 else "IG Mode OFF")
+    return data
+
+
+def test_about_the_printed_digits_and_the_ignition_state_are_settled_in_code():
+    data = as_a_model_wrote_it()
+    settle_normals(data, TEXT)
+    first, second = data["steps"][0], data["steps"][1]
+    assert first["normal"]["approximate"] is True and second["normal"]["approximate"] is False
+    assert (first["normal"]["condition"], second["normal"]["condition"]) == ("at room temperature", None)
+    assert first["normal"]["as_printed"] == "7.14 – 7.90 Ω"
+    assert first["prepare"][-1] == "IG Mode OFF" and second["prepare"][-1] == "IG Mode OFF"
+
+
+def test_about_is_not_kept_when_the_manual_does_not_print_it():
+    data = json.loads(json.dumps(GOLDEN))
+    settle_normals(data, TEXT.replace("About 7.14", "7.14"))
+    assert data["steps"][0]["normal"]["approximate"] is False
+
+
+def test_a_number_printed_in_two_ways_is_shown_as_stored():
+    data = json.loads(json.dumps(GOLDEN))
+    settle_normals(data, TEXT + " torque 7.9 N")
+    assert data["steps"][0]["normal"]["as_printed"] is None
+
+
+def test_an_ignition_state_already_among_the_preparations_is_not_added_twice():
+    data = json.loads(json.dumps(GOLDEN))
+    data["steps"][0]["normal"]["condition"] = "IG mode: OFF, at room temperature"
+    settle_normals(data, TEXT)
+    assert sum("IG" in line for line in data["steps"][0]["prepare"]) == 1
+    assert data["steps"][0]["normal"]["condition"] == "at room temperature"
+
+
+def test_a_condition_the_manual_does_not_print_is_caught():
+    problems = check_procedure(change(0, ["normal", "condition"], "at 20 degrees"), TEXT, readings())
+    assert any("condition" in p and "step 1" in p for p in problems)

@@ -71,6 +71,7 @@ class NormalRange(Record):
     unit: str  # ohm, kohm, Mohm, V, mV, A (see app/engine/readings.py)
     approximate: bool = False  # the manual says "about"
     condition: str | None = None  # e.g. "at room temperature"
+    as_printed: str | None = None  # the values and unit with the manual's own digits ("7.14 – 7.90 Ω"); shown, never compared
 
     @model_validator(mode="after")
     def _bounds_match_op(self) -> NormalRange:
