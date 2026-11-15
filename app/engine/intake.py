@@ -59,6 +59,7 @@ class Intake:
     reading_from_words: bool = False  # the value was written in words: say back what was understood
     components: list[str] = field(default_factory=list)
     power_and_ground: bool = False
+    pins_only: bool = False  # asks only which pins of the first component serve the other, not the whole route
     answer: str | None = None  # one of the pending question's options
     fix: str | None = None  # the repair that fixed it, in English, when intent is fix_confirmed
     terms: list[str] = field(default_factory=list)  # workshop words found by the glossary, "word = English"
@@ -83,6 +84,8 @@ english: the whole message in plain English, keeping every part, symptom, code a
 reading: the meter reading if intent is reading, else null. over_limit is true for "OL" or "infinite".
 components: the diagram components the message is about, chosen ONLY from "components on this car's diagrams"; [] if none fit.
 power_and_ground: true if he asks about power supply, fuses or ground of a component.
+pins_only: true if he asks only which pins (and wire colours) of the first component serve the other component,
+  not the whole wiring between them.
 answer: if he answers the question asked, the matching option exactly as listed; else null.
 fix: if intent is fix_confirmed, a short English phrase naming the repair that fixed it (e.g. "inverter replacement", "headlight coding with ODIS"); else null."""
 
@@ -92,7 +95,7 @@ def _schema(components: list[str], options: list[str]) -> dict:
     component_item = {"type": "string"} if not components else {"enum": components}
     return {
         "type": "object", "additionalProperties": False,
-        "required": ["intent", "english", "codes", "reading", "components", "power_and_ground", "answer", "fix"],
+        "required": ["intent", "english", "codes", "reading", "components", "power_and_ground", "pins_only", "answer", "fix"],
         "properties": {
             "intent": {"enum": list(INTENTS)},
             "english": {"type": "string"},
@@ -103,6 +106,7 @@ def _schema(components: list[str], options: list[str]) -> dict:
                                "over_limit": {"type": "boolean"}}}]},
             "components": {"type": "array", "items": component_item},
             "power_and_ground": {"type": "boolean"},
+            "pins_only": {"type": "boolean"},
             "answer": nullable_choice,
             "fix": {"type": ["string", "null"]},
         },
@@ -167,5 +171,6 @@ def read_message(model: ModelClient, state: SessionState, text: str, *, componen
     fix = out.get("fix") if intent == "fix_confirmed" and isinstance(out.get("fix"), str) else None
     english = out.get("english") if isinstance(out.get("english"), str) and out.get("english").strip() else text
     return Intake(intent=intent, english=english, codes=codes, reading=reading, reading_from_words=from_words,
-                  components=chosen, power_and_ground=bool(out.get("power_and_ground")), answer=answer, fix=fix,
+                  components=chosen, power_and_ground=bool(out.get("power_and_ground")),
+                  pins_only=bool(out.get("pins_only")), answer=answer, fix=fix,
                   terms=terms)

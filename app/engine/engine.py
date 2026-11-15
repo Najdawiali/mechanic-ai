@@ -130,7 +130,7 @@ class Engine:
         if intake.intent == "check_wire":
             return self._check_wire(state, intake)
         if intake.components and (intake.intent in ("wiring_question", "spec_question") or intake.power_and_ground):
-            return self._wiring(state, intake.components, intake.power_and_ground, gaps)
+            return self._wiring(state, intake.components, intake.power_and_ground, gaps, pins_only=intake.pins_only)
         if new_codes:
             return self._diagnose(state, intake, new_codes, gaps)
         if intake.intent == "diagnose" and state.codes and not state.offered:
@@ -420,7 +420,8 @@ class Engine:
         return self._show_step(state, intro=render.circuit_intro(state.walk), english_lead=[f"Route: {plan.route}"])
 
     # -- 10. wiring questions ----------------------------------------------------------------------------------
-    def _wiring(self, state: SessionState, components: list[str], power_and_ground: bool, gaps: list[Gap]) -> Reply:
+    def _wiring(self, state: SessionState, components: list[str], power_and_ground: bool, gaps: list[Gap], *,
+                pins_only: bool = False) -> Reply:
         first = components[0]
         pins = self.kb.get_pins(state.vehicle, first, statuses=self.statuses)
         if len(components) >= 2:
@@ -453,6 +454,12 @@ class Engine:
         warnings = []
         if any(l.pin.verdict == "partial" for l in answer.lines):
             warnings.append("Some wires on this diagram could not be followed to their end; those routes are marked.")
+        if answer.needs_version and pins_only and wiring.same_near_end(answer):
+            english += ("\nThe pins and wire colours at the first part are the same on every version; the far end differs "
+                        "by version as listed. Tell me the version for the route that applies to this car.")
+            message, _ = translate(self.model, english, state.language)
+            return self._reply(state, "conclusion", message, tier="verified", evidence=evidence, warnings=warnings,
+                               confidence="high")
         if answer.needs_version:
             english += "\nWhich of these is the car: " + "; or ".join(answer.versions) + "?"
             message, _ = translate(self.model, english, state.language)

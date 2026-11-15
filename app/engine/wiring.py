@@ -11,6 +11,7 @@ never merged and one is never picked for him ("don't mix: each car has its own s
 
 from __future__ import annotations
 
+import re
 from dataclasses import dataclass, field
 
 from app.engine.circuit_plan import plans_for_pin
@@ -66,10 +67,24 @@ def _collect(lines: list[Line]) -> Answer:
     return answer
 
 
+_MARKED = re.compile(r"^(?P<name>.+?) \[(?P<marker>.+)\]$")  # "C304 [1 = EXCEPT 1.5L TURBO CVT INTEGRA]"
+
+
+def _marked_for_other(route: dict, versions: tuple[str, ...]) -> list[str]:
+    """Connectors on the route that the diagram marks for a version this route is not drawn for."""
+    found = []
+    for hop in route["hops"]:
+        marked = _MARKED.match(hop.get("name") or "") if hop.get("kind") in ("connector", "junction_connector") else None
+        if marked and versions and meaning(marked["marker"]) not in versions:
+            found.append(f"connector {marked['name']} is marked \"{marked['marker']}\": confirm on the car that it is fitted")
+    return found
+
+
 def _text(pin: PinHit, route: dict, versions: tuple[str, ...]) -> str:
     drawn = f" [drawn for: {', '.join(versions)}]" if versions else ""
     unfinished = " (the diagram reader could not follow this wire to its end)" if not route.get("complete") else ""
-    return f"{route['text']}{drawn}{unfinished} (page {pin.page})"
+    cautions = "".join(f" ({c})" for c in _marked_for_other(route, versions))
+    return f"{route['text']}{drawn}{unfinished}{cautions} (page {pin.page})"
 
 
 def between(pins: list[PinHit], other: str) -> Answer:
@@ -84,11 +99,22 @@ def power_and_ground(pins: list[PinHit]) -> Answer:
         for route, plan in zip(pin.routes, plans, strict=True):
             if plan.role in ("feed", "ground"):
                 versions = _versions(pin, route)
-                what = "power from" if plan.role == "feed" else "ground"
+                what = f"power from {plan.goes_to}" if plan.role == "feed" else f"to {plan.goes_to}"
                 lines.append(Line(pin, route, versions,
-                                  f"{pin.component} pin {pin.pin} ({pin.wire_colour or 'colour not printed'}): {what} {plan.goes_to}. "
+                                  f"{pin.component} pin {pin.pin} ({pin.wire_colour or 'colour not printed'}): {what}. "
                                   f"Route: {_text(pin, route, versions)}"))
     return _collect(lines)
+
+
+def _near_end(line: Line) -> tuple[str, str | None]:
+    wire = next((h.get("name") for h in line.route["hops"] if h.get("kind") == "wire"), None)
+    return line.pin.pin, wire
+
+
+def same_near_end(answer: Answer) -> bool:
+    """Every version uses the same pins and wire colours at the first component."""
+    ends = [{_near_end(line) for line in answer.lines if version in line.versions} for version in answer.versions]
+    return bool(ends) and all(e == ends[0] for e in ends)
 
 
 def for_version(answer: Answer, version: str) -> Answer:
