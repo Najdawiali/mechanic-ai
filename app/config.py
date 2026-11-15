@@ -42,6 +42,18 @@ class Settings(BaseSettings):
     # in with their own name as the user name and this password; the name is recorded on what they approve.
     review_password: SecretStr | None = None
 
+    # The assistant's API (/ai). The platform's backend sends this key as "Authorization: Bearer <key>".
+    # Unset = the API refuses every call.
+    ai_service_key: SecretStr | None = None
+    # Serve draft records as well as approved ones. For development and evaluation only: in production
+    # the assistant serves approved records only.
+    kb_serve_drafts: bool = False
+    # The emergency number in the safety texts (Jordan: 911, the unified number).
+    emergency_number: str = "911"
+    # An outside source of diagnostic data (app/engine/external.py). "off" until a provider is licensed.
+    external_source: str = "off"
+    db_pool_max: int = 10
+
 
 @lru_cache
 def get_settings() -> Settings:
