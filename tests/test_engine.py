@@ -308,3 +308,52 @@ def test_a_translation_that_changes_a_number_is_replaced_by_the_english_text(kb)
     reply = engine.turn(state, "أكورا انتيجرا 2025، طالع عندي كود P0010").reply
     assert "7.14" in reply.message and "7.4 " not in reply.message and "بالإنجليزية" in reply.message
     assert len(script.calls("translate")) == 2
+
+
+# -- faults found in the first real-model run (2026-11-15) ---------------------------------------------------
+def p0010_as_the_model_wrote_it() -> Procedure:
+    """The model's record: test point labels without the pin, the SCS instruction as a notice."""
+    data = json.loads((REPO / "eval/golden/procedures/acura-integra-2025-l15ca-p0010.json").read_text(encoding="utf-8"))
+    for step in data["steps"]:
+        for end in ("from", "to"):
+            point = step["measure"][end]
+            if not point.get("ground"):
+                point["label"] = point["connector"].replace(" connector (2P)", "").replace(" (80P)", "")
+        step["prepare"] = [p for p in step["prepare"] if "SCS" not in p]
+        if step["id"] in ("2", "3", "4"):
+            step["notices"] = ["Before disconnecting the PCM connector, jump the SCS line with the HDS, and wait more than 1 minute."] + step.get("notices", [])
+    data["steps"][0]["normal"]["as_printed"] = "7.14 – 7.90 Ω"
+    data["steps"][1]["normal"]["as_printed"] = "1 Ω"
+    data["steps"][3]["normal"]["as_printed"] = "1 MΩ"
+    return Procedure(**data)
+
+
+@pytest.fixture
+def kb_model_record(conn) -> KnowledgeStore:
+    store = KnowledgeStore(conn)
+    saved = store.save(p0010_as_the_model_wrote_it(), extracted_by="model")
+    store.set_review(saved.record_id, "approved", reviewer="test")
+    conn.commit()
+    return store
+
+
+def test_the_message_names_every_pin_and_the_comparison_even_when_the_label_does_not(kb_model_record):
+    engine, state = Engine(kb_model_record, Script().model), session()
+    first = engine.turn(state, "fault code P0010").reply.message
+    assert "pin 1, male terminal <-> VTC oil control solenoid valve A connector (2P), pin 2, male terminal" in first
+    assert "about 7.14 – 7.90 Ω at room temperature" in first
+    second = engine.turn(state, "7.5 ohm").reply
+    assert "pin 2, female terminal <-> ground" in second.message and "Normal: < 1 Ω" in second.message
+    assert "NOTICE: Before disconnecting the PCM connector, jump the SCS line" in second.message
+    assert "This step needs the HDS." in second.message and second.step.requires_tool == "HDS"
+    engine.turn(state, "0.3 ohm")
+    fourth = engine.turn(state, "0.4 ohm").reply.message
+    assert "Normal: > 1 MΩ" in fourth and "NOTICE: Before disconnecting" not in fourth  # a notice is shown once
+
+
+def test_urdu_in_roman_letters_is_refused_and_a_dropped_sign_too():
+    from app.engine.wording import translate
+    replies = iter([{"message": "Step 2: pin 2 aur ground, normal 1 Ω hai"}, {"message": "قدم 2: پن 2 اور گراؤنڈ، 1 Ω"}])
+    model = ScriptedModel({"translate": lambda *_: next(replies)})
+    text, translated = translate(model, "Step 2: pin 2 <-> ground. Normal: < 1 Ω", "ur")
+    assert not translated and "< 1 Ω" in text and len(model.trace) == 2

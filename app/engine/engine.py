@@ -215,7 +215,8 @@ class Engine:
         walk = state.walk
         step = self._current(walk)
         view = render.step_view(walk, step)
-        body = render.step_text(view)
+        new_notices = [n for n in step.notices if n not in state.shown_notices]
+        body = render.step_text(view, new_notices)
         english = "\n".join([*english_lead, *([intro] if intro else []), body])
         message, _ = translate(self.model, english, state.language)
         if lead:

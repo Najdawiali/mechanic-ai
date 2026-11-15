@@ -21,12 +21,14 @@ from __future__ import annotations
 import argparse
 import datetime as dt
 import json
+import re
 import sys
 from dataclasses import dataclass, field
 from pathlib import Path
 
 from app.engine.engine import Engine
 from app.engine.model import GatewayModel, ModelClient
+from app.engine.render import SIGN
 from app.engine.reply import Reply
 from app.engine.report import Attachment
 from app.engine.state import SessionState
@@ -82,6 +84,11 @@ def check(reply: Reply, expect: TurnCheck) -> list[str]:
                            and (point.connector_contains is None or _has(p.connector or "", point.connector_contains))
                            for p in step.test_points):
                     wrong.append(f"test point missing: {point.model_dump(exclude_none=True)}")
+            for point in step.test_points:  # what the mechanic reads must name every pin, whatever the check lists
+                if point.pin and not re.search(rf"(?<![\w.]){re.escape(point.pin)}(?![\w.])", reply.message):
+                    wrong.append(f"message does not name pin {point.pin}")
+            if step.normal and step.normal.op != "between" and SIGN[step.normal.op] not in reply.message:
+                wrong.append(f"message lacks the comparison sign {SIGN[step.normal.op]!r} of the normal value")
             n, want = step.normal, expect.step.normal
             if want and (n is None or (n.op, n.min, n.max, n.unit) != (want.op, want.min, want.max, want.unit)):
                 wrong.append(f"normal range {n and (n.op, n.min, n.max, n.unit)}, expected {(want.op, want.min, want.max, want.unit)}")

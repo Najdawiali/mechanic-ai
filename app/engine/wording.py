@@ -17,12 +17,17 @@ three languages and need no model. Arabic and Urdu wording is ours: a native rea
 from __future__ import annotations
 
 import json
+import re
 
 from app.engine.model import ModelClient, ModelError
 from app.engine.validator import Allowed, problems, tokens
 from app.lang.script import Language
 
-LANGUAGE_NAME = {"en": "English", "ar": "Arabic (as spoken in Jordan; clear, not formal)", "ur": "Urdu"}
+LANGUAGE_NAME = {"en": "English", "ar": "Arabic (as spoken in Jordan; clear, not formal), in Arabic script",
+                 "ur": "Urdu, written in Urdu script (never Roman Urdu in Latin letters)"}
+_ARABIC_SCRIPT = re.compile("[\u0600-\u06ff]")
+_LATIN = re.compile("[A-Za-z]")
+_SIGNS = "<>≤≥"
 
 FIXED = {
     "english_follows": {
@@ -120,9 +125,20 @@ def fixed(name: str, language: Language, **values: str) -> str:
 
 
 def _numbers_kept(source: str, result: str) -> bool:
-    """Every specific token of the English text is still in the translation."""
+    """Every specific token of the English text is still in the translation, and every comparison sign."""
     have = Allowed.from_texts([result])
+    if any(source.count(sign) > result.count(sign) for sign in _SIGNS):
+        return False
     return all(have.has(t) for t in tokens(source))
+
+
+def _in_script(result: str, language: Language) -> bool:
+    """An Arabic or Urdu reply is written in Arabic script (part numbers and codes stay in Latin letters).
+    First real run: the Urdu reply came back in Roman letters."""
+    if language == "en":
+        return True
+    script, latin = len(_ARABIC_SCRIPT.findall(result)), len(_LATIN.findall(result))
+    return script >= 0.25 * (script + latin)
 
 
 TRANSLATE_SYSTEM = """You translate a message for a car mechanic into {language}.
@@ -146,10 +162,10 @@ def translate(model: ModelClient, english: str, language: Language) -> tuple[str
         except ModelError:
             break
         text = out.get("message") if isinstance(out.get("message"), str) else ""
-        if text.strip() and not problems(text, allowed) and _numbers_kept(english, text):
+        if text.strip() and not problems(text, allowed) and _numbers_kept(english, text) and _in_script(text, language):
             return text, True
-        user = (f"{english}\n\n(Your previous translation changed, dropped or added a number, pin or code. "
-                "Translate again and keep every one exactly.)")
+        user = (f"{english}\n\n(Your previous translation changed, dropped or added a number, pin, code or comparison sign, "
+                f"or was not written in {LANGUAGE_NAME[language]}. Translate again.)")
     lead = fixed("english_follows", language)
     return f"{lead}\n{english}" if lead else english, False
 

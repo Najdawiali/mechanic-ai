@@ -12,7 +12,7 @@ import re
 from app.engine.readings import Reading
 from app.engine.reply import ExpectedInput, StepView
 from app.engine.state import Walk
-from app.kb.schemas import Case, ExpertNote, NormalRange, Procedure, Step, Vehicle
+from app.kb.schemas import Case, ExpertNote, NormalRange, Procedure, Step, TestPoint, Vehicle
 
 _STATE_LINE = re.compile(r"^[^:]{2,80}:\s*(?:dis)?connected\b|^[^:]{2,80}:\s*(?:on|off|lock|acc|start|ready|removed|installed)\b|"
                          r"^\s*(?:IG|ignition)\b.{0,20}\b(?:on|off)\b", re.I)
@@ -24,21 +24,36 @@ def number(value: float) -> str:
     return f"{value:g}"
 
 
+SIGN = {"lt": "<", "le": "≤", "gt": ">", "ge": "≥"}
+
+
 def normal_text(normal: NormalRange) -> str:
+    """The normal value with its comparison as a sign ("< 1 Ω", "> 1 MΩ", "7.14 – 7.90 Ω").
+
+    A sign reads the same in every language and the translation check keeps it, where a word
+    ("less than") could be dropped. `as_printed` holds only the manual's digits and unit, never the
+    comparison, so the sign is always added here (first real run: "Normal: 1 Ω" for "less than 1 Ω").
+    """
     if normal.as_printed:
-        text = normal.as_printed
+        value = normal.as_printed.strip()
+    elif normal.op == "between":
+        value = f"{number(normal.min)} – {number(normal.max)} {normal.unit}"
     else:
-        unit = normal.unit
-        text = {
-            "between": lambda: f"{number(normal.min)} to {number(normal.max)} {unit}",
-            "lt": lambda: f"less than {number(normal.max)} {unit}",
-            "le": lambda: f"{number(normal.max)} {unit} or less",
-            "gt": lambda: f"more than {number(normal.min)} {unit}",
-            "ge": lambda: f"{number(normal.min)} {unit} or more",
-        }[normal.op]()
-    if normal.approximate and "about" not in text.lower():
+        value = f"{number(normal.max if normal.op in ('lt', 'le') else normal.min)} {normal.unit}"
+    text = value if normal.op == "between" else f"{SIGN[normal.op]} {value.lstrip('<>≤≥ ')}"
+    if normal.approximate:
         text = f"about {text}"
     return f"{text} {normal.condition}" if normal.condition else text
+
+
+def point_text(point: TestPoint) -> str:
+    """A test point from its fields, never from its label alone: a model-written label may leave out the pin
+    (first real run: "VTC oil control solenoid valve A <-> VTC oil control solenoid valve A")."""
+    if point.ground:
+        return "body ground" if "body" in point.label.lower() else "ground"
+    where = point.connector or point.label
+    side = f", {point.terminal_side} terminal" if point.terminal_side else ""
+    return f"{where}, pin {point.pin}{side}"
 
 
 def reading_text(reading: Reading) -> str:
@@ -66,7 +81,7 @@ def step_view(walk: Walk, step: Step) -> StepView:
     expected = None
     if step.normal and step.normal.unit in _QUANTITY:
         expected = ExpectedInput(kind=_QUANTITY[step.normal.unit], unit=step.normal.unit)
-    measure = f"{step.measure.from_point.label} <-> {step.measure.to_point.label}" if step.measure else None
+    measure = f"{point_text(step.measure.from_point)} <-> {point_text(step.measure.to_point)}" if step.measure else None
     return StepView(step_id=step.id, number=len(walk.done) + 1, of=len(walk.steps) if linear(walk.steps) else None,
                     instruction=step.check, measure=measure,
                     test_points=[step.measure.from_point, step.measure.to_point] if step.measure else [],
@@ -75,11 +90,14 @@ def step_view(walk: Walk, step: Step) -> StepView:
                     requires_tool=step.requires_tool, basis=walk.basis)
 
 
-def step_text(view: StepView) -> str:
+def step_text(view: StepView, notices: list[str] = ()) -> str:
     lines = [f"Step {view.number}{f' of {view.of}' if view.of else ''}: {view.instruction}."]
     if view.conditions:
         lines.append("Before measuring:")
         lines += [f"- {c}" for c in view.conditions]
+    lines += [f"NOTICE: {n}" for n in notices]
+    if view.requires_tool:
+        lines.append(f"This step needs the {view.requires_tool}.")
     if view.measure:
         lines.append(f"Measure: {view.measure}")
     if view.normal_text:
