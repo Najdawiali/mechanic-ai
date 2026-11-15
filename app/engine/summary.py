@@ -13,6 +13,7 @@ from __future__ import annotations
 
 from app.engine import render
 from app.engine.model import ModelClient
+from app.engine.readings import Reading
 from app.engine.state import SessionState
 from app.engine.validator import Allowed
 from app.engine.wording import compose, translate
@@ -39,7 +40,8 @@ def _code_summary(facts: dict) -> str:
     if facts["codes"]:
         lines.append(f"Fault codes: {', '.join(facts['codes'])}.")
     for r in facts["readings"]:
-        lines.append(f"Step {r['step_id']}: {r['value'] if r['value'] is not None else 'OL'} {r['unit'] or ''} ({r['verdict']}).")
+        shown = render.reading_text(Reading(value=r.get("value"), unit=r.get("unit"), over_limit=r.get("over_limit", False)))
+        lines.append(f"Step {r['step_id']}: {shown} ({r['verdict']}).")
     if facts["conclusion"]:
         lines.append(f"Conclusion: {facts['conclusion']}")
     if facts["confirmed_fix"]:
@@ -60,7 +62,8 @@ def pending_case(state: SessionState, session_id: str) -> dict | None:
         "year_from": v.year, "year_to": v.year,
         "powertrain": v.powertrain.value if v.powertrain else None, "engine": v.engine_code,
         "fault_codes": [{"code": c} for c in state.codes],
-        "findings": [f"{r.step_id}: {r.value if r.value is not None else 'OL'} {r.unit or ''} ({r.verdict})".strip() for r in state.readings],
+        "findings": [f"Step {r.step_id}: {render.reading_text(Reading(value=r.value, unit=r.unit, over_limit=r.over_limit))} ({r.verdict})"
+                     for r in state.readings],
         "symptoms": found[:1],
         "diagnosis": state.conclusion or state.confirmed_fix,
         "repair_steps": list(state.repairs) or [state.confirmed_fix],
