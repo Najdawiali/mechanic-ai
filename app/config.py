@@ -26,6 +26,13 @@ class Settings(BaseSettings):
     search_min_similarity: float = 0.5
 
     llm_timeout_s: float = 90.0
+    # Which model role each engine call uses ("reasoning" = the larger model, "fast" = the smaller one).
+    # Chosen by the evaluation: run eval/run.py with a different value and compare passes and time.
+    llm_role_advise: str = "reasoning"
+    llm_role_general: str = "reasoning"
+    llm_role_summary: str = "reasoning"
+    llm_role_translate: str = "fast"
+    llm_role_translate_ur: str = "fast"
 
     database_url: str = "postgresql://mechanic:mechanic@localhost:5432/mechanic_ai"
 

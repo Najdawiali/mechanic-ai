@@ -70,13 +70,13 @@ def pending_case(state: SessionState, session_id: str) -> dict | None:
     }
 
 
-def summarise(model: ModelClient, state: SessionState, session_id: str) -> dict:
+def summarise(model: ModelClient, state: SessionState, session_id: str, *, role: str = "reasoning") -> dict:
     facts = record(state)
     english_facts = {**facts, "vehicle_record": state.vehicle,
                      "what the mechanic said": [t.english or t.text for t in state.history if t.role == "mechanic"]}
     allowed = Allowed.from_texts([str(facts), *english_facts["what the mechanic said"], render.vehicle_text(state.vehicle)])
     out = compose(model, "summary", system=SYSTEM, facts={k: v for k, v in english_facts.items() if k != "vehicle_record"},
-                  language=state.language, allowed=allowed)
+                  language=state.language, allowed=allowed, role=role)
     if out and out["message"].strip():
         text = out["message"]
     else:

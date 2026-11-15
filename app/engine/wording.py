@@ -153,7 +153,7 @@ component names, wire colours, values, units, tool names and menu paths. Every n
 Keep the line breaks. Return JSON: {{"message": "..."}}"""
 
 
-def translate(model: ModelClient, english: str, language: Language) -> tuple[str, bool]:
+def translate(model: ModelClient, english: str, language: Language, *, role: str = "fast") -> tuple[str, bool]:
     """(text, translated). For English the text is returned as it is."""
     if language == "en" or not english.strip():
         return english, False
@@ -163,7 +163,7 @@ def translate(model: ModelClient, english: str, language: Language) -> tuple[str
     user = english
     for _ in range(2):
         try:
-            out = model.json("translate", role="fast", system=TRANSLATE_SYSTEM.format(language=LANGUAGE_NAME[language]),
+            out = model.json("translate", role=role, system=TRANSLATE_SYSTEM.format(language=LANGUAGE_NAME[language]),
                              user=user, schema=schema, max_tokens=1200)
         except ModelError:
             break
@@ -183,7 +183,8 @@ def translate(model: ModelClient, english: str, language: Language) -> tuple[str
 
 
 def compose(model: ModelClient, purpose: str, *, system: str, facts: dict, language: Language, allowed: Allowed,
-            schema_extra: dict | None = None, max_tokens: int = 900, forbidden: re.Pattern[str] | None = None) -> dict | None:
+            schema_extra: dict | None = None, max_tokens: int = 900, forbidden: re.Pattern[str] | None = None,
+            role: str = "reasoning") -> dict | None:
     """The model's reply as a dict with at least "message" (possibly empty), or None when it failed the
     validator twice or did not answer."""
     properties = {"message": {"type": "string"}, **(schema_extra or {})}
@@ -194,7 +195,7 @@ def compose(model: ModelClient, purpose: str, *, system: str, facts: dict, langu
     user = json.dumps(facts, ensure_ascii=False, default=str)
     for _ in range(2):
         try:
-            out = model.json(purpose, role="reasoning", system=full_system, user=user, schema=schema, max_tokens=max_tokens)
+            out = model.json(purpose, role=role, system=full_system, user=user, schema=schema, max_tokens=max_tokens)
         except ModelError:
             return None
         message = out.get("message") if isinstance(out.get("message"), str) else ""

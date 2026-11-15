@@ -26,7 +26,7 @@ import sys
 from dataclasses import dataclass, field
 from pathlib import Path
 
-from app.engine.engine import Engine
+from app.engine.engine import Engine, Roles
 from app.engine.model import GatewayModel, ModelClient
 from app.engine.render import SIGN
 from app.engine.reply import Reply
@@ -161,7 +161,8 @@ class NotRunnable(RuntimeError):
     """The scenario cannot be judged as written (a held-out case that is not in the knowledge base)."""
 
 
-def play(scenario: Scenario, condition: str, kb: KnowledgeStore, model: ModelClient, *, statuses) -> RunResult:
+def play(scenario: Scenario, condition: str, kb: KnowledgeStore, model: ModelClient, *, statuses,
+         roles: Roles | None = None) -> RunResult:
     if condition in ("case_in_kb", "case_held_out"):
         # Hiding a case that is not there hides nothing, and the run would pass or fail for the wrong reason
         # (first full run: 11 scenarios had no related_case_id, and every held-out run cited its case).
@@ -171,7 +172,7 @@ def play(scenario: Scenario, condition: str, kb: KnowledgeStore, model: ModelCli
             raise NotRunnable(f"{scenario.scenario_id}: related case {key!r} is not in the knowledge base")
     if condition == "case_held_out":
         kb = HeldOut(kb.conn, {scenario.related_case_id})
-    engine = Engine(kb, model, statuses=statuses)
+    engine = Engine(kb, model, statuses=statuses, roles=roles)
     state = SessionState(vehicle=scenario.vehicle, language=scenario.language)
     result = RunResult(scenario.scenario_id, condition)
     for i, turn in enumerate(scenario.turns, start=1):
@@ -191,9 +192,9 @@ def play(scenario: Scenario, condition: str, kb: KnowledgeStore, model: ModelCli
     return result
 
 
-def load(only: str | None) -> list[Scenario]:
+def load(only: str | None, group: str | None = None) -> list[Scenario]:
     scenarios = [Scenario(**json.loads(p.read_text(encoding="utf-8"))) for p in sorted(SCENARIOS.glob("*.json"))]
-    return [s for s in scenarios if not only or only.lower() in s.scenario_id.lower()]
+    return [s for s in scenarios if (not only or only.lower() in s.scenario_id.lower()) and (not group or s.group == group)]
 
 
 def report(results: list[RunResult]) -> str:
@@ -224,21 +225,28 @@ def report(results: list[RunResult]) -> str:
 def main(argv: list[str] | None = None) -> int:
     parser = argparse.ArgumentParser(description=__doc__.splitlines()[0])
     parser.add_argument("--only", help="run scenarios whose id contains this text")
+    parser.add_argument("--group", help="run one group: procedure, language, case, diagram, report, no_data, emergency")
     parser.add_argument("--approved-only", action="store_true", help="serve approved records only, as in production")
     args = parser.parse_args(argv)
 
     from app.db import connect
     from app.llm.gateway import LLMGateway
 
+    from app.config import get_settings
+
+    settings = get_settings()
     model = GatewayModel(LLMGateway())
     statuses = APPROVED if args.approved_only else APPROVED_AND_DRAFT
+    roles = Roles.from_settings(settings)
+    print(f"models: reasoning={settings.llm_reasoning_model} fast={settings.llm_fast_model} vision={settings.llm_vision_model}")
+    print(f"roles: {roles}", flush=True)
     results = []
     with connect() as conn:
         kb = KnowledgeStore(conn)
-        for scenario in load(args.only):
+        for scenario in load(args.only, args.group):
             for condition in conditions(scenario):
                 try:
-                    results.append(play(scenario, condition, kb, model, statuses=statuses))
+                    results.append(play(scenario, condition, kb, model, statuses=statuses, roles=roles))
                 except NotRunnable as exc:
                     results.append(RunResult(scenario.scenario_id, condition,
                                              [TurnResult(0, "", "-", "-", "", error=f"NOT RUN: {exc}")]))

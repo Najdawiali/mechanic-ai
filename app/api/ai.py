@@ -31,7 +31,7 @@ from pydantic import BaseModel, ConfigDict, Field, ValidationError
 
 from app.config import get_settings
 from app.engine import report as report_reader
-from app.engine.engine import Engine
+from app.engine.engine import Engine, Roles
 from app.engine.external import from_settings
 from app.engine.model import GatewayModel, ModelClient
 from app.engine.reply import Reply
@@ -82,7 +82,8 @@ def service(authorization: str | None = Header(default=None)) -> None:
 def _engine(conn: psycopg.Connection, model: ModelClient) -> Engine:
     settings = get_settings()
     return Engine(KnowledgeStore(conn), model, statuses=APPROVED_AND_DRAFT if settings.kb_serve_drafts else APPROVED,
-                  external=from_settings(settings.external_source), emergency_number=settings.emergency_number)
+                  external=from_settings(settings.external_source), emergency_number=settings.emergency_number,
+                  roles=Roles.from_settings(settings))
 
 
 # -- request bodies ------------------------------------------------------------------------------------
@@ -176,7 +177,7 @@ def close(session_id: str, conn: psycopg.Connection = Depends(get_conn), model: 
         raise HTTPException(404, "no such session") from exc
     if state.closed and summary is not None:
         return summary  # closing twice returns the same summary
-    summary = summarise(model, state, session_id)
+    summary = summarise(model, state, session_id, role=get_settings().llm_role_summary)
     state.closed = True
     store.close(session_id, state, summary, model.trace)
     return summary

@@ -82,7 +82,7 @@ def kb(conn) -> KnowledgeStore:
 
 def intake(**fields):
     base = {"intent": "diagnose", "english": "", "codes": [], "reading": None, "components": [],
-            "power_and_ground": False, "answer": None, "fix": None}
+            "power_and_ground": False, "pins_only": False, "answer": None, "result_words": None, "fix": None}
     return base | fields
 
 
@@ -232,7 +232,7 @@ def test_a_case_found_only_by_words_is_used_only_if_the_model_says_it_fits(kb):
 
 
 def test_a_confirmed_fix_is_a_conclusion_in_the_mechanics_words(kb):
-    script = Script(intakes={"Replaced the inverter, car runs normally": {"intent": "fix_confirmed", "fix": "inverter replacement"}})
+    script = Script(intakes={"Replaced the inverter, car runs normally": {"intent": "fix_confirmed", "fix": "inverter replacement", "result_words": "car runs normally"}})
     engine, state = Engine(kb, script.model), session(BYD)
     reply = engine.turn(state, "Replaced the inverter, car runs normally").reply
     assert reply.type == "conclusion" and reply.possible_causes[0].name == "inverter replacement" and state.confirmed_fix
@@ -424,3 +424,39 @@ def test_a_reading_in_arabic_units_is_written_in_english_in_the_text_to_translat
     engine.model.handlers["translate"] = lambda s, user, sc: script_calls.append(user) or {"message": "النتيجة " + user}
     engine.turn(state, "طلعت القراءة ١٥ أوم")
     assert "Step 1 reading: 15 ohm, outside" in script_calls[0]
+
+
+
+# -- faults found in the second full real-model run (2026-11-15, 38 of 42 passed) ----------------------------
+def test_a_repair_without_saying_the_fault_is_gone_is_not_a_confirmed_fix(kb):
+    said = "The battery coolant temperature sensor connector was not seated. Reconnected and secured it."
+    script = Script(intakes={said: {"intent": "fix_confirmed", "fix": "connector re-seated", "result_words": "Reconnected and secured it"},
+                             "Still the same": {"intent": "fix_confirmed", "fix": "x", "result_words": "the fault is gone"}})
+    engine, state = Engine(kb, script.model), session(BYD)
+    assert engine.turn(state, said).reply.type != "conclusion"  # quoted words say nothing about the result
+    engine.turn(state, "Still the same")  # words not in the message: refused too
+    assert state.confirmed_fix is None
+
+
+def test_every_scenario_message_that_reports_a_fix_has_a_result_word():
+    from app.engine.intake import RESULT_WORDS
+    fixes = []
+    for path in sorted((REPO / "eval/scenarios").glob("*.json")):
+        scenario = json.loads(path.read_text(encoding="utf-8"))
+        for turn in scenario["turns"]:
+            for expect in turn.get("expect", {}).values():
+                if expect.get("reply_type") == "conclusion" and expect.get("conclusion_contains") and scenario["group"] == "case":
+                    fixes.append(turn["mechanic"])
+    assert len(fixes) >= 10 and [m for m in fixes if not RESULT_WORDS.search(m)] == []
+    assert not RESULT_WORDS.search("The connectors were not seated. Reconnected and secured both.")
+
+
+def test_a_cross_vehicle_expert_note_needs_its_fault_message_named():
+    from app.engine.engine import note_named
+    from app.engine.intake import _words
+    from app.kb.schemas import ExpertNote
+    note = ExpertNote(**json.loads((REPO / "seed/expert_notes/hv-battery-temp-sensor-swap-test.json").read_text(encoding="utf-8")))
+    exeed = "One motor temperature sensor circuit reads about 15 kohm. The other reads 0 ohm with the inverter main connector plugged in."
+    assert not note_named(note, _words(exeed))
+    assert not note_named(note, _words("P199000 from the transmission computer, front accident, replaced the HV harness"))
+    assert note_named(note, _words("hybrid battery temp sensor open circuit on the scan tool"))

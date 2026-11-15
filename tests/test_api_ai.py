@@ -15,7 +15,7 @@ KEY = {"Authorization": "Bearer test-key"}
 
 @pytest.fixture
 def script():
-    return Script(intakes={"Replaced the cooling pump, codes cleared and it works": {"intent": "fix_confirmed", "fix": "hybrid coolant pump replacement"}},
+    return Script(intakes={"Replaced the cooling pump, codes cleared and it works": {"intent": "fix_confirmed", "fix": "hybrid coolant pump replacement", "result_words": "codes cleared and it works"}},
                   advise=[{"use": ["case:byd-qin-plus-dmi-2024:p2b5313-p2b5411"],
                            "message": "An earlier repair on a 2024 BYD Qin Plus DM-i with P2B5313: check the hybrid coolant pump first. Did you?"}])
 

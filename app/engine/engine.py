@@ -32,7 +32,7 @@ from app.engine import render, wiring
 from app.engine import report as report_reader
 from app.engine.circuit_plan import BASIS, plans_for_pin
 from app.engine.external import ExternalSource, NoExternalSource
-from app.engine.intake import ALERT, DTC, Intake, codes_in, read_message
+from app.engine.intake import ALERT, DTC, GENERIC, Intake, _words, codes_in, read_message
 from app.engine.model import ModelClient, ModelError
 from app.engine.procedure_walk import walk as walk_steps
 from app.engine.readings import Reading, ReadingError, parse_reading
@@ -59,6 +59,37 @@ MAX_WIRING_LINES = 40
 MAX_HINTS = 3
 
 
+def note_named(note: ExpertNote, said: set[str]) -> bool:
+    """An expert note is a rule of thumb for one fault message on the tool ("Temperature sensor open circuit").
+    Found by meaning alone, it is offered only when the mechanic's words hold every word of one of its fault
+    messages that tells it apart (second full run: the battery temperature-sensor swap test was offered for an
+    inverter short and for a transmission oil-pump code)."""
+    for text in note.fault_texts:
+        needed = {_TEMP.get(w, w) for w in _words(text)} - GENERIC - {"TOO", "NOT", "NO"}
+        if needed and needed <= {_TEMP.get(w, w) for w in said}:
+            return True
+    return False
+
+
+_TEMP = {"TEMP": "TEMPERATURE", "TEMPS": "TEMPERATURE"}
+
+
+@dataclass
+class Roles:
+    """Which model role each engine call uses (settings LLM_ROLE_*); chosen by the evaluation."""
+
+    advise: str = "reasoning"
+    general: str = "reasoning"
+    summary: str = "reasoning"
+    translate: str = "fast"
+    translate_ur: str = "fast"
+
+    @classmethod
+    def from_settings(cls, settings) -> "Roles":
+        return cls(settings.llm_role_advise, settings.llm_role_general, settings.llm_role_summary,
+                   settings.llm_role_translate, settings.llm_role_translate_ur)
+
+
 @dataclass
 class Gap:
     """A question with no verified data: what the client should collect next (handoff 7.1)."""
@@ -76,12 +107,13 @@ class TurnResult:
 
 class Engine:
     def __init__(self, kb: KnowledgeStore, model: ModelClient, *, statuses: tuple[Status, ...] = APPROVED,
-                 external: ExternalSource | None = None, emergency_number: str = "911") -> None:
+                 external: ExternalSource | None = None, emergency_number: str = "911", roles: Roles | None = None) -> None:
         self.kb = kb
         self.model = model
         self.statuses = statuses
         self.external = external or NoExternalSource()
         self.emergency_number = emergency_number
+        self.roles = roles or Roles()
 
     # -- the turn ------------------------------------------------------------------------------------
     def turn(self, state: SessionState, text: str, attachments: list[report_reader.Attachment] = ()) -> TurnResult:
@@ -230,7 +262,7 @@ class Engine:
         new_notices = [n for n in step.notices if n not in state.shown_notices]
         body = render.step_text(view, new_notices)
         english = "\n".join([*english_lead, *([intro] if intro else []), body])
-        message, _ = translate(self.model, english, state.language)
+        message, _ = self._translate(english, state.language)
         if lead:
             message = f"{lead}\n{message}"
         warnings = []
@@ -275,7 +307,7 @@ class Engine:
         if walk.basis == "general_practice":
             lines.append(BASIS)
         english = "\n".join(lines)
-        message, _ = translate(self.model, english, state.language)
+        message, _ = self._translate(english, state.language)
         return self._reply(state, "conclusion", message, tier="verified",
                            possible_causes=[Cause(name=outcome.conclusion, likelihood="high", evidence_ids=[walk.evidence_id.split("#")[0]])],
                            evidence=[self._walk_evidence(walk, english)],
@@ -351,15 +383,19 @@ class Engine:
     def _confirm_part(self, state: SessionState, intake: Intake) -> Reply:
         """The model picked a part the message does not name: ask, never guess a part and give its pins."""
         english = f"Which part do you mean: {'; or '.join(intake.unsure)}? If none of these, tell me the name as printed on the diagram."
-        message, _ = translate(self.model, english, state.language)
+        message, _ = self._translate(english, state.language)
         return self._ask(state, message, kind="component", options=[*intake.unsure, _NONE_OF_THESE], about="part",
                          context={"components": intake.components, "intent": intake.intent,
                                   "power_and_ground": intake.power_and_ground, "pins_only": intake.pins_only})
 
+    def _translate(self, english: str, language: str) -> tuple[str, bool]:
+        role = self.roles.translate_ur if language == "ur" else self.roles.translate
+        return translate(self.model, english, language, role=role)
+
     def _question_again(self, state: SessionState) -> str:
         options = state.pending.question.options
         english = f"Please choose one: {', '.join(options)}."
-        return translate(self.model, english, state.language)[0]
+        return self._translate(english, state.language)[0]
 
     # -- 7. a confirmed fix --------------------------------------------------------------------------------
     def _fix(self, state: SessionState, intake: Intake) -> Reply:
@@ -429,7 +465,7 @@ class Engine:
             component, pin = next(iter(choices.values()))
             return self._start_circuit(state, component, pin)
         english = "Which wire do you want to check? " + "; ".join(choices) + "."
-        message, _ = translate(self.model, english, state.language)
+        message, _ = self._translate(english, state.language)
         return self._ask(state, message, kind="component", options=list(choices), about="wire",
                          context={"choices": {k: list(v) for k, v in choices.items()}})
 
@@ -489,17 +525,17 @@ class Engine:
         if answer.needs_version and pins_only and wiring.same_near_end(answer):
             english += ("\nThe pins and wire colours at the first part are the same on every version; the far end differs "
                         "by version as listed. Tell me the version for the route that applies to this car.")
-            message, _ = translate(self.model, english, state.language)
+            message, _ = self._translate(english, state.language)
             return self._reply(state, "conclusion", message, tier="verified", evidence=evidence, warnings=warnings,
                                confidence="high")
         if answer.needs_version:
             english += "\nWhich of these is the car: " + "; or ".join(answer.versions) + "?"
-            message, _ = translate(self.model, english, state.language)
+            message, _ = self._translate(english, state.language)
             return self._ask(state, message, kind="version", options=answer.versions, about="version",
                              context={"components": list(components), "power_and_ground": power_and_ground},
                              tier="verified", evidence=evidence, warnings=warnings, confidence="high")
         english += "\nAsk me to send the diagram pages, or to walk you through checking one of these wires."
-        message, _ = translate(self.model, english, state.language)
+        message, _ = self._translate(english, state.language)
         return self._reply(state, "conclusion", message, tier="verified", evidence=evidence, warnings=warnings,
                            confidence="high")
 
@@ -536,6 +572,8 @@ class Engine:
     def _search_and_advise(self, state: SessionState, intake: Intake, gaps: list[Gap]) -> Reply:
         query = " ".join(t.english or t.text for t in state.history if t.role == "mechanic")
         hits = self.kb.search(state.vehicle, query, self.model.embed_query(query), statuses=self.statuses, limit=MAX_HINTS)
+        said = _words(" ".join(self._mechanic_texts(state)))
+        hits = [h for h in hits if not isinstance(h.record, ExpertNote) or note_named(h.record, said)]
         if hits:
             return self._advise(state, intake, hits, gaps, gated=True)
         return self._general(state, intake, gaps)
@@ -609,13 +647,13 @@ cases (earlier repairs, each on a named car) and expert notes (workshop experien
         any_hv = any(r["high-voltage work"] for r in records.values())
         out = compose(self.model, "advise", system=self.ADVISE_SYSTEM, facts=facts, language=state.language, allowed=allowed,
                       schema_extra={"use": {"type": "array", "items": {"type": "string", "enum": list(records)}}},
-                      forbidden=_SOLVENTS if any_hv else None)
+                      forbidden=_SOLVENTS if any_hv else None, role=self.roles.advise)
         if out is None:
             if gated:
                 return self._general(state, intake, gaps)
             used = hits[:1]
-            message, _ = translate(self.model, render.case_fallback(used[0].record) if isinstance(used[0].record, Case)
-                                   else self._hint_summary(used[0]), state.language)
+            message, _ = self._translate(render.case_fallback(used[0].record) if isinstance(used[0].record, Case)
+                                           else self._hint_summary(used[0]), state.language)
         else:
             chosen = [k for k in out.get("use") or [] if k in records]
             used = [h for h in hits if h.record_key in chosen]
@@ -647,7 +685,7 @@ Do not repeat that the information is unverified: the reply already says so. At 
         facts = {"vehicle": render.vehicle_text(state.vehicle), "fault codes": state.codes,
                  "conversation": [{"mechanic" if t.role == "mechanic" else "assistant": t.english or t.text} for t in state.history]}
         out = compose(self.model, "general", system=self.GENERAL_SYSTEM, facts=facts, language=state.language,
-                      allowed=self._base_allowed(state))
+                      allowed=self._base_allowed(state), role=self.roles.general)
         body = out["message"] if out and out["message"].strip() else fixed("general_fallback", state.language)
         del external  # no outside source is connected yet (app/engine/external.py)
         return self._reply(state, "question", f"{header}\n{body}", tier="general", confidence="low")

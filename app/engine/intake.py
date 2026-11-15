@@ -78,7 +78,8 @@ intent, one of:
 - diagnose: describes a fault, fault codes or symptoms, or asks what to do about them
 - reading: gives a meter reading (a number with a unit, or OL) for the step he was given
 - finding: says what he checked or found, without a meter reading for the current step; or a repair that did NOT fix it
-- fix_confirmed: says a repair was done AND the fault is gone (codes cleared, works normally)
+- fix_confirmed: says a repair was done AND says the fault is gone (codes cleared, works normally, alert gone).
+  A repair with no word about the result ("reconnected both connectors") is finding, not fix_confirmed.
 - wiring_question: asks which pins, wires, colours, connectors, fuses or grounds connect parts
 - send_diagram: asks to see or be sent the wiring diagram
 - check_wire: asks how to test a wire or circuit
@@ -92,6 +93,8 @@ power_and_ground: true if he asks about power supply, fuses or ground of a compo
 pins_only: true if he asks only which pins (and wire colours) of the first component serve the other component,
   not the whole wiring between them.
 answer: if he answers the question asked, the matching option exactly as listed; else null.
+result_words: if intent is fix_confirmed, the words of the message that say the fault is gone, copied exactly
+  (e.g. "the car runs normally", "وراح العطل"); else null.
 fix: if intent is fix_confirmed, a short English phrase naming the cause found and every repair done in this
   conversation that fixed it, using "earlier messages" too; name a procedure in words, not only by its code
   (e.g. "internal short in the inverter: inverter replaced"; "connectors re-seated and window regulator basic setting";
@@ -103,7 +106,8 @@ def _schema(components: list[str], options: list[str]) -> dict:
     component_item = {"type": "string"} if not components else {"type": "string", "enum": components}
     return {
         "type": "object", "additionalProperties": False,
-        "required": ["intent", "english", "codes", "reading", "components", "power_and_ground", "pins_only", "answer", "fix"],
+        "required": ["intent", "english", "codes", "reading", "components", "power_and_ground", "pins_only", "answer",
+                     "result_words", "fix"],
         "properties": {
             "intent": {"type": "string", "enum": list(INTENTS)},
             "english": {"type": "string"},
@@ -116,6 +120,7 @@ def _schema(components: list[str], options: list[str]) -> dict:
             "power_and_ground": {"type": "boolean"},
             "pins_only": {"type": "boolean"},
             "answer": nullable_choice,
+            "result_words": {"type": ["string", "null"]},
             "fix": {"type": ["string", "null"]},
         },
     }
@@ -142,6 +147,18 @@ def named(component: str, said: set[str]) -> bool:
         if word in said or any(word in group and group & said for group in SYNONYMS):
             return True
     return False
+
+
+# Words that say a fault is gone. A confirmed fix needs one, inside the words the model quotes from the message.
+# Missing a word here is a safe failure: the assistant keeps asking instead of closing the case.
+RESULT_WORDS = re.compile(
+    r"normal|\bworks?\b|working|cleared|\bgone\b|fixed|resolved|solved|\bok\b|okay|no (?:more )?(?:fault|code|alert)s?|disappeared|"
+    r"طبيعي|طبيعية|راح|راحت|راحوا|انحل|انحلت|نحلت|زبط|زبطت|ضبط|ضبطت|اشتغل|اشتغلت|بدون خلل|بدون عطل|ما في عطل|انمسح|انمسحت|اختفى|تمام|"
+    r"ٹھیک|درست|ختم|چل رہی|چل رہا|نارمل", re.I)
+
+
+def _squash(text: str) -> str:
+    return re.sub(r"[\W_]+", "", text or "").lower()
 
 
 def english_of(out: dict, text: str) -> str:
@@ -173,6 +190,10 @@ def read_message(model: ModelClient, state: SessionState, text: str, *, componen
     out = model.json("intake", role="fast", system=SYSTEM, user=user, schema=_schema(components, options))
 
     intent = out.get("intent") if out.get("intent") in INTENTS else "other"
+    said_gone = out.get("result_words") if isinstance(out.get("result_words"), str) else ""
+    if intent == "fix_confirmed" and not (_squash(said_gone) and _squash(said_gone) in _squash(text)
+                                          and RESULT_WORDS.search(said_gone)):
+        intent = "finding"  # second full run: "Reconnected and secured both." was taken as a confirmed fix
     in_text = codes_in(text)
     written = norm_key(text) or ""
     codes = list(in_text)

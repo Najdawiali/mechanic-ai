@@ -34,8 +34,13 @@ def _clean(token: str) -> str:
     return token.strip(".-/_").upper()
 
 
+_ENUMERATOR = re.compile(r"(?m)^\s*[-*•]?\s*\(?\d{1,2}[.)\-:]\s+")  # "1. ", "2) ", "(3) " at the start of a line
+
+
 def tokens(text: str) -> list[str]:
-    return [t for t in (_clean(m) for m in _TOKEN.findall(normalise_digits(text))) if t]
+    """The specific tokens of a text. List numbering at the start of a line is layout, not a fact
+    (second full run: '1. 2. 3.' in general guidance was refused as numbers without a source)."""
+    return [t for t in (_clean(m) for m in _TOKEN.findall(_ENUMERATOR.sub(" ", normalise_digits(text)))) if t]
 
 
 @dataclass
@@ -53,6 +58,9 @@ class Allowed:
     def add(self, text: str | None) -> None:
         for token in tokens(text or ""):
             self.words.add(token)
+            parts = token.split("_")  # VCFRONT_A490_COOLANTPUMPSNOTIDENTIFIED also allows VCFRONT_A490
+            for i in range(2, len(parts)):
+                self.words.add("_".join(parts[:i]))
             for part in re.split(r"[-/]", token):  # "5-5" allows "5-5"; "7.14-7.90" allows each number
                 if _NUMBER.match(part):
                     self.numbers.add(float(part))
