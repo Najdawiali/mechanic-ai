@@ -7,9 +7,10 @@ the options), and an English rewrite of the message for search and for the sessi
 What code checks or decides:
   * fault codes: found by pattern in the message itself; a code the model returns is kept only if
     it is written in the message (so a code can never be invented here)
-  * a reading: taken by the reading parser when the message is a bare reading; a reading the model
-    returns is kept only if its number is written in the message, or the message has no digits at
-    all ("fifteen ohms"), and then the reply says back which value it understood
+  * a reading: taken by the reading parser when the message is a bare reading, or a sentence with
+    one number and its unit ("طلعت القراءة ١٥ أوم"); a reading the model returns is kept only if its
+    number is written in the message, or the message has no digits at all ("fifteen ohms"), and
+    then the reply says back which value it understood
   * component names and answers: kept only if they are on the list the model was given
 """
 
@@ -21,7 +22,7 @@ from dataclasses import dataclass, field
 from typing import Literal
 
 from app.engine.model import ModelClient
-from app.engine.readings import Reading, normalise_digits, parse_reading
+from app.engine.readings import Reading, normalise_digits, parse_reading, reading_in_sentence
 from app.engine.state import SessionState
 from app.kb.keys import code_stem, norm_key
 from app.lang.glossary import find_terms
@@ -141,6 +142,8 @@ def read_message(model: ModelClient, state: SessionState, text: str, *, componen
             codes.append(code.strip())
 
     reading, from_words = parse_reading(text), False
+    if reading is None and state.walk and intent not in ("fix_confirmed", "send_diagram", "wiring_question", "check_wire"):
+        reading = reading_in_sentence(text)  # code wins over the model's value when it can read it
     raw = out.get("reading")
     if reading is None and isinstance(raw, dict) and intent in ("reading", "answer", "finding"):
         value = raw.get("value")

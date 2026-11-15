@@ -24,3 +24,6 @@ dist/
 .idea/
 .vscode/
 .DS_Store
+
+# scenario runs (eval/run.py)
+eval/results/
