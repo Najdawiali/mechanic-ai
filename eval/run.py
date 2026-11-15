@@ -125,6 +125,7 @@ class TurnResult:
     seconds: float = 0.0
     cost_usd: float = 0.0
     error: str | None = None
+    model_errors: list[str] = field(default_factory=list)  # failed model calls: the engine fell back
 
 
 @dataclass
@@ -165,7 +166,8 @@ def play(scenario: Scenario, condition: str, kb: KnowledgeStore, model: ModelCli
         expect = turn.expect.get(condition)
         result.turns.append(TurnResult(
             i, turn.mechanic, reply.type, reply.tier, reply.message, check(reply, expect) if expect else [], expect is not None,
-            round(sum(c.latency_s for c in calls), 2), round(sum(c.cost_usd or 0 for c in calls), 6)))
+            round(sum(c.latency_s for c in calls), 2), round(sum(c.cost_usd or 0 for c in calls), 6),
+            model_errors=[f"{c.purpose}: {c.error}" for c in calls if c.error]))
     return result
 
 
@@ -187,6 +189,8 @@ def report(results: list[RunResult]) -> str:
         for t in r.turns:
             if t.error:
                 lines.append(f"      turn {t.turn}: CRASH {t.error}")
+            for e in t.model_errors:
+                lines.append(f"      turn {t.turn}: model call failed, fallback used: {e[:200]}")
             for w in t.wrong:
                 lines.append(f"      turn {t.turn} ({t.reply_type}/{t.tier}): {w}")
     passed = sum(r.passed for r in results)

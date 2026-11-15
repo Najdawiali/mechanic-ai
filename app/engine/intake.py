@@ -91,13 +91,13 @@ fix: if intent is fix_confirmed, a short English phrase naming the repair that f
 
 
 def _schema(components: list[str], options: list[str]) -> dict:
-    nullable_choice = {"type": ["string", "null"]} if not options else {"enum": [*options, None]}
-    component_item = {"type": "string"} if not components else {"enum": components}
+    nullable_choice = {"type": ["string", "null"]} if not options else {"type": ["string", "null"], "enum": [*options, None]}
+    component_item = {"type": "string"} if not components else {"type": "string", "enum": components}
     return {
         "type": "object", "additionalProperties": False,
         "required": ["intent", "english", "codes", "reading", "components", "power_and_ground", "pins_only", "answer", "fix"],
         "properties": {
-            "intent": {"enum": list(INTENTS)},
+            "intent": {"type": "string", "enum": list(INTENTS)},
             "english": {"type": "string"},
             "codes": {"type": "array", "items": {"type": "string"}},
             "reading": {"anyOf": [{"type": "null"}, {

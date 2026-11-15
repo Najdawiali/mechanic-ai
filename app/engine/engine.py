@@ -570,7 +570,7 @@ cases (earlier repairs, each on a named car) and expert notes (workshop experien
         for message in (t.text for t in state.history if t.role == "assistant"):
             allowed.add(message)
         out = compose(self.model, "advise", system=self.ADVISE_SYSTEM, facts=facts, language=state.language, allowed=allowed,
-                      schema_extra={"use": {"type": "array", "items": {"enum": list(records)}}})
+                      schema_extra={"use": {"type": "array", "items": {"type": "string", "enum": list(records)}}})
         if out is None:
             if gated:
                 return self._general(state, intake, gaps)
