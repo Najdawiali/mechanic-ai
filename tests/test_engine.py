@@ -460,3 +460,25 @@ def test_a_cross_vehicle_expert_note_needs_its_fault_message_named():
     assert not note_named(note, _words(exeed))
     assert not note_named(note, _words("P199000 from the transmission computer, front accident, replaced the HV harness"))
     assert note_named(note, _words("hybrid battery temp sensor open circuit on the scan tool"))
+
+
+# -- faults found in the third full real-model run (2026-11-16, 39 of 42; fast-model comparison) -----------
+def test_a_case_found_by_meaning_with_other_codes_is_never_offered(kb):
+    said = "code P0AA600, the coolant pump of the hybrid electric system does not run"
+    script = Script(advise=[{"use": ["case:byd-qin-plus-dmi-2024:p2b5313-p2b5411"], "message": "An earlier repair on a BYD. Check?"}])
+    reply = Engine(kb, script.model).turn(session(BYD), said).reply
+    assert reply.tier == "general" and script.calls("advise") == []  # removed in code before the model saw it
+
+
+def test_repairs_reported_along_the_way_are_part_of_the_confirmed_fix(kb):
+    seated = "The coolant temperature sensor connector was not seated. Reconnected it."
+    done = "Did the window regulator basic setting and cleared the codes. Everything works normally."
+    script = Script(intakes={seated: {"intent": "finding", "repair": "coolant temperature sensor connector re-seated"},
+                             done: {"intent": "fix_confirmed", "fix": "window regulator basic setting", "result_words": "works normally"}})
+    engine, state = Engine(kb, script.model), session(BYD)
+    engine.turn(state, seated)
+    reply = engine.turn(state, done).reply
+    assert reply.possible_causes[0].name == "coolant temperature sensor connector re-seated; window regulator basic setting"
+    from app.engine.summary import pending_case
+    assert pending_case(state, "s1")["repair_steps"] == ["coolant temperature sensor connector re-seated",
+                                                         "window regulator basic setting"]

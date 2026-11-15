@@ -23,7 +23,7 @@ from dataclasses import dataclass, field
 
 from app.engine.readings import normalise_digits
 
-_TOKEN = re.compile(r"[A-Za-z_]*\d[\w.\-/]*")
+_TOKEN = re.compile(r"[A-Za-z_]*[.\-]?\d[\w.\-/]*")
 _EASTERN_DIGIT = re.compile("[٠-٩۰-۹]")
 _NUMBER = re.compile(r"^\d+(?:\.\d+)?$")
 # words that carry a digit but say nothing specific about the car
@@ -58,6 +58,7 @@ class Allowed:
     def add(self, text: str | None) -> None:
         for token in tokens(text or ""):
             self.words.add(token)
+            self.words.add(re.sub(r"[.\-]", "", token))  # ID.4 also allows ID4
             parts = token.split("_")  # VCFRONT_A490_COOLANTPUMPSNOTIDENTIFIED also allows VCFRONT_A490
             for i in range(2, len(parts)):
                 self.words.add("_".join(parts[:i]))
@@ -68,7 +69,7 @@ class Allowed:
                 self.numbers.add(float(token))
 
     def has(self, token: str) -> bool:
-        if token in self.words or token.lower() in _HARMLESS:
+        if token in self.words or re.sub(r"[.\-]", "", token) in self.words or token.lower() in _HARMLESS:
             return True
         if _NUMBER.match(token):
             return float(token) in self.numbers

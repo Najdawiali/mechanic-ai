@@ -67,6 +67,7 @@ class Intake:
     unsure: list[str] = field(default_factory=list)  # components the model picked that the message does not name
     answer: str | None = None  # one of the pending question's options
     fix: str | None = None  # the repair that fixed it, in English, when intent is fix_confirmed
+    repair: str | None = None  # a repair this message reports, fixed or not (code keeps the list)
     terms: list[str] = field(default_factory=list)  # workshop words found by the glossary, "word = English"
 
 
@@ -93,6 +94,8 @@ power_and_ground: true if he asks about power supply, fuses or ground of a compo
 pins_only: true if he asks only which pins (and wire colours) of the first component serve the other component,
   not the whole wiring between them.
 answer: if he answers the question asked, the matching option exactly as listed; else null.
+repair: if this message reports a repair the mechanic did (replaced, re-seated, reconnected, coded, calibrated,
+  updated...), a short English phrase naming it, whether or not it fixed the fault; else null.
 result_words: if intent is fix_confirmed, the words of the message that say the fault is gone, copied exactly
   (e.g. "the car runs normally", "وراح العطل"); else null.
 fix: if intent is fix_confirmed, a short English phrase naming the cause found and every repair done in this
@@ -107,7 +110,7 @@ def _schema(components: list[str], options: list[str]) -> dict:
     return {
         "type": "object", "additionalProperties": False,
         "required": ["intent", "english", "codes", "reading", "components", "power_and_ground", "pins_only", "answer",
-                     "result_words", "fix"],
+                     "repair", "result_words", "fix"],
         "properties": {
             "intent": {"type": "string", "enum": list(INTENTS)},
             "english": {"type": "string"},
@@ -120,6 +123,7 @@ def _schema(components: list[str], options: list[str]) -> dict:
             "power_and_ground": {"type": "boolean"},
             "pins_only": {"type": "boolean"},
             "answer": nullable_choice,
+            "repair": {"type": ["string", "null"]},
             "result_words": {"type": ["string", "null"]},
             "fix": {"type": ["string", "null"]},
         },
@@ -231,4 +235,5 @@ def read_message(model: ModelClient, state: SessionState, text: str, *, componen
     return Intake(intent=intent, english=english, codes=codes, reading=reading, reading_from_words=from_words,
                   components=chosen, unsure=unsure, power_and_ground=bool(out.get("power_and_ground")),
                   pins_only=bool(out.get("pins_only")), answer=answer, fix=fix,
+                  repair=out.get("repair") if isinstance(out.get("repair"), str) and out.get("repair").strip() else None,
                   terms=terms)

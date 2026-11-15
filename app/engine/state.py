@@ -90,6 +90,7 @@ class SessionState(_State):
     version_answer: str | None = None  # which drawn version the mechanic said his car is
     conclusion: str | None = None
     confirmed_fix: str | None = None
+    repairs: list[str] = Field(default_factory=list)  # every repair the mechanic reported, in order, the fixing one last
     history: list[Turn] = Field(default_factory=list)
     closed: bool = False
 

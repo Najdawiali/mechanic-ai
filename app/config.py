@@ -28,8 +28,10 @@ class Settings(BaseSettings):
     llm_timeout_s: float = 90.0
     # Which model role each engine call uses ("reasoning" = the larger model, "fast" = the smaller one).
     # Chosen by the evaluation: run eval/run.py with a different value and compare passes and time.
-    llm_role_advise: str = "reasoning"
-    llm_role_general: str = "reasoning"
+    # Measured 2026-11-16 (case scenarios, 24 runs): the fast model writes hints in 2.5-7 s against 15-25 s,
+    # with the same content on every case-in-KB run read; off-topic cases are kept out in code, not by the model.
+    llm_role_advise: str = "fast"
+    llm_role_general: str = "fast"
     llm_role_summary: str = "reasoning"
     llm_role_translate: str = "fast"
     llm_role_translate_ur: str = "fast"

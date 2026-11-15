@@ -74,12 +74,22 @@ def note_named(note: ExpertNote, said: set[str]) -> bool:
 _TEMP = {"TEMP": "TEMPERATURE", "TEMPS": "TEMPERATURE"}
 
 
+def other_codes(record, codes: list[str]) -> bool:
+    """The record carries fault codes and none of them is one of the mechanic's: a different fault.
+    "Be strict and don't mix codes with each other" (Ali). Third full run: found by meaning, the BMS water
+    case was offered for PCS_A027, the PCS pump case for VCFRONT_a490, a reverse-polarity case for BMS_A123."""
+    if not codes:
+        return False
+    own = [c for c in (record.fault_codes if isinstance(record, ExpertNote) else [f.code for f in record.fault_codes]) if c]
+    return bool(own) and not ({code_stem(c) for c in own} & {code_stem(c) for c in codes})
+
+
 @dataclass
 class Roles:
     """Which model role each engine call uses (settings LLM_ROLE_*); chosen by the evaluation."""
 
-    advise: str = "reasoning"
-    general: str = "reasoning"
+    advise: str = "fast"
+    general: str = "fast"
     summary: str = "reasoning"
     translate: str = "fast"
     translate_ur: str = "fast"
@@ -142,6 +152,8 @@ class Engine:
         except ModelError:
             intake = Intake(intent="other", english=text, codes=codes_in(text), reading=parse_reading(text))
         state.remember("mechanic", text, intake.english)
+        if intake.repair and intake.intent != "fix_confirmed" and intake.repair not in state.repairs:
+            state.repairs.append(intake.repair)
         new_codes = self._add_codes(state, intake.codes + (report.codes if report else []))
 
         reply = self._route(state, intake, new_codes, gaps)
@@ -399,7 +411,10 @@ class Engine:
 
     # -- 7. a confirmed fix --------------------------------------------------------------------------------
     def _fix(self, state: SessionState, intake: Intake) -> Reply:
-        state.confirmed_fix = intake.fix or intake.english
+        fix = intake.fix or intake.english
+        if fix not in state.repairs:
+            state.repairs.append(fix)
+        state.confirmed_fix = "; ".join(state.repairs)  # earlier repairs too (VW: connectors re-seated, then basic setting)
         state.conclusion = state.conclusion or state.confirmed_fix
         message = fixed("fix_noted", state.language, fix=state.confirmed_fix)
         return self._reply(state, "conclusion", message, tier="none", confidence="high",
@@ -574,6 +589,7 @@ class Engine:
         hits = self.kb.search(state.vehicle, query, self.model.embed_query(query), statuses=self.statuses, limit=MAX_HINTS)
         said = _words(" ".join(self._mechanic_texts(state)))
         hits = [h for h in hits if not isinstance(h.record, ExpertNote) or note_named(h.record, said)]
+        hits = [h for h in hits if not other_codes(h.record, state.codes)]
         if hits:
             return self._advise(state, intake, hits, gaps, gated=True)
         return self._general(state, intake, gaps)

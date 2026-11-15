@@ -27,3 +27,8 @@ def test_list_numbering_is_layout_and_a_long_code_allows_its_short_form():
     assert problems("First checks:\n1. Check the fuse.\n2) Check the ground.\n(3) Check the connector.", allowed) == []
     assert problems("VCFRONT_a490 means the pumps were not identified.", allowed) == []
     assert problems("Check pin 12.", allowed) == ["12"]
+
+
+def test_a_model_name_with_or_without_its_dot_is_the_same_name():
+    allowed = Allowed.from_texts(["2021 Volkswagen ID.4"])
+    assert problems("An earlier repair on an ID4 and an ID.4.", allowed) == []

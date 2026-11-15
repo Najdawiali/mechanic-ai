@@ -63,7 +63,7 @@ def pending_case(state: SessionState, session_id: str) -> dict | None:
         "findings": [f"{r.step_id}: {r.value if r.value is not None else 'OL'} {r.unit or ''} ({r.verdict})".strip() for r in state.readings],
         "symptoms": found[:1],
         "diagnosis": state.conclusion or state.confirmed_fix,
-        "repair_steps": [state.confirmed_fix],
+        "repair_steps": list(state.repairs) or [state.confirmed_fix],
         "notes": found[1:],
         "outcome": "fixed_not_verified",
         "source": {"kind": "client_case_file", "file": f"session:{session_id}", "captured_via": "AI assistant session"},
