@@ -11,7 +11,11 @@ What code checks or decides:
     one number and its unit ("طلعت القراءة ١٥ أوم"); a reading the model returns is kept only if its
     number is written in the message, or the message has no digits at all ("fifteen ohms"), and
     then the reply says back which value it understood
-  * component names and answers: kept only if they are on the list the model was given
+  * component names and answers: kept only if they are on the list the model was given; and a
+    component is used only when a real word of its name, or a known other name for it (ABS for
+    VSA), is in the mechanic's message. Otherwise it is "unsure" and the assistant asks. First real
+    run: asked about the "VTC solenoid", the model picked the "VSA MODULATOR-CONTROL UNIT", and
+    its pins were listed as verified.
 """
 
 from __future__ import annotations
@@ -60,6 +64,7 @@ class Intake:
     components: list[str] = field(default_factory=list)
     power_and_ground: bool = False
     pins_only: bool = False  # asks only which pins of the first component serve the other, not the whole route
+    unsure: list[str] = field(default_factory=list)  # components the model picked that the message does not name
     answer: str | None = None  # one of the pending question's options
     fix: str | None = None  # the repair that fixed it, in English, when intent is fix_confirmed
     terms: list[str] = field(default_factory=list)  # workshop words found by the glossary, "word = English"
@@ -87,7 +92,10 @@ power_and_ground: true if he asks about power supply, fuses or ground of a compo
 pins_only: true if he asks only which pins (and wire colours) of the first component serve the other component,
   not the whole wiring between them.
 answer: if he answers the question asked, the matching option exactly as listed; else null.
-fix: if intent is fix_confirmed, a short English phrase naming the repair that fixed it (e.g. "inverter replacement", "headlight coding with ODIS"); else null."""
+fix: if intent is fix_confirmed, a short English phrase naming the cause found and every repair done in this
+  conversation that fixed it, using "earlier messages" too; name a procedure in words, not only by its code
+  (e.g. "internal short in the inverter: inverter replaced"; "connectors re-seated and window regulator basic setting";
+  "ride height calibration (PROC_TAS_X_CALIBRATE-RIDE-HEIGHT)"); else null."""
 
 
 def _schema(components: list[str], options: list[str]) -> dict:
@@ -113,6 +121,33 @@ def _schema(components: list[str], options: list[str]) -> dict:
     }
 
 
+# Words in a component name that do not tell one part from another
+GENERIC = {"UNIT", "MODULE", "CONTROL", "CONTROLLER", "SENSOR", "SWITCH", "ASSEMBLY", "ASSY", "BOX", "RELAY", "FUSE",
+           "CONNECTOR", "LEFT", "RIGHT", "FRONT", "REAR", "UPPER", "LOWER", "MAIN", "SUB", "ELECTRIC", "ELECTRICAL",
+           "SYSTEM", "AND", "OF", "THE", "WITH", "NO", "SIDE", "DASH", "HOOD", "UNDER"}
+# Other names mechanics use for the same part (general auto-electric usage; extend with the client's expert)
+SYNONYMS = [{"ABS", "VSA", "ESC", "ESP", "VSC", "DSC", "MODULATOR"}, {"ECM", "PCM", "ECU", "ENGINE"},
+            {"TCM", "TRANSMISSION", "GEARBOX"}, {"BCM", "BODY", "MICU"}, {"WSS", "WHEEL"}, {"EPB", "PARKING"},
+            {"SRS", "AIRBAG"}, {"TPMS", "TIRE", "TYRE"}, {"HVAC", "CLIMATE"}, {"METER", "GAUGE", "CLUSTER", "INSTRUMENT"}]
+
+
+def _words(text: str) -> set[str]:
+    words = set(re.findall(r"[A-Z0-9]+", text.upper()))
+    return words | {w[:-1] for w in words if w.endswith("S") and len(w) > 3}
+
+
+def named(component: str, said: set[str]) -> bool:
+    """Does the message name this component: a word of its name that tells it apart, or another name for it?"""
+    for word in _words(component) - GENERIC:
+        if word in said or any(word in group and group & said for group in SYNONYMS):
+            return True
+    return False
+
+
+def english_of(out: dict, text: str) -> str:
+    return out.get("english") if isinstance(out.get("english"), str) else text
+
+
 def _number_written(value: float, text: str) -> bool:
     for found in re.findall(r"\d+(?:\.\d+)?", normalise_digits(text).replace("٫", ".")):
         if float(found) == value:
@@ -129,6 +164,7 @@ def read_message(model: ModelClient, state: SessionState, text: str, *, componen
         "vehicle": state.vehicle.model_dump(exclude_none=True),
         "step being worked on": (next(s.check for s in state.walk.steps if s.id == state.walk.step_id) if state.walk else None),
         "question asked": {"text": asked, "options": options} if state.pending else None,
+        "earlier messages": [t.english or t.text for t in state.history if t.role == "mechanic"][-6:],
         "components on this car's diagrams": components,
         "workshop words in the message": terms,
         "scan report attached": report_text,
@@ -162,15 +198,16 @@ def read_message(model: ModelClient, state: SessionState, text: str, *, componen
         intent = "reading" if state.walk else intent
 
     allowed = {norm_key(c): c for c in components}
-    chosen = []
+    chosen, unsure = [], []
+    said = _words(" ".join([text, english_of(out, text), *(t.split(" = ", 1)[1] for t in terms)]))
     for name in out.get("components") or []:
         key = norm_key(name) if isinstance(name, str) else None
-        if key in allowed and allowed[key] not in chosen:
-            chosen.append(allowed[key])
+        if key in allowed and allowed[key] not in chosen + unsure:
+            (chosen if named(allowed[key], said) else unsure).append(allowed[key])
     answer = out.get("answer") if out.get("answer") in options else None
     fix = out.get("fix") if intent == "fix_confirmed" and isinstance(out.get("fix"), str) else None
     english = out.get("english") if isinstance(out.get("english"), str) and out.get("english").strip() else text
     return Intake(intent=intent, english=english, codes=codes, reading=reading, reading_from_words=from_words,
-                  components=chosen, power_and_ground=bool(out.get("power_and_ground")),
+                  components=chosen, unsure=unsure, power_and_ground=bool(out.get("power_and_ground")),
                   pins_only=bool(out.get("pins_only")), answer=answer, fix=fix,
                   terms=terms)

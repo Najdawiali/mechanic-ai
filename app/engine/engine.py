@@ -32,7 +32,7 @@ from app.engine import render, wiring
 from app.engine import report as report_reader
 from app.engine.circuit_plan import BASIS, plans_for_pin
 from app.engine.external import ExternalSource, NoExternalSource
-from app.engine.intake import Intake, codes_in, read_message
+from app.engine.intake import ALERT, DTC, Intake, codes_in, read_message
 from app.engine.model import ModelClient, ModelError
 from app.engine.procedure_walk import walk as walk_steps
 from app.engine.readings import Reading, ReadingError, parse_reading
@@ -40,13 +40,19 @@ from app.engine.reply import Cause, DiagramPage, Evidence, QuestionView, Reply
 from app.engine.state import Offered, Pending, ReadingLog, SessionState, Walk, WiringContext
 from app.engine.validator import Allowed
 from app.engine.wording import compose, fixed, translate
-from app.kb.keys import code_stem
+from app.kb.keys import code_stem, norm_key
 from app.kb.schemas import Case, ExpertNote, Powertrain, WiringDiagram
 from app.kb.store import APPROVED, Hit, KnowledgeStore, ProcedureHit, Status
 from app.lang.script import detect
 from app.safety import emergency
 
 _HV_WORDS = re.compile(r"high.?voltage|\bhv\b|هاي ?فولت|ہائی ?وولٹ", re.I)
+# A diagram picture is sent only when one is asked for by name ("I need the wiring" asks for the wiring, not the page)
+_DIAGRAM_WORDS = re.compile(r"diagram|schematic|\bpages?\b|picture|image|photo|drawing|مخطط|صور|صفح|رسمة|ڈایاگرام|ڈائیگرام|تصویر|صفحہ", re.I)
+# Never in a hint about high-voltage work, whatever the record says (BMS_A123 run: "carburetor cleaner or kerosene")
+_SOLVENTS = re.compile(r"kerosene|carburet\w*|gasoline|thinner|acetone|solvent|brake.?cleaner|WD.?40|كاز|كيروسين|تنر|تنّر|اسيتون|مذيب|"
+                       r"مٹی کا تیل|تھنر", re.I)
+_NONE_OF_THESE = "none of these"
 _YES = "yes"
 _NO = "no"
 MAX_WIRING_LINES = 40
@@ -81,7 +87,8 @@ class Engine:
     def turn(self, state: SessionState, text: str, attachments: list[report_reader.Attachment] = ()) -> TurnResult:
         if state.closed:
             raise ValueError("the session is closed")
-        state.language = detect(text) or state.language
+        # long code names ("VCFRONT_a490_coolantPumpsNotIdentified") are not English words: they do not decide the language
+        state.language = detect(ALERT.sub(" ", DTC.sub(" ", text))) or state.language
         gaps: list[Gap] = []
 
         found = emergency.check(text)
@@ -125,6 +132,11 @@ class Engine:
                 return self._show_step(state, lead=fixed("need_reading", state.language))
         if intake.intent == "fix_confirmed":
             return self._fix(state, intake)
+        if intake.unsure and not new_codes and (
+                intake.intent in ("wiring_question", "spec_question", "check_wire", "send_diagram") or intake.power_and_ground):
+            return self._confirm_part(state, intake)
+        if intake.intent == "send_diagram" and intake.components and not _DIAGRAM_WORDS.search(state.history[-1].text):
+            intake.intent = "wiring_question"
         if intake.intent == "send_diagram":
             return self._send_diagram(state, intake)
         if intake.intent == "check_wire":
@@ -320,10 +332,29 @@ class Engine:
         if pending.about == "version":
             state.version_answer = answer
             return self._wiring(state, context["components"], context["power_and_ground"], gaps)
+        if pending.about == "part":
+            if answer == _NONE_OF_THESE:
+                return self._reply(state, "question", fixed("which_part", state.language), tier="none")
+            components = [*context["components"], answer]
+            if context["intent"] == "send_diagram":
+                intake.components = components
+                return self._send_diagram(state, intake)
+            if context["intent"] == "check_wire":
+                intake.components = components
+                return self._check_wire(state, intake)
+            return self._wiring(state, components, context["power_and_ground"], gaps, pins_only=context["pins_only"])
         if pending.about == "wire":
             component, pin = context["choices"][answer]
             return self._start_circuit(state, component, pin)
         return None
+
+    def _confirm_part(self, state: SessionState, intake: Intake) -> Reply:
+        """The model picked a part the message does not name: ask, never guess a part and give its pins."""
+        english = f"Which part do you mean: {'; or '.join(intake.unsure)}? If none of these, tell me the name as printed on the diagram."
+        message, _ = translate(self.model, english, state.language)
+        return self._ask(state, message, kind="component", options=[*intake.unsure, _NONE_OF_THESE], about="part",
+                         context={"components": intake.components, "intent": intake.intent,
+                                  "power_and_ground": intake.power_and_ground, "pins_only": intake.pins_only})
 
     def _question_again(self, state: SessionState) -> str:
         options = state.pending.question.options
@@ -553,6 +584,9 @@ cases (earlier repairs, each on a named car) and expert notes (workshop experien
      part is replaced. Never say to replace a part without that check.
    - If the mechanic already did a check, take it into account and say what the record suggests next.
    - Mention parts the record ruled out, if any.
+   - If a record is marked "high-voltage work": do not describe how to open the battery or work inside it, and never
+     mention cleaning agents, solvents or chemicals. Say that this work must be done by a person qualified for
+     high-voltage work, following the manufacturer's procedure.
    - End with one question. At most 120 words."""
 
     def _advise(self, state: SessionState, intake: Intake | None, hits: list[Hit], gaps: list[Gap], *, gated: bool) -> Reply:
@@ -560,7 +594,9 @@ cases (earlier repairs, each on a named car) and expert notes (workshop experien
         records = {}
         for hit in hits:
             facts = render.case_facts(hit.record) if isinstance(hit.record, Case) else render.note_facts(hit.record)
-            records[hit.record_key] = {"kind": hit.record_type, "fits the vehicle": hit.scope_match, **facts}
+            high_voltage = isinstance(hit.record, Case) and hit.record.sensitive
+            records[hit.record_key] = {"kind": hit.record_type, "fits the vehicle": hit.scope_match,
+                                       "high-voltage work": high_voltage, **facts}
         facts = {
             "vehicle": render.vehicle_text(state.vehicle), "fault codes": state.codes,
             "conversation": [{"mechanic" if t.role == "mechanic" else "assistant": t.english or t.text} for t in state.history],
@@ -570,8 +606,10 @@ cases (earlier repairs, each on a named car) and expert notes (workshop experien
         allowed.add(json.dumps(records, ensure_ascii=False, default=str))
         for message in (t.text for t in state.history if t.role == "assistant"):
             allowed.add(message)
+        any_hv = any(r["high-voltage work"] for r in records.values())
         out = compose(self.model, "advise", system=self.ADVISE_SYSTEM, facts=facts, language=state.language, allowed=allowed,
-                      schema_extra={"use": {"type": "array", "items": {"type": "string", "enum": list(records)}}})
+                      schema_extra={"use": {"type": "array", "items": {"type": "string", "enum": list(records)}}},
+                      forbidden=_SOLVENTS if any_hv else None)
         if out is None:
             if gated:
                 return self._general(state, intake, gaps)
@@ -584,6 +622,9 @@ cases (earlier repairs, each on a named car) and expert notes (workshop experien
             if not used or not out.get("message", "").strip():
                 return self._general(state, intake, gaps)
             message = out["message"]
+        written = norm_key(message) or ""
+        if state.codes and any(code_stem(c) not in written for c in state.codes):
+            message = f"{', '.join(state.codes)}:\n{message}"  # the hint names the codes it is about, in code
         known = {o.key for o in state.offered}
         state.offered += [Offered(record_id=h.record_id, key=h.record_key, type=h.record_type) for h in used if h.record_key not in known]
         warnings = [w for h in used if isinstance(h.record, ExpertNote) for w in h.record.safety.warnings]

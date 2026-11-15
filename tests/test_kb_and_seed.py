@@ -92,8 +92,12 @@ def test_scenarios_are_valid(path):
         for att in turn.attachments:
             assert (REPO / att).exists(), f"missing attachment {att}"
     if scn.related_case_id:
+        # a hand-written seed case, or the case the extractor makes from the scenario's own report file
+        from app.ingest.case_extractor import case_name
+
         ids = {load(p)["case_id"] for p in CASES}
-        assert scn.related_case_id in ids
+        source = scn.source if isinstance(scn.source, str) else getattr(scn.source, "file", None)
+        assert scn.related_case_id in ids or (source and scn.related_case_id == f"case:{case_name(source)}")
 
 
 def test_seed_holds_only_the_clients_own_knowledge():

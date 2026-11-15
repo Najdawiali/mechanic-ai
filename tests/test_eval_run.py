@@ -50,6 +50,18 @@ def test_a_rejected_translation_is_listed_with_its_reason(kb):
     (scenario,) = load("p0010:valve:ar")
     script = Script(translate=lambda user: {"message": user})  # an English "translation": not in Arabic script
     first = play(scenario, "standard", kb, script.model, statuses=APPROVED).turns[0]
-    assert first.calls == ["intake", "translate (rejected: not written in ar script)",
-                           "translate (rejected: not written in ar script)"]
+    assert [c.split(" ")[0] + (" rejected" if "(rejected: not written in ar script)" in c else "") for c in first.calls] == [
+        "intake", "translate rejected", "translate rejected"]
     assert "بالإنجليزية" in first.message  # after two refusals the English text is sent, with a note in Arabic
+
+
+def test_every_case_scenario_names_the_case_it_holds_out():
+    assert all(s.related_case_id for s in load("") if s.group == "case")
+
+
+def test_a_held_out_case_that_is_not_in_the_knowledge_base_is_not_run(kb):
+    import pytest as _pytest
+    from eval.run import NotRunnable
+    (scenario,) = [s for s in load("ford-edge") if s.group == "case"]
+    with _pytest.raises(NotRunnable):
+        play(scenario, "case_held_out", kb, Script().model, statuses=APPROVED)

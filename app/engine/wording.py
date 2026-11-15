@@ -112,6 +112,11 @@ FIXED = {
         "ar": "ما قدرت أقرأ أي كود من المرفق. اكتب الأكواد أو ابعث صورة أوضح.",
         "ur": "میں منسلکہ فائل سے کوئی کوڈ نہیں پڑھ سکا۔ کوڈ لکھ دیں یا زیادہ واضح تصویر بھیجیں۔",
     },
+    "which_part": {
+        "en": "Which part do you mean? Write its name as printed on the wiring diagram, or describe where it is.",
+        "ar": "أي قطعة تقصد؟ اكتب اسمها مثل ما هو مكتوب على مخطط الأسلاك، أو احكيلي وين مكانها.",
+        "ur": "آپ کس پرزے کی بات کر رہے ہیں؟ اس کا نام ویسے لکھیں جیسے وائرنگ ڈایاگرام پر لکھا ہے، یا بتائیں کہ وہ کہاں ہے۔",
+    },
     "no_check": {
         "en": "I can't offer a check for this wire: {why}",
         "ar": "ما بقدر أعطيك فحص لهذا السلك: {why}",
@@ -143,7 +148,8 @@ def _in_script(result: str, language: Language) -> bool:
 
 TRANSLATE_SYSTEM = """You translate a message for a car mechanic into {language}.
 Keep these exactly as written, in English letters and Latin digits: fault codes, pin numbers, connector and
-component names, wire colours, values, units, tool names and menu paths. Do not add, drop or explain anything.
+component names, wire colours, values, units, tool names and menu paths. Every number stays a digit: "Step 1" is
+"الخطوة 1", never a word such as "الأولى". Keep the signs < > ≤ ≥ in front of their values. Do not add, drop or explain anything.
 Keep the line breaks. Return JSON: {{"message": "..."}}"""
 
 
@@ -177,7 +183,7 @@ def translate(model: ModelClient, english: str, language: Language) -> tuple[str
 
 
 def compose(model: ModelClient, purpose: str, *, system: str, facts: dict, language: Language, allowed: Allowed,
-            schema_extra: dict | None = None, max_tokens: int = 900) -> dict | None:
+            schema_extra: dict | None = None, max_tokens: int = 900, forbidden: re.Pattern[str] | None = None) -> dict | None:
     """The model's reply as a dict with at least "message" (possibly empty), or None when it failed the
     validator twice or did not answer."""
     properties = {"message": {"type": "string"}, **(schema_extra or {})}
@@ -193,6 +199,8 @@ def compose(model: ModelClient, purpose: str, *, system: str, facts: dict, langu
             return None
         message = out.get("message") if isinstance(out.get("message"), str) else ""
         found = problems(message, allowed)
+        if forbidden is not None:
+            found += [f"must not mention {m.group(0)!r}" for m in forbidden.finditer(message)]
         if not found:  # an empty message is an answer too ("no record fits"): the caller decides
             return out
         reject(model, f"no source for {found}")

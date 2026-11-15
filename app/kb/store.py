@@ -23,7 +23,7 @@ from app.kb import index
 from app.kb.embedder import as_pgvector
 from app.kb.index import KbRecord
 from app.kb.keys import code_stem, norm_key
-from app.kb.schemas import Case, ExpertNote, Procedure, Review, Vehicle
+from app.kb.schemas import Procedure, Review, Vehicle
 
 ExtractedBy = Literal["code", "model", "hand"]
 Status = Literal["draft", "approved", "rejected"]

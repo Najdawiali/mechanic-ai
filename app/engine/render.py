@@ -56,10 +56,24 @@ def point_text(point: TestPoint) -> str:
     return f"{where}, pin {point.pin}{side}"
 
 
+_DISPLAY = {("resistance", 1.0): "ohm", ("resistance", 1e3): "kohm", ("resistance", 1e6): "Mohm",
+            ("voltage", 1.0): "V", ("voltage", 1e-3): "mV", ("current", 1.0): "A", ("current", 1e-3): "mA"}
+
+
+def display_unit(unit: str) -> str:
+    """The unit in its English form ("أوم" -> "ohm"), so English text stays English for the translation check."""
+    from app.engine.readings import ReadingError, _unit
+
+    try:
+        return _DISPLAY.get(_unit(unit), unit)
+    except ReadingError:
+        return unit
+
+
 def reading_text(reading: Reading) -> str:
     if reading.over_limit:
         return "OL (over the meter's range)"
-    return f"{number(reading.value)} {reading.unit}" if reading.unit else number(reading.value)
+    return f"{number(reading.value)} {display_unit(reading.unit)}" if reading.unit else number(reading.value)
 
 
 def vehicle_text(vehicle: Vehicle) -> str:

@@ -360,3 +360,67 @@ def test_urdu_in_roman_letters_is_refused_and_a_dropped_sign_too():
     assert [t.rejected for t in model.trace] == [
         "a number, pin, code or comparison sign of the English text is missing; not written in ur script",
         "a number, pin, code or comparison sign of the English text is missing"]
+
+
+# -- faults found in the first full real-model run (2026-11-15, 42 runs) ------------------------------------
+def test_a_part_the_message_does_not_name_is_never_answered_with_its_pins(kb):
+    vtc = "What do I measure at the VTC solenoid and what should it read?"
+    script = Script(intakes={vtc: {"intent": "spec_question", "components": [VSA]},
+                             f"2025 Integra 1.5 turbo, code P0341. {vtc}": {"intent": "spec_question", "components": [VSA]}})
+    engine, state = Engine(kb, script.model), session()
+    with_code = engine.turn(state, f"2025 Integra 1.5 turbo, code P0341. {vtc}").reply
+    assert with_code.tier == "general" and "P0341" in with_code.message and "VSA" not in with_code.message
+    asked = Engine(kb, script.model).turn(session(), vtc).reply
+    assert asked.question.kind == "component" and asked.question.options == [VSA, "none of these"] and asked.evidence == []
+
+
+def test_a_confirmed_part_gets_its_answer(kb):
+    question = "Where does the power for the brake unit come from?"
+    script = Script(intakes={question: {"intent": "wiring_question", "components": [VSA], "power_and_ground": True},
+                             "yes the VSA one": {"intent": "answer", "answer": VSA}})
+    engine, state = Engine(kb, script.model), session()
+    assert engine.turn(state, question).reply.question.kind == "component"
+    answered = engine.turn(state, "yes the VSA one").reply
+    assert answered.type == "conclusion" and "FUSE 5-5 40A" in answered.message
+
+
+def test_asking_for_the_wiring_is_not_asking_for_the_diagram_page(kb):
+    question = "I need the wiring from the VSA unit to the left front wheel speed sensor."
+    script = Script(intakes={question: {"intent": "send_diagram", "components": [VSA, LF]}})
+    reply = Engine(kb, script.model).turn(session(), question).reply
+    assert reply.diagrams == [] and reply.question.kind == "version" and "BRN" in reply.message
+
+
+def test_a_case_hint_always_names_its_codes(kb):
+    script = Script(advise=[{"use": ["case:byd-qin-plus-dmi-2024:p2b5313-p2b5411"],
+                             "message": "An earlier repair on a 2024 BYD Qin Plus DM-i: check the hybrid coolant pump first. Did you?"}])
+    reply = Engine(kb, script.model).turn(session(BYD), "BYD Qin Plus 2024 with P2B5313 and P2B5411").reply
+    assert reply.message.startswith("P2B5313, P2B5411:\n")
+
+
+def test_a_hint_about_high_voltage_work_never_mentions_solvents(kb, conn):
+    hv = Case(**(byd_case().model_dump(exclude={"review"}) | {"case_id": "case:hv", "sensitive": True,
+                                                                 "fault_codes": [{"code": "P0AA600"}]}))
+    saved = kb.save(hv, extracted_by="hand")
+    kb.set_review(saved.record_id, "approved", reviewer="test")
+    conn.commit()
+    script = Script(advise=[{"use": ["case:hv"], "message": "An earlier repair on a BYD Qin Plus DM-i: dry the modules with kerosene. Done?"},
+                            {"use": ["case:hv"], "message": "An earlier repair on a BYD Qin Plus DM-i: this needs a person qualified for high-voltage work. Done?"}])
+    reply = Engine(kb, script.model).turn(session(BYD), "code P0AA600").reply
+    assert "kerosene" not in reply.message and "qualified for high-voltage work" in reply.message
+    assert "must not mention 'kerosene'" in script.model.trace[-2].rejected
+
+
+def test_long_code_names_do_not_make_an_arabic_message_english(kb):
+    state = session(language="ar")
+    Engine(kb, Script().model).turn(state, "تسلا موديل 3 2020 عليها VCFRONT_a490_coolantPumpsNotIdentified و DI_a190_tireRotationRecommended")
+    assert state.language == "ar"
+
+
+def test_a_reading_in_arabic_units_is_written_in_english_in_the_text_to_translate(kb):
+    engine, state = Engine(kb, Script().model), session(language="ar")
+    engine.turn(state, "أكورا انتيجرا 2025، طالع عندي كود P0010")
+    script_calls = []
+    engine.model.handlers["translate"] = lambda s, user, sc: script_calls.append(user) or {"message": "النتيجة " + user}
+    engine.turn(state, "طلعت القراءة ١٥ أوم")
+    assert "Step 1 reading: 15 ohm, outside" in script_calls[0]

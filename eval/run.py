@@ -157,8 +157,19 @@ def attachments_of(paths: list[str]) -> list[Attachment]:
             for p in paths]
 
 
+class NotRunnable(RuntimeError):
+    """The scenario cannot be judged as written (a held-out case that is not in the knowledge base)."""
+
+
 def play(scenario: Scenario, condition: str, kb: KnowledgeStore, model: ModelClient, *, statuses) -> RunResult:
-    if condition == "case_held_out" and scenario.related_case_id:
+    if condition in ("case_in_kb", "case_held_out"):
+        # Hiding a case that is not there hides nothing, and the run would pass or fail for the wrong reason
+        # (first full run: 11 scenarios had no related_case_id, and every held-out run cited its case).
+        key = scenario.related_case_id
+        found = key and kb.conn.execute("SELECT 1 FROM kb.record WHERE record_key = %s LIMIT 1", (key,)).fetchone()
+        if not found:
+            raise NotRunnable(f"{scenario.scenario_id}: related case {key!r} is not in the knowledge base")
+    if condition == "case_held_out":
         kb = HeldOut(kb.conn, {scenario.related_case_id})
     engine = Engine(kb, model, statuses=statuses)
     state = SessionState(vehicle=scenario.vehicle, language=scenario.language)
@@ -176,7 +187,7 @@ def play(scenario: Scenario, condition: str, kb: KnowledgeStore, model: ModelCli
             i, turn.mechanic, reply.type, reply.tier, reply.message, check(reply, expect) if expect else [], expect is not None,
             round(sum(c.latency_s for c in calls), 2), round(sum(c.cost_usd or 0 for c in calls), 6),
             model_errors=[f"{c.purpose}: {c.error}" for c in calls if c.error],
-            calls=[f"{c.purpose}" + (f" (rejected: {c.rejected})" if c.rejected else "") for c in calls]))
+            calls=[f"{c.purpose} {c.latency_s:.1f}s" + (f" (rejected: {c.rejected})" if c.rejected else "") for c in calls]))
     return result
 
 
@@ -226,7 +237,11 @@ def main(argv: list[str] | None = None) -> int:
         kb = KnowledgeStore(conn)
         for scenario in load(args.only):
             for condition in conditions(scenario):
-                results.append(play(scenario, condition, kb, model, statuses=statuses))
+                try:
+                    results.append(play(scenario, condition, kb, model, statuses=statuses))
+                except NotRunnable as exc:
+                    results.append(RunResult(scenario.scenario_id, condition,
+                                             [TurnResult(0, "", "-", "-", "", error=f"NOT RUN: {exc}")]))
                 conn.rollback()  # nothing is written, but never keep a transaction open between scenarios
                 print(report(results[-1:]).splitlines()[0], flush=True)
     print("\n" + report(results))
