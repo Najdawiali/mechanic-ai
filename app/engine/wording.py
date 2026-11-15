@@ -19,7 +19,7 @@ from __future__ import annotations
 import json
 import re
 
-from app.engine.model import ModelClient, ModelError
+from app.engine.model import ModelClient, ModelError, reject
 from app.engine.validator import Allowed, problems, tokens
 from app.lang.script import Language
 
@@ -162,8 +162,14 @@ def translate(model: ModelClient, english: str, language: Language) -> tuple[str
         except ModelError:
             break
         text = out.get("message") if isinstance(out.get("message"), str) else ""
-        if text.strip() and not problems(text, allowed) and _numbers_kept(english, text) and _in_script(text, language):
+        reasons = ["empty"] if not text.strip() else [
+            *([f"no source for {problems(text, allowed)}"] if problems(text, allowed) else []),
+            *(["a number, pin, code or comparison sign of the English text is missing"] if not _numbers_kept(english, text) else []),
+            *([f"not written in {language} script"] if not _in_script(text, language) else []),
+        ]
+        if not reasons:
             return text, True
+        reject(model, "; ".join(reasons))
         user = (f"{english}\n\n(Your previous translation changed, dropped or added a number, pin, code or comparison sign, "
                 f"or was not written in {LANGUAGE_NAME[language]}. Translate again.)")
     lead = fixed("english_follows", language)
@@ -189,6 +195,7 @@ def compose(model: ModelClient, purpose: str, *, system: str, facts: dict, langu
         found = problems(message, allowed)
         if not found:  # an empty message is an answer too ("no record fits"): the caller decides
             return out
+        reject(model, f"no source for {found}")
         user = json.dumps({**facts, "IMPORTANT": f"Your last message contained things with no source: {found}. "
                                                  "Write it again without them."}, ensure_ascii=False, default=str)
     return None

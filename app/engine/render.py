@@ -118,10 +118,10 @@ def circuit_intro(walk: Walk) -> str:
             "I will give you one step at a time; send me each reading.")
 
 
-def verdict_line(step: Step, reading: Reading, verdict: str, *, from_words: bool) -> str:
+def verdict_line(step: Step, reading: Reading, verdict: str, *, from_words: bool, number: int) -> str:
     said = f"I read your reading as {reading_text(reading)}. " if from_words else ""
     word = "normal" if verdict == "normal" else "outside the normal range"
-    return f"{said}Step reading {reading_text(reading)}: {word} ({normal_text(step.normal)})."
+    return f"{said}Step {number} reading: {reading_text(reading)}, {word} ({normal_text(step.normal)})."
 
 
 # -- records given to the model as facts -------------------------------------------------------------

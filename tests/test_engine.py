@@ -130,7 +130,7 @@ def test_a_code_with_a_procedure_starts_the_walk_and_a_bare_reading_needs_no_mod
     second = engine.turn(state, "15 ohm").reply
     assert len(script.model.trace) == model_calls  # judged in code: no model call
     assert second.type == "conclusion" and "VTC oil control solenoid valve A" in second.possible_causes[0].name
-    assert "15 ohm" in second.message and "outside the normal range" in second.message
+    assert "Step 1 reading: 15 ohm, outside the normal range (about 7.14 – 7.9" in second.message
     assert state.walk is None and state.readings[-1].verdict == "abnormal"
 
 
@@ -357,3 +357,6 @@ def test_urdu_in_roman_letters_is_refused_and_a_dropped_sign_too():
     model = ScriptedModel({"translate": lambda *_: next(replies)})
     text, translated = translate(model, "Step 2: pin 2 <-> ground. Normal: < 1 Ω", "ur")
     assert not translated and "< 1 Ω" in text and len(model.trace) == 2
+    assert [t.rejected for t in model.trace] == [
+        "a number, pin, code or comparison sign of the English text is missing; not written in ur script",
+        "a number, pin, code or comparison sign of the English text is missing"]

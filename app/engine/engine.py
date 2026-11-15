@@ -248,7 +248,7 @@ class Engine:
         state.readings.append(ReadingLog(walk=walk.evidence_id, step_id=step.id, value=reading.value, unit=reading.unit,
                                          over_limit=reading.over_limit, verdict=verdict))
         walk.done.append(step.id)
-        said = render.verdict_line(step, reading, verdict, from_words=from_words)
+        said = render.verdict_line(step, reading, verdict, from_words=from_words, number=len(walk.done))
         if outcome.step is not None:
             walk.step_id = outcome.step.id
             return self._show_step(state, english_lead=[said])

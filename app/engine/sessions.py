@@ -103,7 +103,7 @@ class SessionStore:
                    VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)""",
                 (session_id, message_id, row["purpose"], row["model"], row["latency_s"], row["prompt_tokens"],
                  row["completion_tokens"], row["cost_usd"], Jsonb(json.loads(json.dumps(row["request"], default=str))),
-                 row["output"], row["error"]),
+                 row["output"], row["error"] or (f"rejected: {row['rejected']}" if row["rejected"] else None)),
             )
 
     def close(self, session_id: str, state: SessionState, summary: dict, traces: list[TraceEntry]) -> None:

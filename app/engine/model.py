@@ -33,7 +33,14 @@ class TraceEntry:
     cost_usd: float | None = None
     request: dict = field(default_factory=dict)
     output: str = ""
-    error: str | None = None
+    error: str | None = None  # the call failed: no usable answer
+    rejected: str | None = None  # the answer came back but failed a check in code, and was asked again or replaced
+
+
+def reject(model: "ModelClient", reason: str) -> None:
+    """Mark the model's last call as rejected by a check, so traces and the evaluation show retries and why."""
+    if model.trace:
+        model.trace[-1].rejected = reason
 
 
 class ModelClient(Protocol):

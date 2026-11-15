@@ -44,3 +44,12 @@ def test_a_held_out_case_is_hidden_from_every_lookup(kb):
     vehicle = {"make": "BYD", "model": "Qin Plus DM-i", "year": 2024, "powertrain": "PHEV"}
     from app.kb.schemas import Vehicle
     assert kb.find_by_codes(Vehicle(**vehicle), ["P2B5313"]) and not held.find_by_codes(Vehicle(**vehicle), ["P2B5313"])
+
+
+def test_a_rejected_translation_is_listed_with_its_reason(kb):
+    (scenario,) = load("p0010:valve:ar")
+    script = Script(translate=lambda user: {"message": user})  # an English "translation": not in Arabic script
+    first = play(scenario, "standard", kb, script.model, statuses=APPROVED).turns[0]
+    assert first.calls == ["intake", "translate (rejected: not written in ar script)",
+                           "translate (rejected: not written in ar script)"]
+    assert "بالإنجليزية" in first.message  # after two refusals the English text is sent, with a note in Arabic
