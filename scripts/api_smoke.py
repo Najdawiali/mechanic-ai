@@ -20,7 +20,7 @@ import uuid
 import httpx
 
 sys.path.insert(0, str(__import__("pathlib").Path(__file__).resolve().parents[1]))  # this repo's app, whatever is installed
-from app.config import get_settings  # noqa: E402
+from app.config import get_settings
 
 BASE = sys.argv[1] if len(sys.argv) > 1 else "http://127.0.0.1:8000"
 
