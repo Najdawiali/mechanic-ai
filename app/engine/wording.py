@@ -206,5 +206,6 @@ def compose(model: ModelClient, purpose: str, *, system: str, facts: dict, langu
             return out
         reject(model, f"no source for {found}")
         user = json.dumps({**facts, "IMPORTANT": f"Your last message contained things with no source: {found}. "
-                                                 "Write it again without them."}, ensure_ascii=False, default=str)
+                                                 "Write it again with none of them, and with no number, pin, code or value that is not in the facts or in "
+                                                 "the mechanic's words; do not number a list."}, ensure_ascii=False, default=str)
     return None

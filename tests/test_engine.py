@@ -482,3 +482,25 @@ def test_repairs_reported_along_the_way_are_part_of_the_confirmed_fix(kb):
     from app.engine.summary import pending_case
     assert pending_case(state, "s1")["repair_steps"] == ["coolant temperature sensor connector re-seated",
                                                          "window regulator basic setting"]
+
+
+# -- faults found in the fourth full real-model run (2026-11-16, 41 of 42) ---------------------------------
+def test_a_case_with_no_code_is_not_offered_by_meaning_for_a_real_code():
+    from types import SimpleNamespace
+
+    from app.engine.engine import other_codes
+    no_code = SimpleNamespace(fault_codes=[SimpleNamespace(code=None)])  # the reverse-polarity case
+    assert other_codes(no_code, ["PCS_A027_SCHG"])  # a real alert: nothing ties that case to it
+    assert other_codes(no_code, ["P0420"])
+    assert not other_codes(no_code, ["VIN mismatch"])  # a wording, not a code: meaning decides
+    assert not other_codes(no_code, [])  # no code reported (the A/C air shutter case)
+    same = SimpleNamespace(fault_codes=[SimpleNamespace(code="PCS_A027")])
+    assert not other_codes(same, ["PCS_A027_SCHG"])
+
+
+def test_general_guidance_never_repeats_the_header_the_code_puts_in_front(kb):
+    from app.engine.wording import fixed
+    header = fixed("general_header", "en", codes="P0341")
+    script = Script(general=[{"message": f"{header}\nStart with the battery and the fuses. What do you find?"}])
+    reply = Engine(kb, script.model).turn(session(), "2025 Integra 1.5 turbo, code P0341.").reply
+    assert reply.message.count(header) == 1 and "Start with the battery" in reply.message

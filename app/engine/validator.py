@@ -34,7 +34,8 @@ def _clean(token: str) -> str:
     return token.strip(".-/_").upper()
 
 
-_ENUMERATOR = re.compile(r"(?m)^\s*[-*•]?\s*\(?\d{1,2}[.)\-:]\s+")  # "1. ", "2) ", "(3) " at the start of a line
+# A list number at the start of a line, plain or in markdown: "1. ", "2) ", "(3) ", "**4.** ", "### 5. ", "- 6: "
+_ENUMERATOR = re.compile(r"(?m)^\s*(?:[-*•#>]+\s*)?(?:\*\*|__)?\(?\d{1,2}[.)\-:](?:\*\*|__)?\s+")
 
 
 def tokens(text: str) -> list[str]:

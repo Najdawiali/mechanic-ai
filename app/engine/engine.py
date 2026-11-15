@@ -75,13 +75,19 @@ _TEMP = {"TEMP": "TEMPERATURE", "TEMPS": "TEMPERATURE"}
 
 
 def other_codes(record, codes: list[str]) -> bool:
-    """The record carries fault codes and none of them is one of the mechanic's: a different fault.
-    "Be strict and don't mix codes with each other" (Ali). Third full run: found by meaning, the BMS water
-    case was offered for PCS_A027, the PCS pump case for VCFRONT_a490, a reverse-polarity case for BMS_A123."""
+    """Found by meaning, the record is about a different fault than the mechanic's codes:
+    - it carries fault codes and none of them is one of the mechanic's; or
+    - it carries no fault code at all, while the mechanic reported a real one (a pattern code, not a wording such as
+      "VIN mismatch"): nothing ties that record to this code.
+    "Be strict and don't mix codes with each other" (Ali). Third full run: the BMS water case was offered for PCS_A027,
+    the PCS pump case for VCFRONT_a490, a reverse-polarity case for BMS_A123; fourth run: the reverse-polarity case,
+    which has no code, was offered for PCS_A027_SCHG."""
     if not codes:
         return False
     own = [c for c in (record.fault_codes if isinstance(record, ExpertNote) else [f.code for f in record.fault_codes]) if c]
-    return bool(own) and not ({code_stem(c) for c in own} & {code_stem(c) for c in codes})
+    if not own:
+        return any(codes_in(c) for c in codes)
+    return not ({code_stem(c) for c in own} & {code_stem(c) for c in codes})
 
 
 @dataclass
@@ -691,7 +697,9 @@ cases (earlier repairs, each on a named car) and expert notes (workshop experien
     GENERAL_SYSTEM = """There is no verified data for this car and this question in the workshop's knowledge base.
 Give the general approach a skilled auto electrician would take for what the mechanic describes: what the fault or
 code usually means and which checks to do first, in order. Never give a pin number, wire colour, connector or ground id,
-fuse number, specification or measured value: say these must come from the service information for this car.
+fuse number, specification or measured value (not even a typical one such as a terminating resistance or a voltage):
+say these must come from the service information for this car. Do not number the checks: write them as short
+sentences ("First ..., then ..."). Never write a placeholder code such as P30XX.
 Do not repeat that the information is unverified: the reply already says so. At most 120 words. End with one question."""
 
     def _general(self, state: SessionState, intake: Intake | None, gaps: list[Gap]) -> Reply:
@@ -702,7 +710,8 @@ Do not repeat that the information is unverified: the reply already says so. At 
                  "conversation": [{"mechanic" if t.role == "mechanic" else "assistant": t.english or t.text} for t in state.history]}
         out = compose(self.model, "general", system=self.GENERAL_SYSTEM, facts=facts, language=state.language,
                       allowed=self._base_allowed(state), role=self.roles.general)
-        body = out["message"] if out and out["message"].strip() else fixed("general_fallback", state.language)
+        body = (out["message"] if out else "").replace(header, "").strip()  # the model copies it from earlier replies
+        body = body or fixed("general_fallback", state.language)
         del external  # no outside source is connected yet (app/engine/external.py)
         return self._reply(state, "question", f"{header}\n{body}", tier="general", confidence="low")
 

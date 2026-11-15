@@ -32,3 +32,9 @@ def test_list_numbering_is_layout_and_a_long_code_allows_its_short_form():
 def test_a_model_name_with_or_without_its_dot_is_the_same_name():
     allowed = Allowed.from_texts(["2021 Volkswagen ID.4"])
     assert problems("An earlier repair on an ID4 and an ID.4.", allowed) == []
+
+
+def test_markdown_list_numbers_are_layout_too_but_a_value_inside_a_sentence_is_not():
+    allowed = Allowed.from_texts([])
+    assert problems("**1.** Check the fuse.\n### 2. Check the ground.\n- 3: Check the connector.\n  4) Read the codes.", allowed) == []
+    assert problems("It should read less than 1. Then check the ground.", allowed) == ["1"]

@@ -134,6 +134,7 @@ class TurnResult:
     error: str | None = None
     model_errors: list[str] = field(default_factory=list)  # failed model calls: the engine fell back
     calls: list[str] = field(default_factory=list)  # the model calls of the turn, in order, with any rejection
+    rejected_output: list[str] = field(default_factory=list)  # what the model wrote in each rejected call (JSON only)
 
 
 @dataclass
@@ -188,7 +189,8 @@ def play(scenario: Scenario, condition: str, kb: KnowledgeStore, model: ModelCli
             i, turn.mechanic, reply.type, reply.tier, reply.message, check(reply, expect) if expect else [], expect is not None,
             round(sum(c.latency_s for c in calls), 2), round(sum(c.cost_usd or 0 for c in calls), 6),
             model_errors=[f"{c.purpose}: {c.error}" for c in calls if c.error],
-            calls=[f"{c.purpose} {c.latency_s:.1f}s" + (f" (rejected: {c.rejected})" if c.rejected else "") for c in calls]))
+            calls=[f"{c.purpose} {c.latency_s:.1f}s" + (f" (rejected: {c.rejected})" if c.rejected else "") for c in calls],
+            rejected_output=[c.output for c in calls if c.rejected]))
     return result
 
 
