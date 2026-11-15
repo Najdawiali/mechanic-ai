@@ -6,6 +6,7 @@
   DELETE /ai/sessions/{id}            remove the session's data (privacy)
   GET    /ai/sessions/{id}/trace      the model calls of a session, for "report a problem"
   POST   /ai/cases                    a case the platform's admin approved -> into the knowledge base
+  POST   /ai/ingest                   a technical file the platform put in the shared storage -> read in the background
 
 Service to service: the backend sends "Authorization: Bearer <AI_SERVICE_KEY>". The mechanic's
 own sign-in stays with the platform (the AI part does not do authentication of users).
@@ -107,6 +108,14 @@ class TurnIn(_In):
     attachments: list[AttachmentIn] = Field(default_factory=list, max_length=4)
 
 
+class IngestIn(_In):
+    storage_key: str = Field(min_length=1, max_length=500)  # where the platform put the file in the shared bucket
+    kind: Literal["licensed_procedure", "licensed_diagram", "client_case_file", "expert_transcript"]
+    original_name: str | None = None
+    vehicle: dict | None = None  # what the uploader declared (make, model, year, engine); the file's own header is checked against it
+    again: bool = False  # read it again even if unchanged (an extractor was improved)
+
+
 class ApprovedCase(_In):
     case: dict
     reviewer: str = Field(min_length=1, max_length=120)
@@ -205,6 +214,27 @@ def approved_case(body: ApprovedCase, conn: psycopg.Connection = Depends(get_con
         conn.rollback()
         log.warning("the approved case is not embedded yet: %s", exc)
     return {"record_id": saved.record_id, "record_key": case.case_id, "status": "approved"}
+
+
+def get_storage():
+    from app.storage import get_store
+
+    return get_store()
+
+
+@router.post("/ingest", dependencies=[Depends(service)], status_code=202)
+def ingest(body: IngestIn, conn: psycopg.Connection = Depends(get_conn), storage=Depends(get_storage)) -> dict:
+    """Queue a file for the background worker. Records made from it are drafts until reviewed."""
+    from app.ingest.jobs import register_file
+
+    try:
+        done = register_file(conn, storage, body.storage_key, original_name=body.original_name, kind=body.kind,
+                             declared=body.vehicle, again=body.again)
+    except FileNotFoundError as exc:
+        raise HTTPException(404, str(exc)) from exc
+    except ValueError as exc:
+        raise HTTPException(413, str(exc)) from exc
+    return {"file_id": done.file_id, "job_id": done.job_id, "action": done.action}
 
 
 def _b64(data: bytes) -> str:  # used by tests and scripts that build attachments

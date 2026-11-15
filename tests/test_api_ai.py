@@ -103,3 +103,14 @@ def test_an_unknown_session_and_an_empty_message_are_refused(client):
     assert client.post("/ai/sessions/none/turns", json={"message_id": "m", "text": "hi"}, headers=KEY).status_code == 404
     open_session(client, "s4")
     assert client.post("/ai/sessions/s4/turns", json={"message_id": "m", "text": " "}, headers=KEY).status_code == 422
+
+
+def test_a_file_in_the_shared_storage_is_queued_once_and_a_missing_one_is_refused(client, storage):
+    app.dependency_overrides[ai.get_storage] = lambda: storage
+    storage.put("uploads/acura/integra/2025/abs.pdf", b"%PDF-1.7 test", content_type="application/pdf")
+    body = {"storage_key": "uploads/acura/integra/2025/abs.pdf", "kind": "licensed_diagram",
+            "vehicle": {"make": "Acura", "model": "Integra", "year": 2025}}
+    first = client.post("/ai/ingest", json=body, headers=KEY)
+    assert first.status_code == 202 and first.json()["action"] == "created" and first.json()["job_id"]
+    assert client.post("/ai/ingest", json=body, headers=KEY).json()["action"] == "unchanged"
+    assert client.post("/ai/ingest", json=body | {"storage_key": "uploads/none.pdf"}, headers=KEY).status_code == 404
