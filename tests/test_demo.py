@@ -2,10 +2,8 @@
 
 import pytest
 
-from tests.test_api_ai import client, script  # noqa: F401  the same app, database and scripted model
-
 from app.demo import router as demo_router
-
+from tests.test_api_ai import client, script  # noqa: F401  the same app, database and scripted model
 
 
 @pytest.fixture
