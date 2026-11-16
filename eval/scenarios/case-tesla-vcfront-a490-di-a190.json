@@ -59,7 +59,7 @@
       }
     }
   ],
-  "related_case_id": null,
+  "related_case_id": "case:tesla-models-3-y-s-x-vcfront-a490-di-a190",
   "related_procedure_id": null,
   "expected": {
     "case_in_kb": {

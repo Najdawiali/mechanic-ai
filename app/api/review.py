@@ -10,7 +10,6 @@ approve); the password is REVIEW_PASSWORD. Without that setting the screen does 
 from __future__ import annotations
 
 import html
-import json
 import re
 import secrets
 from collections.abc import Iterator
@@ -243,7 +242,7 @@ def show_record(record_id: int, who: str = Depends(reviewer), conn: psycopg.Conn
 
     decided = f" by {e(row['reviewer'])} on {e(row['reviewed_on'])}" if row["reviewer"] else ""
     buttons = "" if row["status"] == "approved" else (
-        f"<button class='ok' onclick='decide(\"approve\")'>Approve</button><button onclick='decide(\"reject\")'>Reject</button>")
+        "<button class='ok' onclick='decide(\"approve\")'>Approve</button><button onclick='decide(\"reject\")'>Reject</button>")
     script = f"""<script>
 async function decide(what) {{
   const failed = {failed};

@@ -104,6 +104,35 @@ def parse_reading(text: str) -> Reading | None:
     return Reading(value=float(m.group(1)), unit=(m.group(2) or None))
 
 
+_ANY_NUMBER = re.compile(r"(?<![\w.])-?\d+(?:\.\d+)?(?![\w.])|\d")
+_NUMBER_THEN_WORD = re.compile(r"(?<![\w.])(-?\d+(?:\.\d+)?)\s*([^\d\s.,،؛;:!?()]+)")
+_OL_WORD = re.compile(r"(?<!\w)OL(?!\w)")
+
+
+def reading_in_sentence(text: str) -> Reading | None:
+    """The reading in a sentence such as "طلعت القراءة ١٥ أوم" or "it reads 0.4 ohm now".
+
+    Taken only when it cannot be misread: the message holds exactly one number, and a known unit
+    follows it ("15 ohm"); or it holds no number and says OL in capitals. Anything else (two numbers,
+    a number with no unit, a unit nobody uses) is left to the intake model, whose value must then be
+    written in the message.
+    """
+    text = normalise_digits(text)
+    numbers = _ANY_NUMBER.findall(text)
+    if not numbers:
+        return Reading(over_limit=True) if _OL_WORD.search(text) else None
+    if len(numbers) != 1:
+        return None
+    m = _NUMBER_THEN_WORD.search(text)
+    if not m:
+        return None
+    try:
+        _unit(m.group(2))
+    except ReadingError:
+        return None
+    return Reading(value=float(m.group(1)), unit=m.group(2))
+
+
 def compare(reading: Reading, normal: NormalRange) -> Verdict:
     quantity, factor = _unit(normal.unit)
     if reading.over_limit:

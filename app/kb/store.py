@@ -23,7 +23,7 @@ from app.kb import index
 from app.kb.embedder import as_pgvector
 from app.kb.index import KbRecord
 from app.kb.keys import code_stem, norm_key
-from app.kb.schemas import Case, ExpertNote, Procedure, Review, Vehicle
+from app.kb.schemas import Procedure, Review, Vehicle
 
 ExtractedBy = Literal["code", "model", "hand"]
 Status = Literal["draft", "approved", "rejected"]
@@ -330,6 +330,52 @@ class KnowledgeStore:
         ).fetchall()
         return [PinHit(row["record_id"], row["record_key"], row["title"], row["verdict"], row["component"], row["pin"],
                        row["wire_colour"], row["page"], row["fuse"], row["routes"], row["version"]) for row in rows]
+
+    def components(self, vehicle: Vehicle, *, statuses: tuple[Status, ...] = APPROVED) -> list[str]:
+        """The component names on this exact car's wiring diagrams, as printed, each once.
+
+        The assistant offers these to the model as a closed list, so a component the mechanic names
+        in his own words is matched to a name that exists; the pins are then looked up in SQL.
+        """
+        if vehicle.year is None:
+            return []
+        params = _vehicle_params(vehicle) | {"statuses": list(statuses)}
+        rows = self.conn.execute(
+            f"""
+            SELECT DISTINCT ON (p.component_key) p.component
+            FROM kb.diagram_pin p
+            JOIN kb.record r ON r.id = p.record_id
+            WHERE r.record_type = 'diagram'
+              AND EXISTS (
+                  SELECT 1 FROM kb.record_scope s
+                  WHERE s.record_id = r.id AND s.make_key = %(make)s::text AND s.model_key = %(model)s::text
+                    AND s.year_from = %(year)s::int AND s.year_to = %(year)s::int
+                    AND (s.engine_key IS NULL OR %(engine)s::text IS NULL OR s.engine_key = %(engine)s::text))
+              AND {_IS_SERVED}
+            ORDER BY p.component_key
+            """,
+            params,
+        ).fetchall()
+        return [row["component"] for row in rows]
+
+    def procedure_years(self, vehicle: Vehicle, code: str, *, statuses: tuple[Status, ...] = APPROVED) -> list[int]:
+        """The model years of this make and model that have a procedure for this code. Used to ask the
+        mechanic for his car's year, never to pick one for him."""
+        params = _vehicle_params(vehicle) | {"stem": code_stem(code), "statuses": list(statuses)}
+        rows = self.conn.execute(
+            f"""
+            SELECT DISTINCT s.year_from AS year
+            FROM kb.record r
+            JOIN kb.record_scope s ON s.record_id = r.id
+            JOIN kb.record_code c ON c.record_id = r.id
+            WHERE r.record_type = 'procedure' AND c.stem_key = %(stem)s
+              AND s.make_key = %(make)s::text AND s.model_key = %(model)s::text AND s.year_from = s.year_to
+              AND {_IS_SERVED}
+            ORDER BY 1
+            """,
+            params,
+        ).fetchall()
+        return [row["year"] for row in rows if row["year"] is not None]
 
     # -- search by words ---------------------------------------------------------
     def search_text(

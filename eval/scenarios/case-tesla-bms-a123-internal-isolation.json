@@ -91,7 +91,7 @@
       }
     }
   ],
-  "related_case_id": null,
+  "related_case_id": "case:tesla-model-3-model-y-bms-a123-internal-isolation",
   "related_procedure_id": null,
   "expected": {
     "case_in_kb": {

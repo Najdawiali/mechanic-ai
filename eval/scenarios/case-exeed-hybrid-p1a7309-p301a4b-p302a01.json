@@ -85,7 +85,7 @@
       }
     }
   ],
-  "related_case_id": null,
+  "related_case_id": "case:exeed-chinese-hybrid-p1a7309-p301a4b-p302a01-inverter-short",
   "related_procedure_id": null,
   "expected": {
     "case_in_kb": {

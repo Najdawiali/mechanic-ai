@@ -75,3 +75,24 @@ def test_sentences_are_left_to_the_intake_model():
 def test_digits_are_normalised_one_way_only():
     assert normalise_digits("\u0661\u0665 and \u06f1\u06f5") == "15 and 15"
     assert normalise_digits("P0010 pin 64") == "P0010 pin 64"
+
+
+@pytest.mark.parametrize(("text", "value", "unit"), [
+    ("طلعت القراءة ١٥ أوم", 15.0, "أوم"), ("ریڈنگ ۱۵ اوہم آئی ہے۔", 15.0, "اوہم"), ("it reads 0.4 ohm now", 0.4, "ohm"),
+    ("measured 12.6 V at the battery", 12.6, "V"),
+])
+def test_one_number_with_its_unit_in_a_sentence_is_a_reading(text, value, unit):
+    from app.engine.readings import reading_in_sentence
+    assert reading_in_sentence(text) == Reading(value=value, unit=unit)
+
+
+@pytest.mark.parametrize("text", ["between pin 1 and 2 I get 15 ohm", "it was 15 then 20 ohm", "15 at the connector",
+                                  "replaced the fuse", "the code is P0010"])
+def test_a_sentence_that_could_be_misread_is_left_to_the_model(text):
+    from app.engine.readings import reading_in_sentence
+    assert reading_in_sentence(text) is None
+
+
+def test_ol_in_capitals_in_a_sentence_is_over_limit():
+    from app.engine.readings import reading_in_sentence
+    assert reading_in_sentence("the meter shows OL") == Reading(over_limit=True)

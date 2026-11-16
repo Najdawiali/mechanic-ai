@@ -57,7 +57,7 @@
       }
     }
   ],
-  "related_case_id": null,
+  "related_case_id": "case:volkswagen-id4-2021-2024-c119f00",
   "related_procedure_id": null,
   "expected": {
     "case_in_kb": {

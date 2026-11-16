@@ -26,6 +26,15 @@ class Settings(BaseSettings):
     search_min_similarity: float = 0.5
 
     llm_timeout_s: float = 90.0
+    # Which model role each engine call uses ("reasoning" = the larger model, "fast" = the smaller one).
+    # Chosen by the evaluation: run eval/run.py with a different value and compare passes and time.
+    # Measured 2026-11-16 (case scenarios, 24 runs): the fast model writes hints in 2.5-7 s against 15-25 s,
+    # with the same content on every case-in-KB run read; off-topic cases are kept out in code, not by the model.
+    llm_role_advise: str = "fast"
+    llm_role_general: str = "fast"
+    llm_role_summary: str = "reasoning"
+    llm_role_translate: str = "fast"
+    llm_role_translate_ur: str = "fast"
 
     database_url: str = "postgresql://mechanic:mechanic@localhost:5432/mechanic_ai"
 
@@ -41,6 +50,18 @@ class Settings(BaseSettings):
     # The review screen (/review). It is switched off until a password is set here. A reviewer signs
     # in with their own name as the user name and this password; the name is recorded on what they approve.
     review_password: SecretStr | None = None
+
+    # The assistant's API (/ai). The platform's backend sends this key as "Authorization: Bearer <key>".
+    # Unset = the API refuses every call.
+    ai_service_key: SecretStr | None = None
+    # Serve draft records as well as approved ones. For development and evaluation only: in production
+    # the assistant serves approved records only.
+    kb_serve_drafts: bool = False
+    # The emergency number in the safety texts (Jordan: 911, the unified number).
+    emergency_number: str = "911"
+    # An outside source of diagnostic data (app/engine/external.py). "off" until a provider is licensed.
+    external_source: str = "off"
+    db_pool_max: int = 10
 
 
 @lru_cache

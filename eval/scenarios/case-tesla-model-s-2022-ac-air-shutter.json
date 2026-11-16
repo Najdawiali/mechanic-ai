@@ -78,7 +78,7 @@
       }
     }
   ],
-  "related_case_id": null,
+  "related_case_id": "case:tesla-model-s-x-2022plus-model-3-y-jun2021plus-ac-air-shutter-flap",
   "related_procedure_id": null,
   "expected": {
     "case_in_kb": {

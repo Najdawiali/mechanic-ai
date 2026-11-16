@@ -58,7 +58,7 @@
       }
     }
   ],
-  "related_case_id": null,
+  "related_case_id": "case:tesla-model-x-2020-tas-a211-ride-height-calibration",
   "related_procedure_id": null,
   "expected": {
     "case_in_kb": {
