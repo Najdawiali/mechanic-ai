@@ -399,7 +399,7 @@ def test_a_case_hint_always_names_its_codes(kb):
     script = Script(advise=[{"use": ["case:byd-qin-plus-dmi-2024:p2b5313-p2b5411"],
                              "message": "An earlier repair on a 2024 BYD Qin Plus DM-i: check the hybrid coolant pump first. Did you?"}])
     reply = Engine(kb, script.model).turn(session(BYD), "BYD Qin Plus 2024 with P2B5313 and P2B5411").reply
-    assert reply.message.startswith("P2B5313, P2B5411:\n")
+    assert reply.message.startswith("Hello, I'm glad to help.\nP2B5313, P2B5411:\n")  # the first reply greets, once
 
 
 def test_a_hint_about_high_voltage_work_never_mentions_solvents(kb, conn):
@@ -544,3 +544,26 @@ def test_a_partly_copied_header_is_removed_too():
     copied = "P2B5313, P2B5411: لا توجد بيانات موثقة لهذه السيارة في قاعدة البيانات. افحص الوصلات أولاً."
     assert strip_header(copied, header, codes) == "افحص الوصلات أولاً."
     assert strip_header("Less than 1. Then check it.", fixed("general_header", "en", codes="P0341"), "P0341") == "Less than 1. Then check it."
+
+
+# -- Ali's review of the demo (2026-11-17): one question at a time; polite and professional ------------------
+def test_a_model_reply_with_two_questions_is_asked_again_and_then_keeps_only_the_last(kb):
+    two = "Start with the fuses. Did you check the fuses? Have you checked the ground?"
+    script = Script(general=[{"message": two}, {"message": two}])
+    reply = Engine(kb, script.model).turn(session(), "2025 Integra 1.5 turbo, code P0341.").reply
+    assert reply.message.count("?") == 1 and reply.message.rstrip().endswith("Have you checked the ground?")
+    assert "asks 2 questions" in script.calls("general")[0].rejected
+
+
+def test_the_first_reply_greets_once_and_an_emergency_does_not(kb):
+    engine, state = Engine(kb, Script().model), session()
+    first = engine.turn(state, "2025 Acura Integra 1.5L turbo, fault code P0010.").reply
+    second = engine.turn(state, "7.5 ohm").reply
+    assert first.message.startswith("Hello, I'm glad to help.") and "Hello" not in second.message
+    alarm = Engine(kb, Script().model).turn(session(), "There is smoke coming from the battery").reply
+    assert alarm.type == "emergency" and "Hello" not in alarm.message
+
+
+def test_every_fixed_text_asks_at_most_one_question():
+    from app.engine.wording import FIXED
+    assert all(text.count("?") + text.count("؟") <= 1 for texts in FIXED.values() for text in texts.values())

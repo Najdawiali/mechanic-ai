@@ -219,6 +219,9 @@ class Engine:
 
     # -- small helpers ----------------------------------------------------------------------------------
     def _done(self, state: SessionState, reply: Reply, gaps: list[Gap]) -> TurnResult:
+        if reply.type != "emergency" and not any(t.role == "assistant" for t in state.history):
+            # the first reply of a session greets the mechanic, once; an emergency goes straight to what to do
+            reply = reply.model_copy(update={"message": f"{fixed('greeting', state.language)}\n{reply.message}"})
         state.remember("assistant", reply.message)
         state.cite(*(e.id for e in reply.evidence))
         if reply.tier in ("general", "none") and reply.type != "emergency" and self._said_anything(state):
@@ -679,7 +682,7 @@ cases (earlier repairs, each on a named car) and expert notes (workshop experien
    - If a record is marked "high-voltage work": do not describe how to open the battery or work inside it, and never
      mention cleaning agents, solvents or chemicals. Say that this work must be done by a person qualified for
      high-voltage work, following the manufacturer's procedure.
-   - End with one question. Keep it short: at most six sentences."""
+   - End with exactly one question. Keep it short: at most six sentences."""
 
     def _advise(self, state: SessionState, intake: Intake | None, hits: list[Hit], gaps: list[Gap], *, gated: bool) -> Reply:
         hits = hits[:MAX_HINTS]
@@ -701,7 +704,8 @@ cases (earlier repairs, each on a named car) and expert notes (workshop experien
         any_hv = any(r["high-voltage work"] for r in records.values())
         out = compose(self.model, "advise", system=self.ADVISE_SYSTEM, facts=facts, language=state.language, allowed=allowed,
                       schema_extra={"use": {"type": "array", "items": {"type": "string", "enum": list(records)}}},
-                      forbidden=_SOLVENTS if any_hv else None, role=self.roles.advise)
+                      forbidden=_SOLVENTS if any_hv else None, role=self.roles.advise,
+                      single_question=True)
         if out is None:
             if gated:
                 return self._general(state, intake, gaps)
@@ -733,7 +737,7 @@ fuse number, specification or measured value (not even a typical one such as a t
 say these must come from the service information for this car. Do not number the checks: write them as short
 sentences ("First ..., then ..."). Never write a placeholder code such as P30XX.
 Do not repeat that the information is unverified: the reply already says so. Keep it short: at most six sentences.
-End with one question."""
+End with exactly one question."""
 
     def _general(self, state: SessionState, intake: Intake | None, gaps: list[Gap]) -> Reply:
         codes = ", ".join(state.codes)
@@ -742,7 +746,7 @@ End with one question."""
         facts = {"vehicle": render.vehicle_text(state.vehicle), "fault codes": state.codes,
                  "conversation": [{"mechanic" if t.role == "mechanic" else "assistant": t.english or t.text} for t in state.history]}
         out = compose(self.model, "general", system=self.GENERAL_SYSTEM, facts=facts, language=state.language,
-                      allowed=self._base_allowed(state), role=self.roles.general)
+                      allowed=self._base_allowed(state), role=self.roles.general, single_question=True)
         body = strip_header(out["message"] if out else "", header, codes) or fixed("general_fallback", state.language)
         del external  # no outside source is connected yet (app/engine/external.py)
         return self._reply(state, "question", f"{header}\n{body}", tier="general", confidence="low")
