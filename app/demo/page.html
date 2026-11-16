@@ -1,0 +1,316 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Mechanic AI · demo</title>
+<!-- TEMPORARY demo page (app/demo). It calls the AI service only through /demo/api -> /ai, the platform's API. -->
+<style>
+  :root { --bg:#f6f7f9; --card:#fff; --ink:#1d2330; --muted:#667085; --line:#e4e7ec; --accent:#1f6feb;
+          --ok:#137333; --okbg:#e6f4ea; --warn:#8a5a00; --warnbg:#fff4d6; --bad:#b42318; --badbg:#fde8e7; --grey:#475467; --greybg:#eef0f3; }
+  * { box-sizing:border-box; }
+  body { margin:0; font:15px/1.5 system-ui, -apple-system, "Segoe UI", Tahoma, Arial, sans-serif; color:var(--ink); background:var(--bg); }
+  header { padding:12px 20px; background:#101828; color:#fff; display:flex; gap:16px; align-items:baseline; }
+  header h1 { font-size:17px; margin:0; }
+  header span { color:#98a2b3; font-size:13px; }
+  .wrap { display:grid; grid-template-columns:320px 1fr; gap:16px; padding:16px; height:calc(100vh - 50px); }
+  aside, main { background:var(--card); border:1px solid var(--line); border-radius:10px; }
+  aside { padding:14px; overflow:auto; }
+  aside h2 { font-size:13px; text-transform:uppercase; letter-spacing:.04em; color:var(--muted); margin:14px 0 6px; }
+  aside h2:first-child { margin-top:0; }
+  label { display:block; font-size:13px; color:var(--muted); margin:6px 0 2px; }
+  input, select, textarea { width:100%; font:inherit; padding:7px 9px; border:1px solid var(--line); border-radius:7px; background:#fff; }
+  .row { display:grid; grid-template-columns:1fr 1fr; gap:8px; }
+  button { font:inherit; padding:7px 12px; border-radius:7px; border:1px solid var(--line); background:#fff; cursor:pointer; }
+  button.primary { background:var(--accent); border-color:var(--accent); color:#fff; }
+  button:disabled { opacity:.5; cursor:default; }
+  .buttons { display:flex; gap:8px; flex-wrap:wrap; margin-top:10px; }
+  .script button { display:block; width:100%; text-align:start; margin:4px 0; font-size:13px; unicode-bidi:plaintext; }
+  .script button.used { color:var(--muted); background:var(--greybg); }
+  main { display:flex; flex-direction:column; min-height:0; }
+  #chat { flex:1; overflow:auto; padding:16px; }
+  .msg { max-width:860px; margin:0 0 14px; }
+  .me { margin-inline-start:auto; background:#e8f0fe; border:1px solid #c6dafc; border-radius:10px; padding:8px 12px; width:fit-content; max-width:70%; }
+  .ai { background:#fff; border:1px solid var(--line); border-radius:10px; padding:10px 14px; }
+  .line { min-height:1.2em; unicode-bidi:plaintext; white-space:pre-wrap; }
+  .badges { display:flex; gap:6px; flex-wrap:wrap; margin-bottom:6px; font-size:12px; }
+  .badge { padding:1px 8px; border-radius:20px; background:var(--greybg); color:var(--grey); }
+  .verified { background:var(--okbg); color:var(--ok); } .general { background:var(--warnbg); color:var(--warn); }
+  .emergency { background:var(--badbg); color:var(--bad); font-weight:600; } .draft { background:var(--warnbg); color:var(--warn); }
+  .box { margin-top:8px; border-top:1px dashed var(--line); padding-top:8px; font-size:13px; }
+  .box b { color:var(--muted); font-weight:600; }
+  table { border-collapse:collapse; margin-top:4px; font-size:13px; }
+  td, th { border:1px solid var(--line); padding:3px 8px; text-align:start; }
+  details { margin:3px 0; } summary { cursor:pointer; }
+  pre { white-space:pre-wrap; background:var(--bg); padding:8px; border-radius:6px; font-size:12px; margin:4px 0; unicode-bidi:plaintext; }
+  img.diagram { max-width:100%; border:1px solid var(--line); border-radius:6px; margin-top:6px; }
+  .options button { margin:4px 6px 0 0; }
+  footer { border-top:1px solid var(--line); padding:10px; display:grid; grid-template-columns:1fr auto auto; gap:8px; align-items:end; }
+  footer textarea { min-height:44px; max-height:160px; resize:vertical; unicode-bidi:plaintext; }
+  .muted { color:var(--muted); font-size:13px; }
+  .file { font-size:12px; color:var(--muted); }
+  .error { color:var(--bad); }
+</style>
+</head>
+<body>
+<header><h1>Mechanic AI · demo</h1><span>A test page for the AI service. Not the platform's app.</span></header>
+<div class="wrap">
+  <aside>
+    <h2>Ready-made conversation</h2>
+    <select id="preset"><option value="">Free conversation</option></select>
+    <div class="muted" id="presetNote"></div>
+
+    <h2>Vehicle</h2>
+    <div class="row">
+      <div><label>Make</label><input id="make" value="Acura"></div>
+      <div><label>Model</label><input id="model" value="Integra"></div>
+    </div>
+    <div class="row">
+      <div><label>Year</label><input id="year" value="2025" inputmode="numeric"></div>
+      <div><label>Engine code</label><input id="engine" value="L15CA"></div>
+    </div>
+    <div class="row">
+      <div><label>Powertrain</label>
+        <select id="powertrain"><option value="">not given</option><option>ICE</option><option>Hybrid</option><option>PHEV</option><option>EV</option></select></div>
+      <div><label>Language</label>
+        <select id="language"><option value="ar">العربية</option><option value="en">English</option><option value="ur">اردو</option></select></div>
+    </div>
+    <div class="buttons">
+      <button class="primary" id="start">Start session</button>
+      <button id="close" disabled>Close session</button>
+      <button id="trace" disabled>Model calls</button>
+    </div>
+    <div class="muted" id="sessionInfo" style="margin-top:6px"></div>
+
+    <h2>Messages of this conversation</h2>
+    <div class="script" id="script"><div class="muted">Pick a ready-made conversation, or type your own.</div></div>
+  </aside>
+
+  <main>
+    <div id="chat"><div class="muted">Start a session, then send a message: a fault code, symptoms, a reading, or a scan-report photo.</div></div>
+    <footer>
+      <div>
+        <textarea id="text" placeholder="Message to the assistant" dir="auto" disabled></textarea>
+        <div class="file" id="fileName"></div>
+      </div>
+      <label class="file" style="margin:0"><input type="file" id="file" accept="image/*,application/pdf" style="display:none" disabled>
+        <button type="button" id="attach" disabled>Attach</button></label>
+      <button class="primary" id="send" disabled>Send</button>
+    </footer>
+  </main>
+</div>
+
+<script>
+"use strict";
+const $ = (id) => document.getElementById(id);
+const el = (tag, cls, text) => { const n = document.createElement(tag); if (cls) n.className = cls; if (text != null) n.textContent = text; return n; };
+let session = null, scenarios = [], attachments = [], busy = false;
+
+async function call(method, path, body) {
+  const res = await fetch(`/demo/api/${path}`, { method, headers: { "Content-Type": "application/json" },
+                                                 body: body ? JSON.stringify(body) : undefined });
+  const text = await res.text();
+  let data = null; try { data = text ? JSON.parse(text) : null; } catch { data = text; }
+  if (!res.ok) throw new Error(`${res.status}: ${typeof data === "string" ? data : JSON.stringify(data && data.detail || data)}`);
+  return data;
+}
+
+function lines(parent, text) { for (const line of String(text || "").split("\n")) parent.append(el("div", "line", line)); }
+function scroll() { const c = $("chat"); c.scrollTop = c.scrollHeight; }
+function add(node) { const c = $("chat"); if (c.firstElementChild && c.firstElementChild.classList.contains("muted")) c.innerHTML = ""; c.append(node); scroll(); }
+
+function showMine(text, files) {
+  const m = el("div", "msg me"); m.dir = "auto"; lines(m, text);
+  for (const f of files) m.append(el("div", "file", `attached: ${f.name}`));
+  add(m);
+}
+
+function showReply(r, seconds) {
+  const m = el("div", "msg ai");
+  const b = el("div", "badges");
+  b.append(el("span", `badge ${r.type === "emergency" ? "emergency" : ""}`, r.type));
+  b.append(el("span", `badge ${r.tier}`, { verified: "verified", general: "general knowledge", none: "no verified data" }[r.tier] || r.tier));
+  if (r.confidence) b.append(el("span", "badge", `confidence: ${r.confidence}`));
+  if ((r.evidence || []).some((e) => e.status === "draft")) b.append(el("span", "badge draft", "uses draft records"));
+  b.append(el("span", "badge", `${seconds.toFixed(1)} s`));
+  m.append(b);
+  const body = el("div"); body.dir = "auto"; lines(body, r.message); m.append(body);
+
+  if (r.question && r.question.options && r.question.options.length) {
+    const o = el("div", "box options"); o.append(el("b", null, "Choose: "));
+    for (const opt of r.question.options) { const btn = el("button", null, opt); btn.onclick = () => send(opt); o.append(btn); }
+    m.append(o);
+  }
+  if (r.step) {
+    const s = el("div", "box"); const st = r.step;
+    s.append(el("b", null, `Step ${st.number}${st.of ? " of " + st.of : ""} (${st.basis === "manufacturer" ? "manufacturer's procedure" : "general electrical practice"})`));
+    if (st.test_points && st.test_points.length) {
+      const t = el("table"); const h = el("tr"); for (const x of ["", "connector / part", "pin", "terminal"]) h.append(el("th", null, x)); t.append(h);
+      st.test_points.forEach((p, i) => { const tr = el("tr");
+        for (const x of [i ? "to" : "from", p.ground ? "ground" : (p.connector || p.label || ""), p.ground ? "" : (p.pin || ""), p.terminal_side || ""]) tr.append(el("td", null, x));
+        t.append(tr); });
+      s.append(t);
+    }
+    if (st.normal_text) s.append(el("div", null, `Normal (compared in code): ${st.normal_text}`));
+    if (st.requires_tool) s.append(el("div", null, `Needs: ${st.requires_tool}`));
+    m.append(s);
+  }
+  if (r.report_codes && r.report_codes.length) { const s = el("div", "box"); s.append(el("b", null, "Codes read from the report: ")); s.append(document.createTextNode(r.report_codes.join(", "))); m.append(s); }
+  if (r.possible_causes && r.possible_causes.length) {
+    const s = el("div", "box"); s.append(el("b", null, "Possible causes"));
+    for (const c of r.possible_causes) s.append(el("div", null, `${c.likelihood}: ${c.name}`)); m.append(s);
+  }
+  if (r.warnings && r.warnings.length) {
+    const s = el("div", "box"); s.append(el("b", null, "Warnings"));
+    for (const w of r.warnings) { const d = el("div", "line", `⚠ ${w}`); s.append(d); } m.append(s);
+  }
+  if (r.evidence && r.evidence.length) {
+    const s = el("div", "box"); s.append(el("b", null, "Sources"));
+    for (const e of r.evidence) { const d = el("details"); d.append(el("summary", null, `${e.type}${e.status === "draft" ? " (draft)" : ""}: ${e.title}`));
+      d.append(el("pre", null, e.excerpt)); s.append(d); }
+    m.append(s);
+  }
+  if (r.diagrams && r.diagrams.length) {
+    const s = el("div", "box"); s.append(el("b", null, "Diagram pages"));
+    for (const d of r.diagrams) { s.append(el("div", null, `${d.title} · ${d.page} (${d.id})`));
+      if (d.image_key) { const img = el("img", "diagram"); img.alt = d.title; img.src = `/demo/diagram?key=${encodeURIComponent(d.image_key)}`; s.append(img); } }
+    m.append(s);
+  }
+  add(m);
+}
+
+function showNote(text, cls) { const m = el("div", `msg ai ${cls || ""}`); lines(m, text); add(m); }
+
+function setBusy(on) {
+  busy = on; const open = !!session && !on;
+  for (const id of ["text", "send", "attach", "file", "close"]) $(id).disabled = !open;
+  $("trace").disabled = !session;
+  $("start").disabled = on;
+}
+
+async function start() {
+  const year = parseInt($("year").value, 10);
+  const vehicle = { make: $("make").value.trim(), model: $("model").value.trim(), year: Number.isFinite(year) ? year : null,
+                    engine_code: $("engine").value.trim() || null, powertrain: $("powertrain").value || null };
+  if (!vehicle.make || !vehicle.model) { showNote("Make and model are needed.", "error"); return; }
+  const id = `demo-${crypto.randomUUID().slice(0, 8)}`;
+  setBusy(true);
+  try {
+    await call("POST", "sessions", { session_id: id, vehicle, language: $("language").value });
+    session = id; $("chat").innerHTML = "";
+    $("sessionInfo").textContent = `Session ${id} · ${[vehicle.year, vehicle.make, vehicle.model, vehicle.engine_code].filter(Boolean).join(" ")}`;
+    document.querySelectorAll(".script button").forEach((b) => b.classList.remove("used"));
+    showNote("Session open. Send the first message.", "muted");
+  } catch (e) { showNote(`Could not open the session. ${e.message}`, "error"); }
+  setBusy(false); $("text").focus();
+}
+
+async function send(textOverride) {
+  if (!session || busy) return;
+  const text = (textOverride ?? $("text").value).trim();
+  if (!text && !attachments.length) return;
+  const files = attachments; attachments = []; $("fileName").textContent = ""; $("text").value = "";
+  showMine(text || "(attachment)", files);
+  setBusy(true);
+  const t0 = performance.now();
+  try {
+    const reply = await call("POST", `sessions/${session}/turns`, { message_id: crypto.randomUUID(), text, attachments: files });
+    showReply(reply, (performance.now() - t0) / 1000);
+  } catch (e) { showNote(`The service answered with an error. ${e.message}`, "error"); }
+  setBusy(false); $("text").focus();
+}
+
+async function closeSession() {
+  if (!session) return;
+  setBusy(true);
+  try {
+    const s = await call("POST", `sessions/${session}/close`);
+    const m = el("div", "msg ai"); const b = el("div", "badges"); b.append(el("span", "badge", "session closed: summary for the report")); m.append(b);
+    const body = el("div"); body.dir = "auto"; lines(body, s.summary); m.append(body);
+    const d = el("details"); d.append(el("summary", null, "The session's record (what the platform stores)"));
+    d.append(el("pre", null, JSON.stringify(s.record, null, 2))); m.append(d);
+    const c = el("details"); c.append(el("summary", null, s.pending_case ? "Draft case for the admin to approve" : "No draft case (no confirmed fix)"));
+    if (s.pending_case) c.append(el("pre", null, JSON.stringify(s.pending_case, null, 2))); m.append(c);
+    add(m);
+  } catch (e) { showNote(`Could not close the session. ${e.message}`, "error"); }
+  const closed = session; session = null; setBusy(false);
+  $("trace").disabled = false; $("trace").dataset.session = closed;
+}
+
+async function showTrace() {
+  const id = session || $("trace").dataset.session; if (!id) return;
+  try {
+    const rows = await call("GET", `sessions/${id}/trace`);
+    const m = el("div", "msg ai"); m.append(el("b", null, `Model calls of ${id}`));
+    const t = el("table"); const h = el("tr"); for (const x of ["purpose", "model", "seconds", "cost (USD)", "error"]) h.append(el("th", null, x)); t.append(h);
+    let total = 0;
+    for (const r of rows) { const tr = el("tr"); total += r.cost_usd || 0;
+      for (const x of [r.purpose, r.model, (r.latency_s ?? 0).toFixed(1), (r.cost_usd ?? 0).toFixed(6), r.error || ""]) tr.append(el("td", null, String(x)));
+      t.append(tr); }
+    m.append(t); m.append(el("div", "muted", `${rows.length} calls · total cost $${total.toFixed(5)}`)); add(m);
+  } catch (e) { showNote(`Could not read the calls. ${e.message}`, "error"); }
+}
+
+async function attachFromPath(path) {
+  const res = await fetch(`/demo/asset?path=${encodeURIComponent(path)}`);
+  if (!res.ok) throw new Error(`attachment ${path}: ${res.status}`);
+  const blob = await res.blob(); const name = path.split("/").pop();
+  return { name, content_type: blob.type || "application/octet-stream", data_base64: await toBase64(blob) };
+}
+
+function toBase64(blob) {
+  return new Promise((ok, fail) => { const r = new FileReader(); r.onload = () => ok(String(r.result).split(",")[1]); r.onerror = fail; r.readAsDataURL(blob); });
+}
+
+function fillScript(sc) {
+  const box = $("script"); box.innerHTML = "";
+  if (!sc) { box.append(el("div", "muted", "Pick a ready-made conversation, or type your own.")); return; }
+  sc.turns.forEach((turn, i) => {
+    const b = el("button", null, `${i + 1}. ${turn.text}${turn.attachments.length ? "  [+ attachment]" : ""}`); b.dir = "auto";
+    b.onclick = async () => {
+      if (!session) { showNote("Start the session first.", "error"); return; }
+      try { attachments = await Promise.all(turn.attachments.map(attachFromPath)); } catch (e) { showNote(e.message, "error"); return; }
+      b.classList.add("used"); send(turn.text);
+    };
+    box.append(b);
+  });
+}
+
+async function loadScenarios() {
+  try {
+    scenarios = await (await fetch("/demo/scenarios")).json();
+    const groups = {};
+    for (const s of scenarios) (groups[s.group] ||= []).push(s);
+    for (const [group, list] of Object.entries(groups)) {
+      const og = document.createElement("optgroup"); og.label = group;
+      for (const s of list) { const o = el("option", null, s.id.replace(/^scn:/, "")); o.value = s.id; og.append(o); }
+      $("preset").append(og);
+    }
+  } catch { $("presetNote").textContent = "The ready-made conversations could not be loaded."; }
+}
+
+$("preset").onchange = () => {
+  const sc = scenarios.find((s) => s.id === $("preset").value);
+  if (sc) {
+    const v = sc.vehicle || {};
+    $("make").value = v.make || ""; $("model").value = v.model || ""; $("year").value = v.year || "";
+    $("engine").value = v.engine_code || ""; $("powertrain").value = v.powertrain || ""; $("language").value = sc.language;
+    $("presetNote").textContent = "Car and language filled in. Start the session, then click the messages in order.";
+  } else { $("presetNote").textContent = ""; }
+  fillScript(sc);
+};
+$("start").onclick = start;
+$("send").onclick = () => send();
+$("close").onclick = closeSession;
+$("trace").onclick = showTrace;
+$("attach").onclick = () => $("file").click();
+$("file").onchange = async () => {
+  const f = $("file").files[0]; if (!f) return;
+  attachments = [{ name: f.name, content_type: f.type || "application/octet-stream", data_base64: await toBase64(f) }];
+  $("fileName").textContent = `attached: ${f.name}`; $("file").value = "";
+};
+$("text").addEventListener("keydown", (e) => { if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); send(); } });
+loadScenarios();
+</script>
+</body>
+</html>
