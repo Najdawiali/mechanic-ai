@@ -1,6 +1,6 @@
 """TEMPORARY: the demo page and a thin pass-through to /ai (see app/demo/__init__.py for how to remove it).
 
-  GET  /demo                     the page (HTTP Basic: any user name, password = DEMO_PASSWORD)
+  GET  /demo                     the page (no sign-in: open only to this computer, when DEMO_ENABLED=true)
   GET  /demo/scenarios           the evaluation scenarios, offered as ready-made demo conversations
   GET  /demo/asset?path=...      a scenario's attachment (a scan-report photo)
   GET  /demo/diagram?key=...     a diagram page image sent in a reply
@@ -11,14 +11,11 @@ from __future__ import annotations
 
 import json
 import re
-import secrets
 from pathlib import Path
 
 import httpx
 from fastapi import APIRouter, Depends, HTTPException, Request, Response
 from fastapi.responses import HTMLResponse
-from fastapi.security import HTTPBasic, HTTPBasicCredentials
-from pydantic import SecretStr
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
 from app.config import get_settings
@@ -28,7 +25,7 @@ PAGE = Path(__file__).with_name("page.html")
 SCENARIOS = REPO / "eval" / "scenarios"
 
 router = APIRouter(prefix="/demo", include_in_schema=False)
-_basic = HTTPBasic(auto_error=False)
+LOCAL = {"127.0.0.1", "::1", "localhost"}  # the demo answers only the computer it runs on
 
 # Only these /ai calls can be made from the page: a session's life, nothing that changes the knowledge base.
 _ALLOWED = [("POST", re.compile(r"^sessions$")), ("POST", re.compile(r"^sessions/[\w.:-]{1,120}/(turns|close)$")),
@@ -39,17 +36,14 @@ _ASSET = re.compile(r"^eval/scenarios/assets/[\w.-]+\.(?:png|jpe?g|pdf)$")
 
 class _DemoSettings(BaseSettings):
     model_config = SettingsConfigDict(env_file=".env", env_file_encoding="utf-8", extra="ignore")
-    demo_password: SecretStr | None = None
+    demo_enabled: bool = False
 
 
-def viewer(credentials: HTTPBasicCredentials | None = Depends(_basic)) -> str:
-    password = _DemoSettings().demo_password
-    if password is None:
-        raise HTTPException(404)  # the demo is off: it does not exist
-    given = (credentials.password if credentials else "").encode()
-    if not secrets.compare_digest(given, password.get_secret_value().encode()):
-        raise HTTPException(401, "demo password needed", headers={"WWW-Authenticate": 'Basic realm="demo"'})
-    return credentials.username
+def viewer(request: Request) -> None:
+    """No sign-in (Ali, 2026-11-17): the page is open, but only when DEMO_ENABLED=true and only to this computer.
+    Anyone else, or with the demo off, gets 404: for them it does not exist."""
+    if not _DemoSettings().demo_enabled or (request.client.host if request.client else "") not in LOCAL:
+        raise HTTPException(404)
 
 
 @router.get("", response_class=HTMLResponse, dependencies=[Depends(viewer)])
