@@ -35,13 +35,22 @@ def record(state: SessionState) -> dict:
     }
 
 
+_VERDICT = {"normal": "normal", "abnormal": "outside the normal range"}
+
+
+def checks(readings: list[dict]) -> list[str]:
+    """Each reading as the mechanic saw it in the step replies ("Step 1: 15 ohm, outside the normal range"), so the
+    summary does not show the stored form ("15.0 Ohm", "abnormal"): API test on Ali's machine, 2026-11-16."""
+    return [f"Step {r['step_id']}: "
+            f"{render.reading_text(Reading(value=r.get('value'), unit=r.get('unit'), over_limit=r.get('over_limit', False)))}, "
+            f"{_VERDICT.get(r['verdict'], r['verdict'])}" for r in readings]
+
+
 def _code_summary(facts: dict) -> str:
     lines = [f"Vehicle: {render.vehicle_text(facts['vehicle_record'])}."]
     if facts["codes"]:
         lines.append(f"Fault codes: {', '.join(facts['codes'])}.")
-    for r in facts["readings"]:
-        shown = render.reading_text(Reading(value=r.get("value"), unit=r.get("unit"), over_limit=r.get("over_limit", False)))
-        lines.append(f"Step {r['step_id']}: {shown} ({r['verdict']}).")
+    lines += [f"{line}." for line in checks(facts["readings"])]
     if facts["conclusion"]:
         lines.append(f"Conclusion: {facts['conclusion']}")
     if facts["confirmed_fix"]:
@@ -78,7 +87,10 @@ def summarise(model: ModelClient, state: SessionState, session_id: str, *, role:
     english_facts = {**facts, "vehicle_record": state.vehicle,
                      "what the mechanic said": [t.english or t.text for t in state.history if t.role == "mechanic"]}
     allowed = Allowed.from_texts([str(facts), *english_facts["what the mechanic said"], render.vehicle_text(state.vehicle)])
-    out = compose(model, "summary", system=SYSTEM, facts={k: v for k, v in english_facts.items() if k != "vehicle_record"},
+    model_facts = {k: v for k, v in english_facts.items() if k not in ("vehicle_record", "readings")}
+    model_facts["checks done"] = checks(facts["readings"])
+    allowed.add(" ".join(model_facts["checks done"]))
+    out = compose(model, "summary", system=SYSTEM, facts=model_facts,
                   language=state.language, allowed=allowed, role=role)
     if out and out["message"].strip():
         text = out["message"]

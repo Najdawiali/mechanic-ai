@@ -504,3 +504,10 @@ def test_general_guidance_never_repeats_the_header_the_code_puts_in_front(kb):
     script = Script(general=[{"message": f"{header}\nStart with the battery and the fuses. What do you find?"}])
     reply = Engine(kb, script.model).turn(session(), "2025 Integra 1.5 turbo, code P0341.").reply
     assert reply.message.count(header) == 1 and "Start with the battery" in reply.message
+
+
+def test_the_summary_shows_readings_as_the_steps_did():
+    from app.engine.summary import checks
+    stored = [{"step_id": "1", "value": 15.0, "unit": "Ohm", "verdict": "abnormal"},
+              {"step_id": "4", "over_limit": True, "verdict": "normal"}]
+    assert checks(stored) == ["Step 1: 15 ohm, outside the normal range", "Step 4: OL (over the meter's range), normal"]
