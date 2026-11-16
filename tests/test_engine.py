@@ -511,3 +511,23 @@ def test_the_summary_shows_readings_as_the_steps_did():
     stored = [{"step_id": "1", "value": 15.0, "unit": "Ohm", "verdict": "abnormal"},
               {"step_id": "4", "over_limit": True, "verdict": "normal"}]
     assert checks(stored) == ["Step 1: 15 ohm, outside the normal range", "Step 4: OL (over the meter's range), normal"]
+
+
+# -- fifth full real-model run (2026-11-17, 42 of 42) --------------------------------------------------------
+def test_the_model_noting_its_own_length_is_not_a_number_without_a_source(kb):
+    said = ("Check the wiring and the connectors first, then the power supply, using the service information. "
+            "120 words limit reached. What did you find?")
+    script = Script(general=[{"message": said}])
+    reply = Engine(kb, script.model).turn(session(), "2025 Integra 1.5 turbo, code P0341.").reply
+    assert "Check the wiring" in reply.message and "120" not in reply.message
+    assert not any(t.rejected for t in script.model.trace)  # accepted the first time
+
+
+def test_a_partly_copied_header_is_removed_too():
+    from app.engine.engine import strip_header
+    from app.engine.wording import fixed
+    codes = "P2B5313, P2B5411"
+    header = fixed("general_header", "ar", codes=codes)
+    copied = "P2B5313, P2B5411: لا توجد بيانات موثقة لهذه السيارة في قاعدة البيانات. افحص الوصلات أولاً."
+    assert strip_header(copied, header, codes) == "افحص الوصلات أولاً."
+    assert strip_header("Less than 1. Then check it.", fixed("general_header", "en", codes="P0341"), "P0341") == "Less than 1. Then check it."

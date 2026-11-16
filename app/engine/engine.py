@@ -90,6 +90,18 @@ def other_codes(record, codes: list[str]) -> bool:
     return not ({code_stem(c) for c in own} & {code_stem(c) for c in codes})
 
 
+def strip_header(body: str, header: str, codes: str) -> str:
+    """The model's text without the header the code puts in front, in whole or in part: it copies it from its
+    earlier replies (fourth run: the whole header; fifth run: the codes and the first sentence only)."""
+    body = body.strip()
+    if codes and body.startswith(f"{codes}:"):
+        body = body[len(codes) + 1:]
+    for piece in re.split(r"(?<=[.:۔])\s+", header):
+        if len(piece.strip()) > 10:
+            body = body.replace(piece.strip(), "")
+    return body.strip()
+
+
 @dataclass
 class Roles:
     """Which model role each engine call uses (settings LLM_ROLE_*); chosen by the evaluation."""
@@ -647,7 +659,7 @@ cases (earlier repairs, each on a named car) and expert notes (workshop experien
    - If a record is marked "high-voltage work": do not describe how to open the battery or work inside it, and never
      mention cleaning agents, solvents or chemicals. Say that this work must be done by a person qualified for
      high-voltage work, following the manufacturer's procedure.
-   - End with one question. At most 120 words."""
+   - End with one question. Keep it short: at most six sentences."""
 
     def _advise(self, state: SessionState, intake: Intake | None, hits: list[Hit], gaps: list[Gap], *, gated: bool) -> Reply:
         hits = hits[:MAX_HINTS]
@@ -700,7 +712,8 @@ code usually means and which checks to do first, in order. Never give a pin numb
 fuse number, specification or measured value (not even a typical one such as a terminating resistance or a voltage):
 say these must come from the service information for this car. Do not number the checks: write them as short
 sentences ("First ..., then ..."). Never write a placeholder code such as P30XX.
-Do not repeat that the information is unverified: the reply already says so. At most 120 words. End with one question."""
+Do not repeat that the information is unverified: the reply already says so. Keep it short: at most six sentences.
+End with one question."""
 
     def _general(self, state: SessionState, intake: Intake | None, gaps: list[Gap]) -> Reply:
         codes = ", ".join(state.codes)
@@ -710,8 +723,7 @@ Do not repeat that the information is unverified: the reply already says so. At 
                  "conversation": [{"mechanic" if t.role == "mechanic" else "assistant": t.english or t.text} for t in state.history]}
         out = compose(self.model, "general", system=self.GENERAL_SYSTEM, facts=facts, language=state.language,
                       allowed=self._base_allowed(state), role=self.roles.general)
-        body = (out["message"] if out else "").replace(header, "").strip()  # the model copies it from earlier replies
-        body = body or fixed("general_fallback", state.language)
+        body = strip_header(out["message"] if out else "", header, codes) or fixed("general_fallback", state.language)
         del external  # no outside source is connected yet (app/engine/external.py)
         return self._reply(state, "question", f"{header}\n{body}", tier="general", confidence="low")
 

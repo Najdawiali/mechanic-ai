@@ -182,6 +182,11 @@ def translate(model: ModelClient, english: str, language: Language, *, role: str
     return f"{lead}\n{english}" if lead else english, False
 
 
+# The model reports its own length ("120 words.", "120 words limit reached."): fifth run, 5 refused answers.
+_BARE_NUMBER = re.compile(r"(?:(?<=[.!?:] )|^)\d+\.(?=\s|$)")  # a sentence that is only a number: "120."
+_WORD_COUNT = re.compile(r"(?i)(?:\(\s*)?\b\d+\s+words?(?:\s+(?:limit\s+)?(?:reached|used|max(?:imum)?))?\s*(?:\)|\.)?")
+
+
 def compose(model: ModelClient, purpose: str, *, system: str, facts: dict, language: Language, allowed: Allowed,
             schema_extra: dict | None = None, max_tokens: int = 900, forbidden: re.Pattern[str] | None = None,
             role: str = "reasoning") -> dict | None:
@@ -199,6 +204,9 @@ def compose(model: ModelClient, purpose: str, *, system: str, facts: dict, langu
         except ModelError:
             return None
         message = out.get("message") if isinstance(out.get("message"), str) else ""
+        message = _BARE_NUMBER.sub("", _WORD_COUNT.sub("", message))  # notes about the prompt's length, not content
+        message = re.sub(r"[ \t]{2,}", " ", message).strip()
+        out = {**out, "message": message}
         found = problems(message, allowed)
         if forbidden is not None:
             found += [f"must not mention {m.group(0)!r}" for m in forbidden.finditer(message)]

@@ -20,7 +20,7 @@ from app.engine.wording import compose, translate
 
 SYSTEM = """Write a short summary of a car diagnosis session for the workshop's records: the vehicle, the fault codes,
 the checks done with their readings and results, the conclusion, and the confirmed repair if there is one.
-Use only the facts given. At most 100 words, plain sentences, no headings."""
+Use only the facts given. Keep it short: at most five plain sentences, no headings."""
 
 
 def record(state: SessionState) -> dict:
