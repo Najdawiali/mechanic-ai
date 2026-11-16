@@ -106,7 +106,11 @@ class Script:
         return intake(english=message) | self.intakes.get(message, {})
 
     def _translate(self, system, user, schema):
-        return self.translate(user) if self.translate else {"message": user.split("\n\n(Your previous")[0]}
+        if self.translate:
+            return self.translate(user)
+        if "lines" in schema["properties"]:  # record texts between labels: echoed as they are
+            return {"lines": json.loads(user)["lines"]}
+        return {"message": user.split("\n\n(Your previous")[0]}
 
     def calls(self, purpose):
         return [t for t in self.model.trace if t.purpose == purpose]
@@ -417,13 +421,22 @@ def test_long_code_names_do_not_make_an_arabic_message_english(kb):
     assert state.language == "ar"
 
 
-def test_a_reading_in_arabic_units_is_written_in_english_in_the_text_to_translate(kb):
+def test_the_reading_line_is_written_in_code_and_only_record_texts_go_to_the_model(kb):
     engine, state = Engine(kb, Script().model), session(language="ar")
     engine.turn(state, "أكورا انتيجرا 2025، طالع عندي كود P0010")
-    script_calls = []
-    engine.model.handlers["translate"] = lambda s, user, sc: script_calls.append(user) or {"message": "النتيجة " + user}
-    engine.turn(state, "طلعت القراءة ١٥ أوم")
-    assert "Step 1 reading: 15 ohm, outside" in script_calls[0]
+    sent = []
+
+    def translate(system, user, schema):
+        sent.append(json.loads(user)["lines"])
+        return {"lines": [f"{line} [ترجمة {'عربية ' * 12}]" for line in sent[-1]]}  # enough Arabic script to pass
+
+    engine.model.handlers["translate"] = translate
+    reply = engine.turn(state, "طلعت القراءة ١٥ أوم").reply
+    assert "قراءة الخطوة 1: 15 ohm، خارج الحد الطبيعي (حوالي 7.14" in reply.message  # labels in code, Latin digits
+    assert "النتيجة: There is a problem with VTC oil control solenoid valve A. [ترجمة" in reply.message
+    assert "بالإنجليزية" not in reply.message  # accepted: no "English follows" note
+    assert not any("15" in line or "Step" in line for line in sent[0])  # the model never sees the reading or a label
+    assert reply.evidence[0].excerpt.startswith("Step 1 reading: 15 ohm, outside the normal range")  # the excerpt stays English
 
 
 

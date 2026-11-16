@@ -122,6 +122,61 @@ FIXED = {
         "ar": "ما بقدر أعطيك فحص لهذا السلك: {why}",
         "ur": "میں اس تار کے لیے کوئی چیک نہیں دے سکتا: {why}",
     },
+    # -- labels of a step and a conclusion, rendered in code (fifth run: the model translated "Step 1 of 4" to
+    #    "الخطوة 1 of 4" in Urdu and left "Normal:" in English). The model translates only the sentences between them.
+    "label_step": {"en": "Step {n}:", "ar": "الخطوة {n}:", "ur": "مرحلہ {n}:"},
+    "label_step_of": {"en": "Step {n} of {of}:", "ar": "الخطوة {n} من {of}:", "ur": "مرحلہ {n} از {of}:"},
+    "label_before": {"en": "Before measuring:", "ar": "قبل القياس:", "ur": "پیمائش سے پہلے:"},
+    "label_notice": {"en": "NOTICE:", "ar": "تنبيه:", "ur": "توجہ:"},
+    "label_needs_tool": {"en": "This step needs the {tool}.", "ar": "هذه الخطوة تحتاج إلى {tool}.",
+                         "ur": "اس مرحلے کے لیے {tool} درکار ہے۔"},
+    "label_measure": {"en": "Measure:", "ar": "القياس:", "ur": "پیمائش:"},
+    "label_normal": {"en": "Normal:", "ar": "القيمة الطبيعية:", "ur": "درست ریڈنگ:"},
+    "label_about": {"en": "about {value}", "ar": "حوالي {value}", "ur": "تقریباً {value}"},
+    "label_send_reading": {"en": "Send me the reading.", "ar": "أرسل لي القراءة.", "ur": "مجھے ریڈنگ بھیجیں۔"},
+    "label_over_limit": {"en": "OL (over the meter's range)", "ar": "OL (أعلى من مدى جهاز القياس)",
+                         "ur": "OL (میٹر کی حد سے زیادہ)"},
+    "label_read_as": {"en": "I read your reading as {reading}.", "ar": "فهمت قراءتك على أنها {reading}.",
+                      "ur": "میں نے آپ کی ریڈنگ {reading} سمجھی ہے۔"},
+    "label_reading": {"en": "Step {n} reading: {reading}, {verdict}", "ar": "قراءة الخطوة {n}: {reading}، {verdict}",
+                      "ur": "مرحلہ {n} کی ریڈنگ: {reading}، {verdict}"},
+    "label_verdict_normal": {"en": "normal", "ar": "طبيعية", "ur": "درست"},
+    "label_verdict_abnormal": {"en": "outside the normal range", "ar": "خارج الحد الطبيعي", "ur": "درست حد سے باہر"},
+    "label_result": {"en": "Result:", "ar": "النتيجة:", "ur": "نتیجہ:"},
+    "label_all_normal": {"en": "All the steps read normal.", "ar": "كل الخطوات قراءتها طبيعية.",
+                         "ur": "تمام مراحل کی ریڈنگ درست ہے۔"},
+    "label_confirm": {"en": "After the repair, confirm it:", "ar": "بعد الإصلاح، تأكد منه:", "ur": "مرمت کے بعد اس کی تصدیق کریں:"},
+    "label_route": {"en": "Route:", "ar": "المسار:", "ur": "راستہ:"},
+    "label_procedure_intro": {
+        "en": "This is the manufacturer's troubleshooting procedure for the {vehicle}. "
+              "I will give you one step at a time; send me each reading.",
+        "ar": "هذا إجراء الفحص من الشركة المصنعة لسيارة {vehicle}. سأعطيك خطوة واحدة في كل مرة؛ أرسل لي كل قراءة.",
+        "ur": "یہ {vehicle} کے لیے مینوفیکچرر کا ٹربل شوٹنگ طریقہ ہے۔ میں آپ کو ایک وقت میں ایک مرحلہ دوں گا؛ ہر ریڈنگ مجھے بھیجیں۔",
+    },
+    "label_circuit_intro": {
+        "en": "Checks for {title}, worked out from the wiring diagram. The limits are general electrical practice, "
+              "not the manufacturer's values. I will give you one step at a time; send me each reading.",
+        "ar": "فحوصات {title}، مأخوذة من مخطط الأسلاك. الحدود من الممارسة الكهربائية العامة، وليست قيم الشركة المصنعة. "
+              "سأعطيك خطوة واحدة في كل مرة؛ أرسل لي كل قراءة.",
+        "ur": "{title} کی جانچ، وائرنگ ڈایاگرام سے تیار کی گئی۔ یہ حدیں عام الیکٹریکل اصول ہیں، مینوفیکچرر کی ویلیوز نہیں۔ "
+              "میں آپ کو ایک وقت میں ایک مرحلہ دوں گا؛ ہر ریڈنگ مجھے بھیجیں۔",
+    },
+    "label_basis": {
+        "en": "General electrical practice: a sound wire reads below 1 ohm end to end, and a wire with no short reads above "
+              "1 megohm to ground. These are not this manufacturer's published values.",
+        "ar": "ممارسة كهربائية عامة: السلك السليم يقرأ أقل من 1 ohm من طرف إلى طرف، والسلك الذي ليس فيه تماس يقرأ أكثر من "
+              "1 megohm إلى الأرضي. هذه ليست قيم الشركة المصنعة المنشورة.",
+        "ur": "عام الیکٹریکل اصول: درست تار سرے سے سرے تک 1 ohm سے کم پڑھتی ہے، اور جس تار میں شارٹ نہ ہو وہ گراؤنڈ تک "
+              "1 megohm سے زیادہ پڑھتی ہے۔ یہ اس مینوفیکچرر کی شائع شدہ ویلیوز نہیں ہیں۔",
+    },
+    "label_seen_before": {
+        "en": "Seen before in the workshop ({car}):", "ar": "حالة سابقة في الورشة ({car}):", "ur": "ورکشاپ میں پہلے دیکھا گیا ({car}):",
+    },
+    "label_hint_only": {
+        "en": "A hint only: follow the steps before replacing any part.",
+        "ar": "هذا تلميح فقط: اتبع الخطوات قبل تبديل أي قطعة.",
+        "ur": "یہ صرف ایک اشارہ ہے: کوئی پرزہ بدلنے سے پہلے مراحل پر عمل کریں۔",
+    },
 }
 
 
@@ -180,6 +235,54 @@ def translate(model: ModelClient, english: str, language: Language, *, role: str
                 f"or was not written in {LANGUAGE_NAME[language]}. Translate again.)")
     lead = fixed("english_follows", language)
     return f"{lead}\n{english}" if lead else english, False
+
+
+TRANSLATE_LINES_SYSTEM = """You translate short texts for a car mechanic into {language}.
+You get a JSON list. Return the same number of items in the same order: each item is the translation of the item at
+the same place. Keep these exactly as written, in English letters and Latin digits: fault codes, pin numbers, connector
+and component names, wire colours, values, units, tool names and menu paths. Keep the signs < > ≤ ≥ in front of their
+values. Do not add, drop, merge or explain anything. Return JSON: {{"lines": ["...", "..."]}}"""
+
+
+def translate_lines(model: ModelClient, items: list[tuple[str, bool]], language: Language, *,
+                    role: str = "fast") -> tuple[list[str], bool]:
+    """Translate short texts in one call: (translations in the same order, translated).
+
+    `items` are (English text, required): a required item is a sentence and must come back in the language's script;
+    the others (a check name, a preparation such as "IG Mode OFF") may stay as they are. Every item must keep its
+    numbers, pins, codes and signs and add none. Asked again once; then the English texts are returned."""
+    english = [text for text, _ in items]
+    if language == "en" or not english:
+        return english, False
+    count = len(english)
+    schema = {"type": "object", "additionalProperties": False, "required": ["lines"],
+              "properties": {"lines": {"type": "array", "items": {"type": "string"}, "minItems": count, "maxItems": count}}}
+    system = TRANSLATE_LINES_SYSTEM.format(language=LANGUAGE_NAME[language])
+    user = json.dumps({"lines": english}, ensure_ascii=False)
+    for _ in range(2):
+        try:
+            out = model.json("translate", role=role, system=system, user=user, schema=schema, max_tokens=1500)
+        except ModelError:
+            break
+        lines = out.get("lines")
+        reasons: list[str] = []
+        if not isinstance(lines, list) or len(lines) != count or not all(isinstance(x, str) and x.strip() for x in lines):
+            reasons.append(f"not {count} translated items")
+        else:
+            for (source, required), text in zip(items, lines):
+                found = problems(text, Allowed.from_texts([source]))
+                if found:
+                    reasons.append(f"no source for {found}")
+                if not _numbers_kept(source, text):
+                    reasons.append("a number, pin, code or comparison sign of the English text is missing")
+                if required and not _in_script(text, language):
+                    reasons.append(f"not written in {language} script")
+        if not reasons:
+            return [line.strip() for line in lines], True
+        reject(model, "; ".join(dict.fromkeys(reasons)))
+        user = json.dumps({"lines": english, "note": f"Your previous answer was refused: {'; '.join(dict.fromkeys(reasons))}. "
+                                                     f"Translate again into {LANGUAGE_NAME[language]}."}, ensure_ascii=False)
+    return english, False
 
 
 # The model reports its own length ("120 words.", "120 words limit reached."): fifth run, 5 refused answers.

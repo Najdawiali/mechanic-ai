@@ -39,7 +39,7 @@ from app.engine.readings import Reading, ReadingError, parse_reading
 from app.engine.reply import Cause, DiagramPage, Evidence, QuestionView, Reply
 from app.engine.state import Offered, Pending, ReadingLog, SessionState, Walk, WiringContext
 from app.engine.validator import Allowed
-from app.engine.wording import compose, fixed, translate
+from app.engine.wording import compose, fixed, translate, translate_lines
 from app.kb.keys import code_stem, norm_key
 from app.kb.schemas import Case, ExpertNote, Powertrain, WiringDiagram
 from app.kb.store import APPROVED, Hit, KnowledgeStore, ProcedureHit, Status
@@ -284,15 +284,27 @@ class Engine:
         kind = "procedure" if walk.kind == "procedure" else "diagram"
         return Evidence(id=walk.evidence_id.split("#")[0], type=kind, title=walk.title, excerpt=excerpt, status=walk.status)
 
-    def _show_step(self, state: SessionState, *, lead: str | None = None, english_lead: list[str] = (),
-                   intro: str | None = None) -> Reply:
+    def _say(self, lines: list, language: str) -> str:
+        """Lines of labels (written in code per language) and record texts: the record texts are translated in one call,
+        each checked for its numbers, pins and codes; the labels never go through the model."""
+        items = render.to_translate(lines)
+        role = self.roles.translate_ur if language == "ur" else self.roles.translate
+        out, ok = translate_lines(self.model, [(t.english, t.required) for t in items], language, role=role)
+        message = render.assemble(lines, dict(zip(items, out)))
+        if language != "en" and items and not ok:
+            lead = fixed("english_follows", language)
+            message = f"{lead}\n{message}" if lead else message
+        return message
+
+    def _show_step(self, state: SessionState, *, lead: str | None = None, lead_lines: list = (),
+                   intro: list | None = None) -> Reply:
         walk = state.walk
         step = self._current(walk)
         view = render.step_view(walk, step)
         new_notices = [n for n in step.notices if n not in state.shown_notices]
         body = render.step_text(view, new_notices)
-        english = "\n".join([*english_lead, *([intro] if intro else []), body])
-        message, _ = self._translate(english, state.language)
+        lines = [*lead_lines, *(intro or []), *render.step_lines(view, new_notices, state.language)]
+        message = self._say(lines, state.language)
         if lead:
             message = f"{lead}\n{message}"
         warnings = []
@@ -317,27 +329,34 @@ class Engine:
         try:
             outcome = walk_steps(walk.steps, step.id, reading, walk.when_all_normal, name=walk.title)
         except ReadingError as exc:
-            return self._show_step(state, english_lead=[exc.question])
+            return self._show_step(state, lead_lines=[(render.Tr(exc.question, required=True),)])
         verdict = "abnormal" if outcome.decided_by_step == step.id else "normal"
         state.readings.append(ReadingLog(walk=walk.evidence_id, step_id=step.id, value=reading.value, unit=reading.unit,
                                          over_limit=reading.over_limit, verdict=verdict))
         walk.done.append(step.id)
-        said = render.verdict_line(step, reading, verdict, from_words=from_words, number=len(walk.done))
+        language = state.language
+        said = render.verdict_parts(step, reading, verdict, from_words=from_words, number=len(walk.done), language=language)
         if outcome.step is not None:
             walk.step_id = outcome.step.id
-            return self._show_step(state, english_lead=[said])
+            return self._show_step(state, lead_lines=[said])
 
         state.walk, state.conclusion = None, outcome.conclusion
-        lines = [said, f"Result: {outcome.conclusion}"]
-        if verdict == "normal" and walk.kind == "procedure":
-            lines[1] = f"All the steps read normal. Result: {outcome.conclusion}"
-        confirmation = walk.extra.get("confirmation") or []
-        if confirmation:
-            lines += ["After the repair, confirm it:", *(f"- {line}" for line in confirmation)]
-        if walk.basis == "general_practice":
-            lines.append(BASIS)
-        english = "\n".join(lines)
-        message, _ = self._translate(english, state.language)
+
+        def conclusion_lines(language: str) -> list:
+            result = f"{fixed('label_result', language)} "
+            if verdict == "normal" and walk.kind == "procedure":
+                result = f"{fixed('label_all_normal', language)} {result}"
+            lines = [render.verdict_parts(step, reading, verdict, from_words=from_words, number=len(walk.done), language=language),
+                     (result, render.Tr(outcome.conclusion, required=True))]
+            confirmation = walk.extra.get("confirmation") or []
+            if confirmation:
+                lines += [(fixed("label_confirm", language),), *(("- ", render.Tr(line, required=True)) for line in confirmation)]
+            if walk.basis == "general_practice":
+                lines.append((fixed("label_basis", language),))
+            return lines
+
+        english = render.english_text(conclusion_lines("en"))
+        message = self._say(conclusion_lines(language), language)
         return self._reply(state, "conclusion", message, tier="verified",
                            possible_causes=[Cause(name=outcome.conclusion, likelihood="high", evidence_ids=[walk.evidence_id.split("#")[0]])],
                            evidence=[self._walk_evidence(walk, english)],
@@ -350,11 +369,11 @@ class Engine:
                           steps=procedure.steps, when_all_normal=procedure.elimination_conclusion,
                           step_id=procedure.steps[0].id, status=hit.status,
                           extra={"confirmation": procedure.confirmation, "warnings": procedure.warnings})
-        lead = []
-        for h in hints[:MAX_HINTS]:
-            lead.append(f"Seen before in the workshop ({self._hint_car(h)}): {self._hint_summary(h)}. "
-                        "A hint only: follow the steps before replacing any part.")
-        reply = self._show_step(state, intro=render.procedure_intro(procedure), english_lead=lead)
+        language = state.language
+        lead = [(f"{fixed('label_seen_before', language, car=self._hint_car(h))} ",
+                 render.Tr(f"{self._hint_summary(h)}.", required=True), f" {fixed('label_hint_only', language)}")
+                for h in hints[:MAX_HINTS]]
+        reply = self._show_step(state, intro=render.procedure_intro_lines(procedure, language), lead_lines=lead)
         if hints:
             state.offered += [Offered(record_id=h.record_id, key=h.record_key, type=h.record_type) for h in hints[:MAX_HINTS]]
             reply = reply.model_copy(update={
@@ -518,7 +537,8 @@ class Engine:
                           title=f"{component} pin {pin} to {plan.goes_to}", steps=plan.steps,
                           when_all_normal=plan.when_all_normal, step_id=plan.steps[0].id, cautions=cautions,
                           basis="general_practice", status=self._diagram_evidence(hit.record_id, "").status)
-        return self._show_step(state, intro=render.circuit_intro(state.walk), english_lead=[f"Route: {plan.route}"])
+        return self._show_step(state, intro=render.circuit_intro_lines(state.walk, state.language),
+                               lead_lines=[(f"{fixed('label_route', state.language)} {plan.route}",)])
 
     # -- 10. wiring questions ----------------------------------------------------------------------------------
     def _wiring(self, state: SessionState, components: list[str], power_and_ground: bool, gaps: list[Gap], *,
