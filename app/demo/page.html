@@ -72,9 +72,11 @@
     <div class="row">
       <div><label>Powertrain</label>
         <select id="powertrain"><option value="">not given</option><option>ICE</option><option>Hybrid</option><option>PHEV</option><option>EV</option></select></div>
-      <div><label>Language</label>
+      <div><label>Starting language</label>
         <select id="language"><option value="ar">العربية</option><option value="en">English</option><option value="ur">اردو</option></select></div>
     </div>
+    <div class="muted" style="margin-top:4px">The assistant replies in the language of each message. The starting language is used only
+      until the mechanic writes words (a code alone, a reading, a photo). The platform's app will send the user's app language.</div>
     <div class="buttons">
       <button class="primary" id="start">Start session</button>
       <button id="close" disabled>Close session</button>
