@@ -567,3 +567,11 @@ def test_the_first_reply_greets_once_and_an_emergency_does_not(kb):
 def test_every_fixed_text_asks_at_most_one_question():
     from app.engine.wording import FIXED
     assert all(text.count("?") + text.count("؟") <= 1 for texts in FIXED.values() for text in texts.values())
+
+
+def test_the_models_own_greeting_is_dropped_so_the_reply_greets_once(kb):
+    said = "مساء الخير. ابدأ بفحص البطارية والـ Fuses الخاصة بالـ ABS unit. هل فحصت البطارية؟"
+    reply = Engine(kb, Script(general=[{"message": said}]).model).turn(
+        session(language="ar"), "مساء الخير، أكورا انتيجرا 2025، لمبة الـ ABS ضاوية وكود P0341").reply
+    assert reply.message.startswith("أهلاً بك، يسعدني مساعدتك.") and "مساء الخير" not in reply.message
+    assert "ABS unit" in reply.message  # English words for tools and parts stay (Ali, 2026-11-18)

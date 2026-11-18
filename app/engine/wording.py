@@ -291,6 +291,10 @@ _WORD_COUNT = re.compile(r"(?i)(?:\(\s*)?\b\d+\s+words?(?:\s+(?:limit\s+)?(?:rea
 
 TONE = ("Tone: polite and professional, like an experienced technician advising a colleague. No slang, no jokes, "
         "no small talk and no greeting: the reply adds a greeting itself when one is due.")
+# A greeting the model opens with: the reply greets once, in code, in the first reply only (demo, 2026-11-18)
+_GREETING = re.compile(r"^\s*(?:(?:مساء|صباح) (?:الخير|النور)|مرحب[اًا]+(?: بك(?:م)?)?|[أا]هل[اًا]+(?: وسهل[اًا]+)?(?: بك(?:م)?)?"
+                       r"|السلام عليكم|السلام علیکم|hello|hi|hey|good (?:morning|afternoon|evening|day))(?![A-Za-z])\s*[,.!،:؛۔-]*\s*",
+                       re.IGNORECASE)
 _QUESTION = re.compile(r"[^.!?؟۔\n]*[?؟]")
 
 
@@ -324,6 +328,8 @@ def compose(model: ModelClient, purpose: str, *, system: str, facts: dict, langu
         message = out.get("message") if isinstance(out.get("message"), str) else ""
         message = _BARE_NUMBER.sub("", _WORD_COUNT.sub("", message))  # notes about the prompt's length, not content
         message = re.sub(r"[ \t]{2,}", " ", message.replace(FIXED["greeting"][language], "")).strip()  # greeted in code
+        message = _GREETING.sub("", message, count=1).strip()  # its own greeting too ("مساء الخير." after the mechanic's)
+        message = message[:1].upper() + message[1:]  # "Good afternoon, check the fuse." -> "Check the fuse."
         asked = len(_QUESTION.findall(message))
         if single_question and asked > 1 and attempt == 1:
             message, asked = one_question(message), 1  # asked again already: keep its last question
