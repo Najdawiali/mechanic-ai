@@ -72,11 +72,7 @@
     <div class="row">
       <div><label>Powertrain</label>
         <select id="powertrain"><option value="">not given</option><option>ICE</option><option>Hybrid</option><option>PHEV</option><option>EV</option></select></div>
-      <div><label>Starting language</label>
-        <select id="language"><option value="ar">العربية</option><option value="en">English</option><option value="ur">اردو</option></select></div>
     </div>
-    <div class="muted" style="margin-top:4px">The assistant replies in the language of each message. The starting language is used only
-      until the mechanic writes words (a code alone, a reading, a photo). The platform's app will send the user's app language.</div>
     <div class="buttons">
       <button class="primary" id="start">Start session</button>
       <button id="close" disabled>Close session</button>
@@ -107,6 +103,9 @@
 const $ = (id) => document.getElementById(id);
 const el = (tag, cls, text) => { const n = document.createElement(tag); if (cls) n.className = cls; if (text != null) n.textContent = text; return n; };
 let session = null, scenarios = [], attachments = [], busy = false;
+// No language field: the assistant replies in the language of each message. A ready-made conversation passes its own
+// language for messages with no words (a code alone); a free one starts in Arabic, as the API does by default.
+let startLanguage = "ar";
 
 async function call(method, path, body) {
   const res = await fetch(`/demo/api/${path}`, { method, headers: { "Content-Type": "application/json" },
@@ -198,7 +197,7 @@ async function start() {
   const id = `demo-${crypto.randomUUID().slice(0, 8)}`;
   setBusy(true);
   try {
-    await call("POST", "sessions", { session_id: id, vehicle, language: $("language").value });
+    await call("POST", "sessions", { session_id: id, vehicle, language: startLanguage });
     session = id; $("chat").innerHTML = "";
     $("sessionInfo").textContent = `Session ${id} · ${[vehicle.year, vehicle.make, vehicle.model, vehicle.engine_code].filter(Boolean).join(" ")}`;
     document.querySelectorAll(".script button").forEach((b) => b.classList.remove("used"));
@@ -296,9 +295,9 @@ $("preset").onchange = () => {
   if (sc) {
     const v = sc.vehicle || {};
     $("make").value = v.make || ""; $("model").value = v.model || ""; $("year").value = v.year || "";
-    $("engine").value = v.engine_code || ""; $("powertrain").value = v.powertrain || ""; $("language").value = sc.language;
-    $("presetNote").textContent = "Car and language filled in. Start the session, then click the messages in order.";
-  } else { $("presetNote").textContent = ""; }
+    $("engine").value = v.engine_code || ""; $("powertrain").value = v.powertrain || ""; startLanguage = sc.language;
+    $("presetNote").textContent = "Car filled in. Start the session, then click the messages in order.";
+  } else { $("presetNote").textContent = ""; startLanguage = "ar"; }
   fillScript(sc);
 };
 $("start").onclick = start;
