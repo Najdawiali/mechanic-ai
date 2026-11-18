@@ -599,3 +599,21 @@ def test_a_part_found_by_code_must_be_named_in_full():
     said = _words("ABS light is on, the scan tool cannot talk to the ABS unit")
     assert fully_named("VSA MODULATOR-CONTROL UNIT", said)
     assert not fully_named("VSA OFF SWITCH", said) and not fully_named("BACKUP LIGHT SWITCH", said)
+
+
+def test_wiring_answers_and_their_questions_are_written_in_code_in_the_mechanics_language(kb):
+    # demo, 2026-11-18: translated wiring answers read badly in Arabic, and a clicked button switched the reply to English
+    q1, q2 = "أي فيوزات لازم أفحص ووين الأرضي تبعها لوحدة الـ ABS؟", "كيف أفحص الأرضي؟"
+    script = Script(intakes={q1: {"intent": "wiring_question", "power_and_ground": True, "components": [VSA], "english": "ABS unit fuses and ground"},
+                             q2: {"intent": "check_wire"}})
+    engine, state = Engine(kb, script.model), session(language="ar")
+    answer = engine.turn(state, q1).reply
+    assert "• البن 3 (BLK): أرضي عند G020 (صفحة 1 من 3)." in answer.message
+    assert "-BLK->" not in answer.message and "G020" in answer.evidence[0].excerpt  # the full route stays in the sources
+    assert not script.calls("translate")  # no model call for a wiring answer
+    asked = engine.turn(state, q2).reply
+    assert asked.message == "أي سلك تريد أن تفحص؟" and f"{VSA} pin 3" in asked.question.options
+    intakes_before = len(script.calls("intake"))
+    step = engine.turn(state, f"{VSA} pin 3").reply  # the button
+    assert state.language == "ar" and len(script.calls("intake")) == intakes_before  # same language, no model call
+    assert step.type == "step" and f"فحوصات {VSA} pin 3 إلى ground G020" in step.message

@@ -184,7 +184,9 @@ def procedure_intro(procedure: Procedure) -> str:
 
 
 def circuit_intro_lines(walk: Walk, language: Language = "en") -> list[Line]:
-    return [(fixed("label_circuit_intro", language, title=walk.title),)]
+    part, pin, end = (walk.extra.get(k) for k in ("part", "pin", "end"))
+    title = fixed("label_circuit_title", language, part=part, pin=pin, end=end) if part and pin and end else walk.title
+    return [(fixed("label_circuit_intro", language, title=title),)]
 
 
 def circuit_intro(walk: Walk) -> str:

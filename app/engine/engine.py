@@ -147,8 +147,11 @@ class Engine:
     def turn(self, state: SessionState, text: str, attachments: list[report_reader.Attachment] = ()) -> TurnResult:
         if state.closed:
             raise ValueError("the session is closed")
-        # long code names ("VCFRONT_a490_coolantPumpsNotIdentified") are not English words: they do not decide the language
-        state.language = detect(ALERT.sub(" ", DTC.sub(" ", text))) or state.language
+        chosen = self._chosen_option(state, text)
+        # long code names ("VCFRONT_a490_coolantPumpsNotIdentified") are not English words: they do not decide the language;
+        # nor does a button the mechanic clicked ("VSA MODULATOR-CONTROL UNIT pin 3"): its words are ours, not his
+        if chosen is None:
+            state.language = detect(ALERT.sub(" ", DTC.sub(" ", text))) or state.language
         gaps: list[Gap] = []
 
         found = emergency.check(text)
@@ -166,7 +169,8 @@ class Engine:
         components = self.kb.components(state.vehicle, statuses=self.statuses)
         report_text = None if report is None else "; ".join(f"{m}: {', '.join(c)}" for m, c in report.modules)
         try:
-            intake = read_message(self.model, state, text, components=components, report_text=report_text)
+            intake = (Intake(intent="answer", english=text, answer=chosen) if chosen is not None and report is None
+                      else read_message(self.model, state, text, components=components, report_text=report_text))
         except ModelError:
             intake = Intake(intent="other", english=text, codes=codes_in(text), reading=parse_reading(text))
         state.remember("mechanic", text, intake.english)
@@ -386,6 +390,13 @@ class Engine:
         return reply
 
     # -- 5. answers to the assistant's questions ----------------------------------------------------------
+    @staticmethod
+    def _chosen_option(state: SessionState, text: str) -> str | None:
+        """The message is exactly one of the pending question's options (a button the mechanic clicked)."""
+        if state.pending is None:
+            return None
+        return next((o for o in state.pending.question.options if o.strip().casefold() == text.strip().casefold()), None)
+
     def _ask(self, state: SessionState, message: str, *, kind: str, options: list[str], about: str, context: dict,
              tier: str = "none", **fields) -> Reply:
         question = QuestionView(kind=kind, options=options)
@@ -434,8 +445,7 @@ class Engine:
 
     def _confirm_part(self, state: SessionState, intake: Intake) -> Reply:
         """The model picked a part the message does not name: ask, never guess a part and give its pins."""
-        english = f"Which part do you mean: {'; or '.join(intake.unsure)}? If none of these, tell me the name as printed on the diagram."
-        message, _ = self._translate(english, state.language)
+        message = fixed("choose_part", state.language)  # the parts are the buttons
         return self._ask(state, message, kind="component", options=[*intake.unsure, _NONE_OF_THESE], about="part",
                          context={"components": intake.components, "intent": intake.intent,
                                   "power_and_ground": intake.power_and_ground, "pins_only": intake.pins_only})
@@ -519,8 +529,7 @@ class Engine:
         if len(choices) == 1:
             component, pin = next(iter(choices.values()))
             return self._start_circuit(state, component, pin)
-        english = "Which wire do you want to check? " + "; ".join(choices) + "."
-        message, _ = self._translate(english, state.language)
+        message = fixed("which_wire", state.language)  # the wires are the buttons
         return self._ask(state, message, kind="component", options=list(choices), about="wire",
                          context={"choices": {k: list(v) for k, v in choices.items()}})
 
@@ -539,7 +548,8 @@ class Engine:
         state.walk = Walk(kind="circuit", evidence_id=f"{hit.diagram_key}#{component}/{pin}", record_id=hit.record_id,
                           title=f"{component} pin {pin} to {plan.goes_to}", steps=plan.steps,
                           when_all_normal=plan.when_all_normal, step_id=plan.steps[0].id, cautions=cautions,
-                          basis="general_practice", status=self._diagram_evidence(hit.record_id, "").status)
+                          basis="general_practice", status=self._diagram_evidence(hit.record_id, "").status,
+                          extra={"part": component, "pin": pin, "end": plan.goes_to})
         return self._show_step(state, intro=render.circuit_intro_lines(state.walk, state.language),
                                lead_lines=[(f"{fixed('label_route', state.language)} {plan.route}",)])
 
@@ -548,13 +558,17 @@ class Engine:
                 pins_only: bool = False) -> Reply:
         first = components[0]
         pins = self.kb.get_pins(state.vehicle, first, statuses=self.statuses)
+        language = state.language
         if len(components) >= 2:
             answer = wiring.between(pins, components[1])
             heading = f"{first} to {components[1]}"
+            label = ("wire_heading_between", {"a": first, "b": components[1]})
             if not answer.lines:
                 answer = wiring.between(self.kb.get_pins(state.vehicle, components[1], statuses=self.statuses), first)
+                label = ("wire_heading_between", {"a": components[1], "b": first})
         elif power_and_ground:
             answer, heading = wiring.power_and_ground(pins), f"Power supply and ground of {first}"
+            label = ("wire_heading_power", {"component": first})
         else:
             answer = wiring.Answer()
             for pin in pins:
@@ -563,6 +577,7 @@ class Engine:
                     answer.lines.append(wiring.Line(pin, route, versions, wiring._text(pin, route, versions)))
             answer = wiring._collect(answer.lines[:MAX_WIRING_LINES])
             heading = f"Pins of {first}"
+            label = ("wire_heading_pins", {"component": first})
         if not answer.lines:
             return self._none(state, None, gaps)
 
@@ -570,7 +585,9 @@ class Engine:
             answer = wiring.for_version(answer, state.version_answer)
         titles = sorted({line.pin.diagram_title for line in answer.lines})
         heading = f"{heading}, from the wiring diagram {', '.join(titles)}:"
-        english = wiring.text(answer, heading)
+        english = wiring.text(answer, heading)  # the full routes: the evidence excerpt
+        # what the mechanic reads: labels in his language, one short line per pin, no model call
+        shown = wiring.message(answer, fixed(label[0], language, title=", ".join(titles), **label[1]), language)
         state.wiring = WiringContext(components=list(components), power_and_ground=power_and_ground,
                                      pins=list(dict.fromkeys((l.pin.component, l.pin.pin) for l in answer.lines)),
                                      pages=answer.pages)
@@ -579,19 +596,15 @@ class Engine:
         if any(l.pin.verdict == "partial" for l in answer.lines):
             warnings.append("Some wires on this diagram could not be followed to their end; those routes are marked.")
         if answer.needs_version and pins_only and wiring.same_near_end(answer):
-            english += ("\nThe pins and wire colours at the first part are the same on every version; the far end differs "
-                        "by version as listed. Tell me the version for the route that applies to this car.")
-            message, _ = self._translate(english, state.language)
+            message = f"{shown}\n\n{fixed('wire_same_near_end', language)}"
             return self._reply(state, "conclusion", message, tier="verified", evidence=evidence, warnings=warnings,
                                confidence="high")
         if answer.needs_version:
-            english += "\nWhich of these is the car: " + "; or ".join(answer.versions) + "?"
-            message, _ = self._translate(english, state.language)
+            message = f"{shown}\n\n{fixed('wire_which_version', language)}"
             return self._ask(state, message, kind="version", options=answer.versions, about="version",
                              context={"components": list(components), "power_and_ground": power_and_ground},
                              tier="verified", evidence=evidence, warnings=warnings, confidence="high")
-        english += "\nAsk me to send the diagram pages, or to walk you through checking one of these wires."
-        message, _ = self._translate(english, state.language)
+        message = f"{shown}\n\n{fixed('wire_offer', language)}"
         return self._reply(state, "conclusion", message, tier="verified", evidence=evidence, warnings=warnings,
                            confidence="high")
 

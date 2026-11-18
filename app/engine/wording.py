@@ -152,6 +152,8 @@ FIXED = {
         "ar": "هذا إجراء الفحص من الشركة المصنعة لسيارة {vehicle}. سأعطيك خطوة واحدة في كل مرة؛ أرسل لي كل قراءة.",
         "ur": "یہ {vehicle} کے لیے مینوفیکچرر کا ٹربل شوٹنگ طریقہ ہے۔ میں آپ کو ایک وقت میں ایک مرحلہ دوں گا؛ ہر ریڈنگ مجھے بھیجیں۔",
     },
+    "label_circuit_title": {"en": "{part} pin {pin} to {end}", "ar": "{part} pin {pin} إلى {end}",
+                            "ur": "{part} pin {pin} سے {end} تک"},
     "label_circuit_intro": {
         "en": "Checks for {title}, worked out from the wiring diagram. The limits are general electrical practice, "
               "not the manufacturer's values. I will give you one step at a time; send me each reading.",
@@ -176,6 +178,51 @@ FIXED = {
         "ar": "هذا تلميح فقط: اتبع الخطوات قبل تبديل أي قطعة.",
         "ur": "یہ صرف ایک اشارہ ہے: کوئی پرزہ بدلنے سے پہلے مراحل پر عمل کریں۔",
     },
+    # -- wiring answers, written in code (demo, 2026-11-18: translated wiring answers read badly in Arabic) ----
+    "wire_pin": {"en": "Pin {pin}", "ar": "البن {pin}", "ur": "پن {pin}"},
+    "wire_then": {"en": " then ", "ar": " ثم ", "ur": " پھر "},
+    "wire_colour_unknown": {"en": "colour not printed", "ar": "اللون غير مطبوع", "ur": "رنگ درج نہیں"},
+    "wire_power": {"en": "power from {end}", "ar": "كهرباء من {end}", "ur": "{end} سے بجلی"},
+    "wire_ground": {"en": "ground at {end}", "ar": "أرضي عند {end}", "ur": "{end} پر گراؤنڈ"},
+    "wire_to": {"en": "to {end}", "ar": "إلى {end}", "ur": "{end} تک"},
+    "wire_to_system": {"en": "to the {end}", "ar": "إلى نظام {end}", "ur": "{end} سسٹم تک"},
+    "wire_no_end": {"en": "an end the diagram reader could not follow", "ar": "نهاية لم يتمكن قارئ المخطط من تتبعها",
+                    "ur": "ایسا سرا جسے ڈایاگرام ریڈر نہیں پڑھ سکا"},
+    "wire_through": {"en": "through {via}", "ar": "عبر {via}", "ur": "{via} کے ذریعے"},
+    "wire_drawn_for": {"en": "Drawn for: {versions}.", "ar": "مرسوم لـ: {versions}.", "ur": "اس ورژن کے لیے: {versions}۔"},
+    "wire_unfinished": {"en": "The diagram reader could not follow this wire to its end.",
+                        "ar": "لم يتمكن قارئ المخطط من تتبع هذا السلك حتى نهايته.",
+                        "ur": "ڈایاگرام ریڈر اس تار کو آخر تک نہیں پڑھ سکا۔"},
+    "wire_marked": {"en": "Connector {name} is marked \"{marker}\": confirm on the car that it is fitted.",
+                    "ar": "الموصل {name} مُعلَّم \"{marker}\": يرجى التأكد من وجوده في السيارة.",
+                    "ur": "کنیکٹر {name} پر \"{marker}\" لکھا ہے: گاڑی میں تصدیق کریں کہ یہ لگا ہوا ہے۔"},
+    "wire_page": {"en": "page {page}", "ar": "صفحة {page}", "ur": "صفحہ {page}"},
+    "wire_page_of": {"en": "{n} of {of}", "ar": "{n} من {of}", "ur": "{n} از {of}"},
+    "wire_heading_power": {"en": "Power supply and ground of {component} (wiring diagram: {title}):",
+                           "ar": "مصدر الكهرباء والأرضي لـ {component} (مخطط الأسلاك: {title}):",
+                           "ur": "{component} کی بجلی اور گراؤنڈ (وائرنگ ڈایاگرام: {title}):"},
+    "wire_heading_between": {"en": "{a} to {b} (wiring diagram: {title}):", "ar": "من {a} إلى {b} (مخطط الأسلاك: {title}):",
+                             "ur": "{a} سے {b} تک (وائرنگ ڈایاگرام: {title}):"},
+    "wire_heading_pins": {"en": "Pins of {component} (wiring diagram: {title}):",
+                          "ar": "أطراف {component} (مخطط الأسلاك: {title}):",
+                          "ur": "{component} کے پن (وائرنگ ڈایاگرام: {title}):"},
+    "wire_if_version": {"en": "If the car is {version}:", "ar": "إذا كانت السيارة {version}:", "ur": "اگر گاڑی {version} ہے:"},
+    "wire_every_version": {"en": "On every version:", "ar": "في كل الإصدارات:", "ur": "ہر ورژن میں:"},
+    "wire_offer": {"en": "I can send the diagram pages, or guide you step by step to check one of these wires.",
+                   "ar": "يمكنني إرسال صفحات المخطط، أو إرشادك خطوة بخطوة لفحص أحد هذه الأسلاك.",
+                   "ur": "میں ڈایاگرام کے صفحات بھیج سکتا ہوں، یا ان میں سے کسی تار کی جانچ میں قدم بہ قدم رہنمائی کر سکتا ہوں۔"},
+    "wire_which_version": {"en": "Which of these is the car?", "ar": "أي من هذه هي السيارة؟", "ur": "گاڑی ان میں سے کون سی ہے؟"},
+    "wire_same_near_end": {
+        "en": "The pins and wire colours at the first part are the same on every version; the far end differs by version as "
+              "listed. Tell me the version for the route that applies to this car.",
+        "ar": "البنات وألوان الأسلاك عند القطعة الأولى هي نفسها في كل الإصدارات؛ الطرف الآخر يختلف حسب الإصدار كما هو مذكور. "
+              "أخبرني بإصدار السيارة لأعطيك المسار الخاص بها.",
+        "ur": "پہلے پرزے پر پن اور تاروں کے رنگ ہر ورژن میں ایک جیسے ہیں؛ دوسرا سرا ورژن کے مطابق مختلف ہے جیسا کہ لکھا ہے۔ "
+              "گاڑی کا ورژن بتائیں تاکہ میں اس کا راستہ دوں۔"},
+    "which_wire": {"en": "Which wire do you want to check?", "ar": "أي سلك تريد أن تفحص؟", "ur": "آپ کون سی تار چیک کرنا چاہتے ہیں؟"},
+    "choose_part": {"en": "Which part do you mean? Choose one, or write its name as printed on the wiring diagram.",
+                    "ar": "أي قطعة تقصد؟ اختر واحدة، أو اكتب اسمها كما هو مكتوب على مخطط الأسلاك.",
+                    "ur": "آپ کس پرزے کی بات کر رہے ہیں؟ ایک منتخب کریں، یا اس کا نام ویسے لکھیں جیسے وائرنگ ڈایاگرام پر لکھا ہے۔"},
 }
 
 
