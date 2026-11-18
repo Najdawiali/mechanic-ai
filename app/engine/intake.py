@@ -147,6 +147,14 @@ def _words(text: str) -> set[str]:
     return words | {w[:-1] for w in words if w.endswith("S") and len(w) > 3}
 
 
+def fully_named(component: str, said: set[str]) -> bool:
+    """Every word of the component's name that tells it apart is said, or another name for it is: "ABS" names
+    VSA MODULATOR-CONTROL UNIT (VSA and MODULATOR both), not VSA OFF SWITCH (OFF is not said) nor BACKUP LIGHT
+    SWITCH (only LIGHT is said). Used when code, not the model, finds the part (demo, 2026-11-18)."""
+    words = _words(component) - GENERIC
+    return bool(words) and all(w in said or any(w in group and group & said for group in SYNONYMS) for w in words)
+
+
 def named(component: str, said: set[str]) -> bool:
     """Does the message name this component: a word of its name that tells it apart, or another name for it?"""
     for word in _words(component) - GENERIC:
@@ -240,7 +248,7 @@ def read_message(model: ModelClient, state: SessionState, text: str, *, componen
     if about_wiring and not chosen and not unsure:
         # the model named no part: the part the mechanic named, now or in his last messages, found in code
         for words in (said_now, said_before):
-            found = [c for c in components if named(c, words)]
+            found = [c for c in components if fully_named(c, words)]
             if found:
                 (chosen if len(found) == 1 else unsure).extend(found[:3])
                 break

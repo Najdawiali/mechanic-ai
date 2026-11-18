@@ -589,6 +589,13 @@ def test_a_follow_up_wiring_question_uses_the_part_named_in_an_earlier_message(k
     engine, state = Engine(kb, script.model), session(language="ar")
     engine.turn(state, first)
     answer = engine.turn(state, second).reply
-    assert answer.tier == "verified" and "G020" in answer.message  # not "no verified data"
+    assert answer.tier == "verified" and "G020" in answer.message  # not "no verified data", not "which part?"
     sent = engine.turn(state, "ابعثلي المخطط").reply
     assert sent.diagrams  # not "which system do you need the diagram for?"
+
+
+def test_a_part_found_by_code_must_be_named_in_full():
+    from app.engine.intake import _words, fully_named
+    said = _words("ABS light is on, the scan tool cannot talk to the ABS unit")
+    assert fully_named("VSA MODULATOR-CONTROL UNIT", said)
+    assert not fully_named("VSA OFF SWITCH", said) and not fully_named("BACKUP LIGHT SWITCH", said)
