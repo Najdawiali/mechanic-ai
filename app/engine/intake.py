@@ -130,6 +130,8 @@ def _schema(components: list[str], options: list[str]) -> dict:
     }
 
 
+RECENT_MESSAGES = 3  # the mechanic's earlier messages a follow-up question may lean on for its part
+
 # Words in a component name that do not tell one part from another
 GENERIC = {"UNIT", "MODULE", "CONTROL", "CONTROLLER", "SENSOR", "SWITCH", "ASSEMBLY", "ASSY", "BOX", "RELAY", "FUSE",
            "CONNECTOR", "LEFT", "RIGHT", "FRONT", "REAR", "UPPER", "LOWER", "MAIN", "SUB", "ELECTRIC", "ELECTRICAL",
@@ -224,11 +226,24 @@ def read_message(model: ModelClient, state: SessionState, text: str, *, componen
 
     allowed = {norm_key(c): c for c in components}
     chosen, unsure = [], []
-    said = _words(" ".join([text, english_of(out, text), *(t.split(" = ", 1)[1] for t in terms)]))
+    said_now = _words(" ".join([text, english_of(out, text), *(t.split(" = ", 1)[1] for t in terms)]))
+    # A follow-up ("which fuses should I check?") names its part in an earlier message ("the ABS light is on"): the
+    # mechanic's own last messages count as his words (demo, 2026-11-18). The model's picks are still checked.
+    earlier = [t for t in state.history if t.role == "mechanic"][-RECENT_MESSAGES:]
+    said_before = _words(" ".join(f"{t.text} {t.english or ''}" for t in earlier))
+    said = said_now | said_before
     for name in out.get("components") or []:
         key = norm_key(name) if isinstance(name, str) else None
         if key in allowed and allowed[key] not in chosen + unsure:
             (chosen if named(allowed[key], said) else unsure).append(allowed[key])
+    about_wiring = intent in ("wiring_question", "check_wire", "send_diagram") or bool(out.get("power_and_ground"))
+    if about_wiring and not chosen and not unsure:
+        # the model named no part: the part the mechanic named, now or in his last messages, found in code
+        for words in (said_now, said_before):
+            found = [c for c in components if named(c, words)]
+            if found:
+                (chosen if len(found) == 1 else unsure).extend(found[:3])
+                break
     answer = out.get("answer") if out.get("answer") in options else None
     fix = out.get("fix") if intent == "fix_confirmed" and isinstance(out.get("fix"), str) else None
     english = out.get("english") if isinstance(out.get("english"), str) and out.get("english").strip() else text

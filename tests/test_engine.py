@@ -575,3 +575,20 @@ def test_the_models_own_greeting_is_dropped_so_the_reply_greets_once(kb):
         session(language="ar"), "مساء الخير، أكورا انتيجرا 2025، لمبة الـ ABS ضاوية وكود P0341").reply
     assert reply.message.startswith("أهلاً بك، يسعدني مساعدتك.") and "مساء الخير" not in reply.message
     assert "ABS unit" in reply.message  # English words for tools and parts stay (Ali, 2026-11-18)
+
+
+def test_a_follow_up_wiring_question_uses_the_part_named_in_an_earlier_message(kb):
+    # Ali's demo, 2026-11-18: "the ABS light is on" then "which fuses should I check and where is its ground?"
+    first = "أكورا انتيجرا 2025، لمبة الـ ABS ضاوية وجهاز الفحص مش قادر يتواصل مع وحدة الـ ABS"
+    second = "أي فيوزات لازم أفحص ووين الأرضي تبعها؟"
+    script = Script(intakes={first: {"intent": "diagnose", "english": "ABS light on, the scan tool cannot talk to the ABS unit"},
+                             second: {"intent": "wiring_question", "power_and_ground": True,
+                                      "english": "Which fuses should I check and where is its ground?"},
+                             "ابعثلي المخطط": {"intent": "send_diagram"}},
+                    general=[{"message": "ابدأ بفحص البطارية. هل فحصتها؟"}])
+    engine, state = Engine(kb, script.model), session(language="ar")
+    engine.turn(state, first)
+    answer = engine.turn(state, second).reply
+    assert answer.tier == "verified" and "G020" in answer.message  # not "no verified data"
+    sent = engine.turn(state, "ابعثلي المخطط").reply
+    assert sent.diagrams  # not "which system do you need the diagram for?"
