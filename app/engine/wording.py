@@ -226,7 +226,8 @@ FIXED = {
 }
 
 
-def fixed(name: str, language: Language, **values: str) -> str:
+def fixed(name: str, language: Language, /, **values: str) -> str:
+    # name and language are positional only, so a text may have its own {name} or {language} slot
     return FIXED[name][language].format(**values)
 
 
