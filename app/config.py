@@ -61,6 +61,9 @@ class Settings(BaseSettings):
     emergency_number: str = "911"
     # An outside source of diagnostic data (app/engine/external.py). "off" until a provider is licensed.
     external_source: str = "off"
+    # Web search providers (scripts/web_probe.py now; the web source adapter if the probe justifies it).
+    tavily_api_key: SecretStr | None = None
+    exa_api_key: SecretStr | None = None
     db_pool_max: int = 10
 
 
