@@ -47,6 +47,10 @@ OFFICIAL = (
     "chery.com", "tesla.com", "ford.com", "motorcraftservice.com",
 )
 OFFICIAL_SEARCH = ["static.nhtsa.gov", "nhtsa.gov", "service.tesla.com", "techinfo.honda.com", "techinfo.toyota.com"]
+# Sites that republish commercial service manuals without showing any right to them. Never a source:
+# excluded from the searches, and marked if one still comes back. LEMON ("Liberated Excellent Manuals
+# ONline") and CHARM give no source for their manuals; 17vin does not explain its rights to them.
+BLOCKED = ("lemon-manuals.la", "lemon-manuals.org.ua", "charm.li", "17vin.com")
 
 
 @dataclass(frozen=True)
@@ -81,6 +85,7 @@ class Result:
     title: str
     domain: str
     official: bool
+    blocked: bool
     names_code: bool
     names_model: bool
     year: str  # "match" | "other years only" | "not stated"
@@ -99,6 +104,15 @@ class ProviderRun:
 
 _RANGE = re.compile(r"\b((?:19|20)\d\d)\s*(?:[-–~]|to)\s*((?:19|20)?\d\d)?")
 _YEAR = re.compile(r"\b(?:19|20)\d\d\b")
+_MONTH = r"(?:jan|feb|mar|apr|may|jun|jul|aug|sep|sept|oct|nov|dec)[a-z]*\.?"
+# Dates are when a page was written, not which cars it is for: "January 16, 2020", "16 Jan 2020",
+# "2020-01-16", "1/16/2020", "© 2020".
+_DATE = re.compile(
+    rf"\b{_MONTH}\s+(?:\d{{1,2}}(?:st|nd|rd|th)?,?\s+)?(?:19|20)\d\d\b"
+    rf"|\b\d{{1,2}}\s+{_MONTH}\s+(?:19|20)\d\d\b"
+    r"|\b(?:19|20)\d\d-\d\d-\d\d\b|\b\d{1,2}/\d{1,2}/(?:19|20)\d\d\b|(?:©|\(c\)|copyright)\s*(?:19|20)\d\d",
+    re.IGNORECASE,
+)
 
 
 def year_fit(text: str, year: int | None) -> str:
@@ -110,6 +124,7 @@ def year_fit(text: str, year: int | None) -> str:
     """
     if year is None:
         return "not stated"
+    text = _DATE.sub(" ", text)
     years = {int(y) for y in _YEAR.findall(text)}
     open_hit = False
     for start, end in _RANGE.findall(text):
@@ -137,6 +152,7 @@ def judge(case: Case, url: str, title: str, text: str) -> Result:
         title=title[:150],
         domain=domain,
         official=any(domain == d or domain.endswith("." + d) for d in OFFICIAL),
+        blocked=any(domain == d or domain.endswith("." + d) for d in BLOCKED),
         names_code=code[:5] in low.replace("_", "") or code in low.replace("_", ""),
         names_model=any(w in low for w in case.model_words),
         year=year_fit(whole, case.year),
@@ -150,6 +166,8 @@ async def tavily(client: httpx.AsyncClient, key: str, case: Case, official_only:
             "include_answer": False, "include_raw_content": False}
     if official_only:
         body["include_domains"] = OFFICIAL_SEARCH
+    else:
+        body["exclude_domains"] = list(BLOCKED)
     start = time.perf_counter()
     try:
         r = await client.post("https://api.tavily.com/search", json=body,
@@ -163,7 +181,8 @@ async def tavily(client: httpx.AsyncClient, key: str, case: Case, official_only:
 
 
 async def exa(client: httpx.AsyncClient, key: str, case: Case) -> ProviderRun:
-    body = {"query": case.query(), "type": "auto", "numResults": MAX_RESULTS, "contents": {"highlights": True}}
+    body = {"query": case.query(), "type": "auto", "numResults": MAX_RESULTS, "contents": {"highlights": True},
+            "excludeDomains": list(BLOCKED)}
     start = time.perf_counter()
     try:
         r = await client.post("https://api.exa.ai/search", json=body, headers={"x-api-key": key}, timeout=TIMEOUT_S)
@@ -191,11 +210,12 @@ def line(run: ProviderRun) -> str:
         return f"  {run.provider:<16} FAILED in {run.seconds:4.1f}s  {run.error}"
     n = len(run.results)
     official = sum(r.official for r in run.results)
-    exact = sum(r.names_code and r.names_model and r.year == "match" for r in run.results)
+    exact = sum(r.names_code and r.names_model and r.year == "match" and not r.blocked for r in run.results)
+    blocked = sum(r.blocked for r in run.results)
     other = sum(r.year == "other years only" for r in run.results)
     opn = sum(r.year == "open range" for r in run.results)
     return (f"  {run.provider:<16} {run.seconds:4.1f}s  results {n}  official {official}  "
-            f"code+model+year {exact}  other years only {other}  open range {opn}  {run.cost}")
+            f"code+model+year {exact}  other years only {other}  open range {opn}  blocked {blocked}  {run.cost}")
 
 
 async def main() -> int:
@@ -222,12 +242,13 @@ async def main() -> int:
             continue
         results = [x for r in runs for x in r["results"]]
         ok = [r for r in runs if r["ok"]]
-        exact_cases = sum(any(x["names_code"] and x["names_model"] and x["year"] == "match" for x in r["results"]) for r in runs)
+        exact_cases = sum(any(x["names_code"] and x["names_model"] and x["year"] == "match" and not x["blocked"] for x in r["results"]) for r in runs)
         print(f"  {provider:<16} searches ok {len(ok)}/{len(runs)}  "
               f"avg {sum(r['seconds'] for r in ok) / max(len(ok), 1):4.1f}s  results {len(results)}  "
               f"official {sum(x['official'] for x in results)}  "
               f"cases with an exact (code+model+year) result {exact_cases}/{len(runs)}  "
-              f"other-years-only results {sum(x['year'] == 'other years only' for x in results)}")
+              f"other-years-only results {sum(x['year'] == 'other years only' for x in results)}  "
+              f"blocked {sum(x['blocked'] for x in results)}")
 
     out = ROOT / "eval" / "results" / f"web-probe-{datetime.now(UTC):%Y%m%d-%H%M%S}.json"
     out.parent.mkdir(parents=True, exist_ok=True)
