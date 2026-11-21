@@ -89,16 +89,18 @@ def intake(**fields):
 class Script:
     """A scripted model: intake answers by message, translation that keeps the text, compose answers in order."""
 
-    def __init__(self, intakes=None, advise=None, general=None, report=None, translate=None):
+    def __init__(self, intakes=None, advise=None, general=None, report=None, translate=None, web=None):
         self.intakes = intakes or {}
         self.advise = list(advise or [])
         self.general = list(general or [])
+        self.web = list(web or [])
         self.report = report
         self.translate = translate
         self.model = ScriptedModel({
             "intake": self._intake, "translate": self._translate,
             "advise": lambda *_: self.advise.pop(0) if self.advise else {"use": [], "message": ""},
             "general": lambda *_: self.general.pop(0) if self.general else {"message": "Start with the battery, the fuses and the grounds."},
+            "web": lambda *_: self.web.pop(0) if self.web else {"use": [], "message": ""},
             "summary": lambda *_: {"message": "Session closed."}, "report": lambda *_: self.report})
 
     def _intake(self, system, user, schema):
@@ -632,3 +634,95 @@ def test_wiring_answers_and_their_questions_are_written_in_code_in_the_mechanics
     step = engine.turn(state, f"{VSA} pin 3").reply  # the button
     assert state.language == "ar" and len(script.calls("intake")) == intakes_before  # same language, no model call
     assert step.type == "step" and f"فحوصات {VSA} pin 3 إلى ground G020" in step.message
+
+
+# -- web search: no verified data, pages from the web (project doc web-search-design.md) --------------------
+class FakeWeb:
+    """An external source that returns the pages it is given, and records what it was asked."""
+
+    name = "web"
+    codes_per_lookup = 2
+
+    def __init__(self, items, searches_per_session=6):
+        from app.engine.external import ExternalLookup
+        from app.engine.model import TraceEntry
+
+        self.items, self.searches_per_session, self.asked = items, searches_per_session, []
+        self._lookup, self._trace = ExternalLookup, TraceEntry
+
+    def lookup(self, vehicle, codes, question):
+        self.asked.append(list(codes))
+        return self._lookup(items=list(self.items), calls=[self._trace("web_search", "exa", 1.2, cost_usd=0.007)], searched=len(codes))
+
+
+def web_page(url, title, text, applies="fits", reasons=()):
+    from app.engine.external import ExternalItem
+    from app.web.source import item_id
+
+    return ExternalItem(id=item_id(url), provider="exa", title=title, text=text, url=url, kind="web",
+                        extra={"applies": applies, "reasons": list(reasons), "code": "P0341", "domain": url.split("/")[2]})
+
+
+CAM = web_page("https://www.example-codes.com/p0341-integra", "P0341 on the 2025 Acura Integra",
+               "P0341 on the 2025 Integra: the camshaft position signal does not match the crankshaft. "
+               "Check the CMP sensor connector, then the timing chain. Sensor resistance 7.14 ohm.")
+BULLETIN = web_page("https://static.nhtsa.gov/odi/tsbs/2024/MC-1.pdf", "Acura bulletin A24-001 P0341",
+                    "A24-001: some 2023- Integra may set P0341 after an oil change", applies="check",
+                    reasons=["open year range: may be another generation"])
+
+
+def test_no_verified_data_answers_from_web_pages_each_linked_and_marked(kb):
+    script = Script(web=[{"use": [CAM.id, BULLETIN.id],
+                          "message": "Per example-codes.com, P0341 means the camshaft and crankshaft signals disagree. "
+                                     "Bulletin A24-001 may also apply. First check the CMP sensor connector. What do you see?"}])
+    web = FakeWeb([CAM, BULLETIN])
+    engine, state = Engine(kb, script.model, external=web), session()
+    result = engine.turn(state, "2025 Integra, code P0341.")
+    reply = result.reply
+    assert reply.tier == "web" and reply.type == "question" and reply.confidence == "low"
+    assert "web pages, not verified" in reply.message and "confirm they match this car" in reply.message  # one page is "check"
+    assert [(e.type, e.url, e.applies) for e in reply.evidence] == [("web", CAM.url, "fits"), ("web", BULLETIN.url, "check")]
+    assert web.asked == [["P0341"]] and state.external_searches == 1
+    assert [t.model for t in script.model.trace if t.purpose == "web_search"] == ["exa"]
+    assert [g.tier for g in result.gaps] == ["web"]  # still a gap in the knowledge base
+
+
+def test_a_value_from_a_web_page_is_refused_and_the_reply_falls_back_to_general_knowledge(kb):
+    value = {"use": [CAM.id], "message": "Measure the CMP sensor: it should read 7.14 ohm. What do you read?"}
+    script = Script(web=[value, value], general=[{"message": "Start with the CMP sensor connector. What do you find?"}])
+    engine, state = Engine(kb, script.model, external=FakeWeb([CAM])), session()
+    reply = engine.turn(state, "2025 Integra, code P0341.").reply
+    assert reply.tier == "general" and "7.14" not in reply.message
+    assert [t.rejected is not None for t in script.calls("web")] == [True, True]
+
+
+def test_web_search_stops_at_the_sessions_limit_and_nothing_found_means_general_knowledge(kb):
+    web = FakeWeb([CAM], searches_per_session=1)
+    script = Script(web=[{"use": [CAM.id], "message": "Check the CMP sensor connector first. What do you see?"}],
+                    general=[{"message": "Start with the battery and the fuses. What do you find?"}] * 2)
+    engine, state = Engine(kb, script.model, external=web), session()
+    assert engine.turn(state, "2025 Integra, code P0341.").reply.tier == "web"
+    assert engine.turn(state, "P0344 as well, same car.").reply.tier == "general"  # the one search is spent
+    assert web.asked == [["P0341"]]
+    nothing = Engine(kb, Script().model, external=FakeWeb([])).turn(session(), "2025 Integra, code P0341.").reply
+    assert nothing.tier == "general"
+
+
+def test_web_search_is_never_used_where_verified_data_exists_or_for_a_pin_question(kb):
+    web = FakeWeb([CAM])
+    procedure = Engine(kb, Script().model, external=web).turn(session(), "2025 Acura Integra 1.5L turbo, fault code P0010.").reply
+    assert procedure.tier == "verified"
+    script = Script(intakes={"Which ECM pin is the rear oxygen sensor?": {"intent": "spec_question"}})
+    pin = Engine(kb, script.model, external=web).turn(session({"make": "Toyota", "model": "Camry", "year": 2018}),
+                                                      "Which ECM pin is the rear oxygen sensor?").reply
+    assert pin.tier == "none" and web.asked == []
+
+
+def test_a_high_voltage_car_gets_the_safety_warning_and_no_solvent_advice_from_the_web(kb):
+    page = web_page("https://ev.example/qin", "BYD Qin Plus DM-i P2B6013", "P2B6013 on the 2024 Qin Plus DM-i: insulation fault")
+    cleaner = {"use": [page.id], "message": "Clean the battery pack connector with brake cleaner. Did that help?"}
+    safe = {"use": [page.id], "message": "This is an insulation fault: a qualified high-voltage technician must check it. Is the car parked?"}
+    script = Script(web=[cleaner, safe])
+    engine = Engine(kb, script.model, external=FakeWeb([page]))
+    reply = engine.turn(session(BYD), "Qin Plus DM-i 2024, code P2B6013.").reply
+    assert reply.tier == "web" and "brake cleaner" not in reply.message and any("high-voltage" in w for w in reply.warnings)

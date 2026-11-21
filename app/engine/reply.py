@@ -5,6 +5,8 @@ and the pictures without parsing text. `tier` is the answer policy's label:
 
   verified  every specific fact in the reply comes from a record in the knowledge base, cited in `evidence`
   general   general knowledge, labelled as not verified for this car
+  web       no verified data: the reply comes from web pages, each one linked in `evidence` with its fit for
+            this car ("fits" or "check"); never verified, never the source of a value (project doc web-search-design.md)
   none      no basis: the reply asks a question, or says there is no verified information
 """
 
@@ -17,8 +19,8 @@ from pydantic import BaseModel, ConfigDict, Field
 from app.kb.schemas import NormalRange, TestPoint
 
 ReplyType = Literal["question", "step", "conclusion", "escalation", "emergency"]
-Tier = Literal["verified", "general", "none"]
-EvidenceType = Literal["procedure", "diagram", "case", "expert_note", "external"]
+Tier = Literal["verified", "web", "general", "none"]
+EvidenceType = Literal["procedure", "diagram", "case", "expert_note", "external", "web"]
 
 
 class _Out(BaseModel):
@@ -57,6 +59,8 @@ class Evidence(_Out):
     title: str
     excerpt: str
     status: Literal["approved", "draft"] = "approved"  # draft only when the service reads drafts (evaluation)
+    url: str | None = None  # web: the page, shown to the mechanic as a link (credit to the publisher)
+    applies: Literal["fits", "check"] | None = None  # web: "check" = confirm the page is for this car (year, engine)
 
 
 class DiagramPage(_Out):

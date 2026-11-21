@@ -56,6 +56,16 @@ FIXED = {
         "ar": "لا توجد بيانات موثقة عن هذا لهذه السيارة في قاعدة البيانات. ما يلي معلومات عامة غير موثقة لهذه السيارة:",
         "ur": "اس گاڑی کے لیے نالج بیس میں اس بارے میں کوئی تصدیق شدہ ڈیٹا نہیں ہے۔ درج ذیل عمومی معلومات ہیں، اس گاڑی کے لیے تصدیق شدہ نہیں:",
     },
+    "web_header": {
+        "en": "{codes}: no verified data for this car in the knowledge base. What follows comes from web pages, not verified for this car; the links are below:",
+        "ar": "{codes}: لا توجد بيانات موثقة لهذه السيارة في قاعدة البيانات. ما يلي مأخوذ من صفحات على الإنترنت وغير موثق لهذه السيارة، والروابط في الأسفل:",
+        "ur": "{codes}: اس گاڑی کے لیے نالج بیس میں کوئی تصدیق شدہ ڈیٹا نہیں ہے۔ درج ذیل انٹرنیٹ کے صفحات سے لیا گیا ہے اور اس گاڑی کے لیے تصدیق شدہ نہیں، لنکس نیچے ہیں:",
+    },
+    "web_check": {
+        "en": "Some of these pages may be for another model year or engine: please confirm they match this car before relying on them.",
+        "ar": "بعض هذه الصفحات قد تكون لسنة صنع أو محرك آخر، لذا يرجى التأكد من مطابقتها لهذه السيارة قبل الاعتماد عليها.",
+        "ur": "ان میں سے کچھ صفحات کسی اور ماڈل سال یا انجن کے ہو سکتے ہیں، اس لیے براہ کرم ان پر بھروسہ کرنے سے پہلے تصدیق کریں کہ یہ اس گاڑی سے میل کھاتے ہیں۔",
+    },
     "general_fallback": {
         "en": 'Please start with the basics for this fault: battery voltage, the fuses and grounds of the system, and the connectors of the parts involved. Then tell me what you find.',
         "ar": 'يرجى البدء بالأساسيات لهذا العطل: فولتية البطارية، وفيوزات النظام والأرضي، وكنكتورات القطع المعنية. ثم أخبرني بما تجده.',

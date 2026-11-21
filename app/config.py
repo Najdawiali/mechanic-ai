@@ -59,12 +59,25 @@ class Settings(BaseSettings):
     kb_serve_drafts: bool = False
     # The emergency number in the safety texts (Jordan: 911, the unified number).
     emergency_number: str = "911"
-    # An outside source of diagnostic data (app/engine/external.py). "off" until a provider is licensed.
+    # An outside source of diagnostic data (app/engine/external.py): "off", or "web" (app/web, project doc
+    # web-search-design.md). Web results go to mechanics only after the provider's written OK (design 2.12).
     external_source: str = "off"
-    # Web search providers (scripts/web_probe.py now; the web source adapter if the probe justifies it).
-    tavily_api_key: SecretStr | None = None
+    # Web search: Exa first, Tavily only if Exa fails. Time limits in seconds; the budget covers the whole lookup.
     exa_api_key: SecretStr | None = None
+    tavily_api_key: SecretStr | None = None
+    web_search_type: str = "auto"  # Exa's search type; "auto" until scripts/web_verify.py compares it with "fast"
+    web_timeout_s: float = 6.0
+    web_fallback_timeout_s: float = 5.0
+    web_budget_s: float = 8.0
+    web_max_results: int = 5
+    web_searches_per_session: int = 6
+    # Sites never used as a source, comma-separated: they republish manuals without showing any right to them.
+    web_blocked_domains: str = "lemon-manuals.la,lemon-manuals.org.ua,charm.li,17vin.com"
     db_pool_max: int = 10
+
+    @property
+    def web_blocked(self) -> tuple[str, ...]:
+        return tuple(d.strip().lower() for d in self.web_blocked_domains.split(",") if d.strip())
 
 
 @lru_cache

@@ -92,6 +92,7 @@ class SessionState(_State):
     confirmed_fix: str | None = None
     repairs: list[str] = Field(default_factory=list)  # every repair the mechanic reported, in order, the fixing one last
     history: list[Turn] = Field(default_factory=list)
+    external_searches: int = 0  # web searches spent in this session (limited by the source's searches_per_session)
     closed: bool = False
 
     HISTORY_KEPT: ClassVar[int] = 12

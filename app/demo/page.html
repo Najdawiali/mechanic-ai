@@ -130,7 +130,7 @@ function showReply(r, seconds) {
   const m = el("div", "msg ai");
   const b = el("div", "badges");
   b.append(el("span", `badge ${r.type === "emergency" ? "emergency" : ""}`, r.type));
-  b.append(el("span", `badge ${r.tier}`, { verified: "verified", general: "general knowledge", none: "no verified data" }[r.tier] || r.tier));
+  b.append(el("span", `badge ${r.tier}`, { verified: "verified", web: "web, not verified", general: "general knowledge", none: "no verified data" }[r.tier] || r.tier));
   if (r.confidence) b.append(el("span", "badge", `confidence: ${r.confidence}`));
   if ((r.evidence || []).some((e) => e.status === "draft")) b.append(el("span", "badge draft", "uses draft records"));
   b.append(el("span", "badge", `${seconds.toFixed(1)} s`));
@@ -167,7 +167,10 @@ function showReply(r, seconds) {
   }
   if (r.evidence && r.evidence.length) {
     const s = el("div", "box"); s.append(el("b", null, "Sources"));
-    for (const e of r.evidence) { const d = el("details"); d.append(el("summary", null, `${e.type}${e.status === "draft" ? " (draft)" : ""}: ${e.title}`));
+    for (const e of r.evidence) { const d = el("details");
+      const fit = e.applies === "check" ? " (check it fits this car)" : e.applies === "fits" ? " (fits this car)" : "";
+      d.append(el("summary", null, `${e.type}${e.status === "draft" ? " (draft)" : ""}: ${e.title}${fit}`));
+      if (e.url && /^https?:\/\//.test(e.url)) { const a = el("a", null, e.url); a.href = e.url; a.target = "_blank"; a.rel = "noopener noreferrer"; d.append(a); }
       d.append(el("pre", null, e.excerpt)); s.append(d); }
     m.append(s);
   }

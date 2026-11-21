@@ -23,7 +23,6 @@ from __future__ import annotations
 
 import asyncio
 import json
-import re
 import sys
 import time
 from dataclasses import asdict, dataclass, field
@@ -36,6 +35,7 @@ import httpx
 ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT))  # this repo's app, whatever is installed
 from app.config import get_settings
+from app.web import applicability
 
 TIMEOUT_S = 15.0
 MAX_RESULTS = 5
@@ -102,44 +102,8 @@ class ProviderRun:
     results: list[Result] = field(default_factory=list)
 
 
-_RANGE = re.compile(r"\b((?:19|20)\d\d)\s*(?:[-–~]|to)\s*((?:19|20)?\d\d)?")
-_YEAR = re.compile(r"\b(?:19|20)\d\d\b")
-_MONTH = r"(?:jan|feb|mar|apr|may|jun|jul|aug|sep|sept|oct|nov|dec)[a-z]*\.?"
-# Dates are when a page was written, not which cars it is for: "January 16, 2020", "16 Jan 2020",
-# "2020-01-16", "1/16/2020", "© 2020".
-_DATE = re.compile(
-    rf"\b{_MONTH}\s+(?:\d{{1,2}}(?:st|nd|rd|th)?,?\s+)?(?:19|20)\d\d\b"
-    rf"|\b\d{{1,2}}\s+{_MONTH}\s+(?:19|20)\d\d\b"
-    r"|\b(?:19|20)\d\d-\d\d-\d\d\b|\b\d{1,2}/\d{1,2}/(?:19|20)\d\d\b|(?:©|\(c\)|copyright)\s*(?:19|20)\d\d",
-    re.IGNORECASE,
-)
-
-
-def year_fit(text: str, year: int | None) -> str:
-    """Does the text apply to this model year?
-
-    "match": the year itself, or a closed range that holds it (2016-2019, 2023–25, 2016 to 2019).
-    "open range": only an open range holds it ("2016~", "2016-"): it may be another generation.
-    "other years only": years are named and none fits. "not stated": no year at all.
-    """
-    if year is None:
-        return "not stated"
-    text = _DATE.sub(" ", text)
-    years = {int(y) for y in _YEAR.findall(text)}
-    open_hit = False
-    for start, end in _RANGE.findall(text):
-        low = int(start)
-        if not end:
-            open_hit = open_hit or year >= low
-            continue
-        high = int(end) if len(end) == 4 else int(start[:2] + end)
-        if low <= year <= high:
-            return "match"
-    if year in years:
-        return "match"
-    if open_hit:
-        return "open range"
-    return "other years only" if years else "not stated"
+# The year check is the product's own (app/web/applicability.py), so the probe measures what the assistant does.
+year_fit = applicability.year_fit
 
 
 def judge(case: Case, url: str, title: str, text: str) -> Result:

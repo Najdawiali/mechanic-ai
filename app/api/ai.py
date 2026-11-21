@@ -82,7 +82,7 @@ def service(authorization: str | None = Header(default=None)) -> None:
 def _engine(conn: psycopg.Connection, model: ModelClient) -> Engine:
     settings = get_settings()
     return Engine(KnowledgeStore(conn), model, statuses=APPROVED_AND_DRAFT if settings.kb_serve_drafts else APPROVED,
-                  external=from_settings(settings.external_source), emergency_number=settings.emergency_number,
+                  external=from_settings(settings), emergency_number=settings.emergency_number,
                   roles=Roles.from_settings(settings))
 
 

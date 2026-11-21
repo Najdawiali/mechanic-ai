@@ -28,6 +28,8 @@ _EASTERN_DIGIT = re.compile("[٠-٩۰-۹]")
 _NUMBER = re.compile(r"^\d+(?:\.\d+)?$")
 # words that carry a digit but say nothing specific about the car
 _HARMLESS = {"1st", "2nd", "3rd", "4th", "12v", "12-volt", "24/7"}
+# a value with its unit glued on, as tokens() gives it: 12V, 0.5MV, 40A, 120OHM, 2.5KPA, 30PSI, 25NM, 50HZ, 10MS, 5K, 20%
+_VALUE_WITH_UNIT = re.compile(r"^\d+(?:\.\d+)?(?:V|MV|KV|A|MA|OHMS?|KOHMS?|Ω|KΩ|KPA|PA|BAR|PSI|NM|HZ|KHZ|MS|S|K|KW|W|C|F|°C|°F|RPM|MM|CM|L|%)$")
 
 
 def _clean(token: str) -> str:
@@ -68,6 +70,14 @@ class Allowed:
                     self.numbers.add(float(part))
             if _NUMBER.match(token):
                 self.numbers.add(float(token))
+
+    def add_identifiers(self, text: str | None) -> None:
+        """Only the names in an untrusted text (a web page): fault codes, bulletin numbers, engine codes, model
+        names like ID.4. Never its values: "7.14", "12V", "40A", "2.5kPa" from the web are not allowed (design 2.7)."""
+        for token in tokens(text or ""):
+            if re.search(r"[A-Z]", token) and not _VALUE_WITH_UNIT.match(token):
+                self.words.add(token)
+                self.words.add(re.sub(r"[.\-]", "", token))
 
     def has(self, token: str) -> bool:
         if token in self.words or re.sub(r"[.\-]", "", token) in self.words or token.lower() in _HARMLESS:
