@@ -46,6 +46,11 @@ FIXED = {
         "ar": 'عذراً، لا توجد معلومات موثقة عن هذا لهذه السيارة في قاعدة البيانات، لذلك لا أستطيع إعطاء رقم بن أو لون سلك أو قيمة. يرجى أخذها من معلومات الصيانة أو مخطط الأسلاك الخاص بالشركة المصنعة لهذه السيارة، أو سؤال خبير الورشة.',
         "ur": 'معذرت، اس گاڑی کے لیے نالج بیس میں اس بارے میں کوئی تصدیق شدہ معلومات نہیں ہیں، اس لیے میں پن نمبر، تار کا رنگ یا ویلیو نہیں دے سکتا۔ براہ کرم یہ اس گاڑی کی مینوفیکچرر سروس معلومات یا وائرنگ ڈایاگرام سے لیں، یا ورکشاپ کے ماہر سے پوچھیں۔',
     },
+    "no_verified_spec": {
+        "en": "Sorry, there is no verified information on this for this car in the knowledge base, so I can't give an exact value or specification for it. Please take it from the manufacturer's service information for this car, or ask the workshop's expert.",
+        "ar": "عذراً، لا توجد معلومات موثقة عن هذا لهذه السيارة في قاعدة البيانات، لذلك لا أستطيع إعطاء قيمة أو مواصفة دقيقة له. يرجى أخذها من معلومات الصيانة الخاصة بالشركة المصنعة لهذه السيارة، أو سؤال خبير الورشة.",
+        "ur": "معذرت، اس گاڑی کے لیے نالج بیس میں اس بارے میں کوئی تصدیق شدہ معلومات نہیں ہیں، اس لیے میں اس کی درست ویلیو یا اسپیسیفکیشن نہیں دے سکتا۔ براہ کرم یہ اس گاڑی کی مینوفیکچرر سروس معلومات سے لیں، یا ورکشاپ کے ماہر سے پوچھیں۔",
+    },
     "general_header": {
         "en": "{codes}: no verified data for this car in the knowledge base. What follows is general knowledge, not verified for this car:",
         "ar": "{codes}: لا توجد بيانات موثقة لهذه السيارة في قاعدة البيانات. ما يلي معلومات عامة غير موثقة لهذه السيارة:",
@@ -348,11 +353,15 @@ _WORD_COUNT = re.compile(r"(?i)(?:\(\s*)?\b\d+\s+words?(?:\s+(?:limit\s+)?(?:rea
 
 
 TONE = ("Tone: polite and professional, like an experienced technician advising a colleague. No slang, no jokes, "
-        "no small talk and no greeting: the reply adds a greeting itself when one is due.")
+        "no small talk and no greeting: the reply adds a greeting itself when one is due. Do not call the mechanic by "
+        "a title or a name such as colleague, friend or brother.")
 # A greeting the model opens with: the reply greets once, in code, in the first reply only (demo, 2026-11-18)
 _GREETING = re.compile(r"^\s*(?:(?:مساء|صباح) (?:الخير|النور)|مرحب[اًا]+(?: بك(?:م)?)?|[أا]هل[اًا]+(?: وسهل[اًا]+)?(?: بك(?:م)?)?"
                        r"|السلام عليكم|السلام علیکم|hello|hi|hey|good (?:morning|afternoon|evening|day))(?![A-Za-z])\s*[,.!،:؛۔-]*\s*",
                        re.IGNORECASE)
+# A title the model calls the mechanic by ("يا زميلي." opened 3 of 5 Arabic answers, comparison run 2026-11-22)
+_VOCATIVE = re.compile(r"^\s*(?:يا\s+(?:زميلي|صديقي|أخي|اخي|غالي|حبيبي|عزيزي)(?:\s+(?:العزيز|الكريم))?|(?:my|dear)\s+(?:friend|colleague|brother))"
+                       r"(?![A-Za-z\u0621-\u064a])\s*[,.!،:؛۔-]*\s*", re.IGNORECASE)
 _QUESTION = re.compile(r"[^.!?؟۔\n]*[?؟]")
 
 
@@ -387,6 +396,7 @@ def compose(model: ModelClient, purpose: str, *, system: str, facts: dict, langu
         message = _BARE_NUMBER.sub("", _WORD_COUNT.sub("", message))  # notes about the prompt's length, not content
         message = re.sub(r"[ \t]{2,}", " ", message.replace(FIXED["greeting"][language], "")).strip()  # greeted in code
         message = _GREETING.sub("", message, count=1).strip()  # its own greeting too ("مساء الخير." after the mechanic's)
+        message = _VOCATIVE.sub("", message, count=1).strip()  # and a title for the mechanic ("يا زميلي.")
         message = message[:1].upper() + message[1:]  # "Good afternoon, check the fuse." -> "Check the fuse."
         asked = len(_QUESTION.findall(message))
         if single_question and asked > 1 and attempt == 1:

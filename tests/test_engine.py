@@ -726,3 +726,22 @@ def test_a_high_voltage_car_gets_the_safety_warning_and_no_solvent_advice_from_t
     engine = Engine(kb, script.model, external=FakeWeb([page]))
     reply = engine.turn(session(BYD), "Qin Plus DM-i 2024, code P2B6013.").reply
     assert reply.tier == "web" and "brake cleaner" not in reply.message and any("high-voltage" in w for w in reply.warnings)
+
+
+# -- comparison run 2026-11-22 (venorexai cases): wording fixes ----------------------------------------------
+def test_a_value_question_with_no_data_is_refused_in_value_words_and_a_pin_question_in_wiring_words(kb):
+    torque = "I need the exact head bolt torque values and sequence."
+    script = Script(intakes={torque: {"intent": "spec_question"},
+                             "Which ECM pin is the rear oxygen sensor?": {"intent": "spec_question"}})
+    value = Engine(kb, script.model).turn(session({"make": "Changan", "model": "CS85", "year": 2023}), torque).reply
+    assert value.tier == "none" and "exact value or specification" in value.message and "pin" not in value.message
+    pin = Engine(kb, script.model).turn(session({"make": "Toyota", "model": "Camry", "year": 2018}),
+                                        "Which ECM pin is the rear oxygen sensor?").reply
+    assert pin.tier == "none" and "pin number, wire colour" in pin.message
+
+
+def test_the_model_never_calls_the_mechanic_colleague(kb):
+    said = "يا زميلي. يشير الكود إلى خلل في الحساس. هل فحصت الوصلة؟"
+    script = Script(general=[{"message": said}, {"message": said}])
+    reply = Engine(kb, script.model).turn(session(language="ar"), "انتيجرا 2025، الكود P0341").reply
+    assert reply.tier == "general" and "يا زميلي" not in reply.message and "يشير الكود" in reply.message
