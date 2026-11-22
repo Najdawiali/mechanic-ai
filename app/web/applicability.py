@@ -112,9 +112,22 @@ def engines_said(text: str) -> set[str]:
     return said
 
 
+def is_blocked(domain: str, blocked: tuple[str, ...]) -> bool:
+    """'charm.li' blocks charm.li and its subdomains. 'lemon-manuals.*' blocks that name on any ending
+    (.la, .org.ua, .gy, ...): such sites move between domains to stay up."""
+    domain = domain.lower().removeprefix("www.")
+    for entry in blocked:
+        if entry.endswith(".*"):
+            if re.search(rf"(?:^|\.){re.escape(entry[:-2])}\.", domain):
+                return True
+        elif domain == entry or domain.endswith("." + entry):
+            return True
+    return False
+
+
 def judge(vehicle: Vehicle, code: str, url: str, title: str, text: str, blocked: tuple[str, ...]) -> Mark:
     domain = (urlparse(url).hostname or "").lower().removeprefix("www.")
-    if any(domain == d or domain.endswith("." + d) for d in blocked):
+    if is_blocked(domain, blocked):
         return Mark("drop", ["blocked site"])
     whole = f"{title} {text}"
     low = whole.lower()

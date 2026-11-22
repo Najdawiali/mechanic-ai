@@ -71,10 +71,11 @@ class WebSource:
     def _search(self, vehicle: Vehicle, code: str, q: str, highlight: str) -> tuple[list[providers.ProviderRun], list[ExternalItem], list[TraceEntry]]:
         http = self.http or providers.client()
         c = self.config
-        runs = [providers.exa(http, c.exa_key, q, highlight, max_results=c.max_results, excluded=c.blocked,
+        excluded = tuple(d for d in c.blocked if not d.endswith(".*"))  # providers take plain domains only
+        runs = [providers.exa(http, c.exa_key, q, highlight, max_results=c.max_results, excluded=excluded,
                               timeout=c.timeout_s, search_type=c.search_type)]
         if not runs[0].ok and c.tavily_key:
-            runs.append(providers.tavily(http, c.tavily_key, q, max_results=c.max_results, excluded=c.blocked,
+            runs.append(providers.tavily(http, c.tavily_key, q, max_results=c.max_results, excluded=excluded,
                                          timeout=c.fallback_timeout_s))
         items, calls = [], []
         for run in runs:

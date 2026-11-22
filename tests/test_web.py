@@ -11,7 +11,7 @@ from app.kb.schemas import Vehicle
 from app.web import applicability, query
 from app.web.source import WebConfig, WebSource
 
-BLOCKED = ("lemon-manuals.la", "lemon-manuals.org.ua", "charm.li", "17vin.com")
+BLOCKED = ("lemon-manuals.*", "lemon-manuals.la", "lemon-manuals.org.ua", "lemon-manuals.gy", "charm.li", "17vin.com")
 CAMRY_TSB = ("| Applicability | Multiple models equipped w/2GR-FKS/FXS | APPLICABLE VEHICLES 2017-2022 Highlander "
              "2018-2022 Camry | O2 and/or A/F Sensor DTC's P0420")
 
@@ -95,7 +95,7 @@ def test_exa_is_asked_with_the_blocked_sites_and_the_mechanics_words_are_never_s
     found = source(handler).lookup(car("Hyundai", "Sonata Hybrid", 2020), ["P1990"], "my customer Ahmad 0791234567 says it won't start")
     host, body, headers = sent[0]
     assert host == "api.exa.ai" and len(sent) == 1  # Exa answered: Tavily is not asked
-    assert body["excludeDomains"] == list(BLOCKED) and body["contents"]["highlights"]["query"] == "P1990 meaning causes test"
+    assert body["excludeDomains"] == [d for d in BLOCKED if not d.endswith(".*")] and body["contents"]["highlights"]["query"] == "P1990 meaning causes test"
     assert "Ahmad" not in json.dumps(body) and "0791234567" not in json.dumps(body) and headers["x-api-key"] == "e"
     assert [(i.url, i.extra["applies"]) for i in found.items] == [("https://static.nhtsa.gov/a.pdf", "fits")]
     assert found.searched == 1 and found.calls[0].purpose == "web_search" and found.calls[0].cost_usd == 0.007
@@ -153,3 +153,12 @@ def test_names_from_a_web_page_are_allowed_its_values_never():
     assert problems("It should read 7.14 ohm.", allowed) == ["7.14"]
     assert problems("Check the 40A fuse.", allowed) == ["40A"]
     assert problems("It is for 2016 cars.", allowed) == ["2016"]
+
+
+def test_a_blocked_site_is_blocked_on_any_domain_it_moves_to():
+    # seen in the team lead's evaluation results (2026-11-22): the same site on .la, .org.ua and .gy
+    for host in ("lemon-manuals.la", "lemon-manuals.org.ua", "lemon-manuals.gy", "www.lemon-manuals.gy", "lemon-manuals.xyz",
+                 "charm.li", "www.charm.li", "en.17vin.com"):
+        assert applicability.is_blocked(host, BLOCKED), host
+    for host in ("nhtsa.gov", "not-lemon-manuals.com", "lemon-manualsx.com", "charm.lie"):
+        assert not applicability.is_blocked(host, BLOCKED), host

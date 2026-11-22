@@ -72,7 +72,9 @@ class Settings(BaseSettings):
     web_max_results: int = 5
     web_searches_per_session: int = 6
     # Sites never used as a source, comma-separated: they republish manuals without showing any right to them.
-    web_blocked_domains: str = "lemon-manuals.la,lemon-manuals.org.ua,charm.li,17vin.com"
+    # "name.*" blocks the name on any domain ending (it moves); the known endings are listed too, because the
+    # providers' exclude lists take plain domains only.
+    web_blocked_domains: str = "lemon-manuals.*,lemon-manuals.la,lemon-manuals.org.ua,lemon-manuals.gy,charm.li,17vin.com"
     db_pool_max: int = 10
 
     @property
