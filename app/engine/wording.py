@@ -95,6 +95,32 @@ FIXED = {
     "label_pub_official_investigation": {"en": "Defect investigation", "ar": "تحقيق في عيب", "ur": "نقص کی تحقیقات"},
     "label_pub_unverified_report": {"en": "Owner complaint (unverified)", "ar": "شكوى مالك (غير موثقة)", "ur": "مالک کی شکایت (غیر تصدیق شدہ)"},
     "label_pub_check": {"en": "confirm it matches this car", "ar": "تأكد من مطابقتها لهذه السيارة", "ur": "تصدیق کریں کہ یہ اس گاڑی سے میل کھاتا ہے"},
+    # Safety texts for hazards found in code (app/safety/hazards.py). DRAFTS: the client's expert must approve them.
+    "hazard_hv": {
+        "en": "Safety first: do not touch, unplug, open, clean or measure the orange high-voltage cables, the high-voltage battery or the inverter yourself, and do not use a normal multimeter on them. This work needs a technician qualified for high-voltage work, with the system switched off and de-energised as the service information describes (service plug removed and the waiting time kept), insulated gloves and the right tools.",
+        "ar": "السلامة أولاً: لا تلمس ولا تفصل ولا تفتح ولا تنظف ولا تقِس الكيابل البرتقالية ذات الجهد العالي أو بطارية الجهد العالي أو الـ inverter بنفسك، ولا تستخدم عليها ملتيميتر عادي. هذا العمل يحتاج فنياً مؤهلاً للعمل على الجهد العالي، بعد إطفاء النظام وتفريغه حسب معلومات الصيانة (فصل الـ service plug وانتظار المدة المطلوبة)، مع قفازات عازلة وأدوات مخصصة.",
+        "ur": "سب سے پہلے حفاظت: نارنجی ہائی وولٹیج کیبلز، ہائی وولٹیج بیٹری یا inverter کو خود نہ چھوئیں، نہ اتاریں، نہ کھولیں، نہ صاف کریں اور نہ ناپیں، اور ان پر عام ملٹی میٹر استعمال نہ کریں۔ یہ کام ہائی وولٹیج کے لیے تربیت یافتہ ٹیکنیشن کا ہے، سسٹم کو سروس معلومات کے مطابق بند اور ڈی انرجائز کرنے کے بعد (service plug نکال کر اور مقررہ انتظار کے بعد)، انسولیٹڈ دستانوں اور مناسب اوزار کے ساتھ۔",
+    },
+    "hazard_isolation": {
+        "en": "With a high-voltage isolation fault warning, do not charge the car and do not drive it: have it moved to a workshop qualified for high-voltage work (towed if it does not go READY). If the car has been in water, keep people away from it and do not plug it in.",
+        "ar": "مع تحذير عطل عزل الجهد العالي لا تشحن السيارة ولا تقُدها: انقلها إلى ورشة مؤهلة للعمل على الجهد العالي (بالسحب إذا لم تدخل وضع READY). إذا كانت السيارة قد دخلت في الماء فأبعد الناس عنها ولا تصلها بالشاحن.",
+        "ur": "ہائی وولٹیج آئسولیشن فالٹ کی وارننگ کے ساتھ گاڑی کو چارج نہ کریں اور نہ چلائیں: اسے ہائی وولٹیج کے لیے اہل ورکشاپ تک پہنچائیں (اگر READY میں نہ آئے تو ٹو کر کے)۔ اگر گاڑی پانی میں رہی ہے تو لوگوں کو اس سے دور رکھیں اور اسے چارجر سے نہ جوڑیں۔",
+    },
+    "hazard_srs": {
+        "en": "Airbag (SRS) safety: never probe airbag, pretensioner or clock-spring connectors or circuits with a multimeter or test light, and never bypass the system with a resistor. Before unplugging any SRS part, switch the ignition off, disconnect the battery and wait the time given in the service information; read and clear codes with a scan tool.",
+        "ar": "سلامة الوسائد الهوائية (SRS): لا تفحص أبداً موصلات أو دوائر الوسائد الهوائية أو الـ pretensioner أو الـ clock spring بالملتيميتر أو لمبة الفحص، ولا تتجاوز النظام بمقاومة. قبل فصل أي قطعة من نظام SRS أطفئ السويتش وافصل البطارية وانتظر المدة المذكورة في معلومات الصيانة، واقرأ الأكواد وامسحها بجهاز الفحص.",
+        "ur": "ایئر بیگ (SRS) کی حفاظت: ایئر بیگ، pretensioner یا clock spring کے کنیکٹرز یا سرکٹس کو کبھی ملٹی میٹر یا ٹیسٹ لائٹ سے چیک نہ کریں، اور سسٹم کو کبھی ریزسٹر سے بائی پاس نہ کریں۔ SRS کا کوئی بھی پرزہ نکالنے سے پہلے اگنیشن بند کریں، بیٹری الگ کریں اور سروس معلومات میں دیا گیا وقت انتظار کریں؛ کوڈز اسکین ٹول سے پڑھیں اور صاف کریں۔",
+    },
+    "hazard_hid": {
+        "en": "Xenon (HID) safety: the ballast and bulb carry very high voltage when the lamp starts. Switch the lights off and unplug the ballast before touching the bulb or its socket, and never measure the ballast output or the bulb socket with a multimeter.",
+        "ar": "سلامة إضاءة الزينون (HID): الـ ballast واللمبة يحملان جهداً عالياً جداً عند تشغيل الضوء. أطفئ الأنوار وافصل الـ ballast قبل لمس اللمبة أو قاعدتها، ولا تقِس أبداً خرج الـ ballast أو قاعدة اللمبة بالملتيميتر.",
+        "ur": "زینون (HID) کی حفاظت: لیمپ آن ہوتے وقت ballast اور بلب میں بہت زیادہ وولٹیج ہوتا ہے۔ بلب یا اس کے ساکٹ کو چھونے سے پہلے لائٹس بند کریں اور ballast کا کنیکٹر نکالیں، اور ballast کے آؤٹ پٹ یا بلب کے ساکٹ کو کبھی ملٹی میٹر سے نہ ناپیں۔",
+    },
+    "hazard_flashing": {
+        "en": "A flashing check-engine light means a severe misfire: do not keep driving under load or on a long trip, as it can overheat the catalytic converter and start a fire. Drive gently only to the nearest workshop, or have the car towed.",
+        "ar": "وميض لمبة المكينة يعني misfire شديد: لا تكمل القيادة بحمل أو في مشوار طويل، لأن ذلك قد يسبب سخونة زائدة في الـ catalytic converter وقد يسبب حريقاً. قُد بهدوء إلى أقرب ورشة فقط، أو انقل السيارة بالسحب.",
+        "ur": "چیک انجن لائٹ کا ٹمٹمانا شدید misfire کی علامت ہے: بوجھ کے ساتھ یا لمبے سفر پر گاڑی نہ چلائیں، کیونکہ اس سے catalytic converter بہت گرم ہو سکتا ہے اور آگ لگ سکتی ہے۔ صرف آہستہ سے قریبی ورکشاپ تک جائیں، یا گاڑی ٹو کروائیں۔",
+    },
     "web_check": {
         "en": "Some of these pages may be for another model year or engine: please confirm they match this car before relying on them.",
         "ar": "بعض هذه الصفحات قد تكون لسنة صنع أو محرك آخر، لذا يرجى التأكد من مطابقتها لهذه السيارة قبل الاعتماد عليها.",

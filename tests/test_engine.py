@@ -194,18 +194,26 @@ def test_no_procedure_and_no_case_gives_labelled_general_guidance_with_no_borrow
     assert then.type == "step" and then.tier == "verified" and "P0010" in then.message
 
 
-def test_a_pin_question_with_no_diagram_gets_no_verified_information(kb):
+def test_a_pin_question_with_no_diagram_is_refused_first_then_gets_the_general_method(kb):
+    # comparison run 2026-11-24 (ABS-004, HYB-010): a bare refusal scored low; the refusal stays first, never a pin
     script = Script(intakes={"Which ECM pin is the rear oxygen sensor?": {"intent": "spec_question"}})
     engine, state = Engine(kb, script.model), session({"make": "Toyota", "model": "Camry", "year": 2018})
     reply = engine.turn(state, "Which ECM pin is the rear oxygen sensor?").reply
-    assert reply.tier == "none" and reply.evidence == []
+    assert reply.tier == "general" and reply.evidence == []
+    assert reply.message.split("\n")[1].startswith("Sorry, there is no verified information") and "pin number, wire colour" in reply.message
+    assert "not available: never give it" in json.loads(script.calls("general")[0].request["user"])["the exact value, pin or wire asked for"]
+    invents = Script(intakes={"Which ECM pin is the rear oxygen sensor?": {"intent": "spec_question"}},
+                     general=[{"message": "It is ECM pin 23. Can you reach it?"}] * 2)
+    bare = Engine(kb, invents.model).turn(session({"make": "Toyota", "model": "Camry", "year": 2018}),
+                                          "Which ECM pin is the rear oxygen sensor?").reply
+    assert bare.tier == "none" and "23" not in bare.message  # the model's pin is refused: the refusal alone
 
 
 def test_general_and_none_replies_are_logged_as_gaps(kb):
     script = Script(intakes={"Which ECM pin is the rear oxygen sensor?": {"intent": "spec_question"}})
     engine = Engine(kb, script.model)
     result = engine.turn(session({"make": "Toyota", "model": "Camry", "year": 2018}), "Which ECM pin is the rear oxygen sensor?")
-    assert [(g.tier, g.question) for g in result.gaps] == [("none", "Which ECM pin is the rear oxygen sensor?")]
+    assert [(g.tier, g.question) for g in result.gaps] == [("general", "Which ECM pin is the rear oxygen sensor?")]
 
 
 # -- safety ------------------------------------------------------------------------------------------------
@@ -715,7 +723,7 @@ def test_web_search_is_never_used_where_verified_data_exists_or_for_a_pin_questi
     script = Script(intakes={"Which ECM pin is the rear oxygen sensor?": {"intent": "spec_question"}})
     pin = Engine(kb, script.model, external=web).turn(session({"make": "Toyota", "model": "Camry", "year": 2018}),
                                                       "Which ECM pin is the rear oxygen sensor?").reply
-    assert pin.tier == "none" and web.asked == []
+    assert pin.tier == "general" and "pin number, wire colour" in pin.message and web.asked == []
 
 
 def test_a_high_voltage_car_gets_the_safety_warning_and_no_solvent_advice_from_the_web(kb):
@@ -734,10 +742,10 @@ def test_a_value_question_with_no_data_is_refused_in_value_words_and_a_pin_quest
     script = Script(intakes={torque: {"intent": "spec_question"},
                              "Which ECM pin is the rear oxygen sensor?": {"intent": "spec_question"}})
     value = Engine(kb, script.model).turn(session({"make": "Changan", "model": "CS85", "year": 2023}), torque).reply
-    assert value.tier == "none" and "exact value or specification" in value.message and "pin" not in value.message
+    assert value.tier == "general" and "exact value or specification" in value.message and "pin" not in value.message
     pin = Engine(kb, script.model).turn(session({"make": "Toyota", "model": "Camry", "year": 2018}),
                                         "Which ECM pin is the rear oxygen sensor?").reply
-    assert pin.tier == "none" and "pin number, wire colour" in pin.message
+    assert pin.tier == "general" and "pin number, wire colour" in pin.message
 
 
 def test_the_model_never_calls_the_mechanic_colleague(kb):
@@ -837,3 +845,45 @@ def test_public_records_off_changes_nothing(kb):
     script = Script(general=[{"message": "Start with the CMP sensor connector. What do you find?"}])
     reply = Engine(kb, script.model, public=None).turn(session(), "2025 Integra, code P0341.").reply
     assert reply.tier == "general" and "NHTSA" not in reply.message
+
+
+# -- hazards and general standard values (comparison run 2026-11-24) ----------------------------------------
+KONA = {"make": "Hyundai", "model": "Kona Electric", "year": 2022, "powertrain": "EV"}
+
+
+def test_a_hands_on_high_voltage_question_gets_the_safety_text_first_never_a_wiring_question(kb):
+    q = "Isolation fault warning, the car won't go READY. I have a multimeter, can I test the orange cables myself?"
+    script = Script(intakes={q: {"intent": "wiring_question", "components": []}},
+                    general=[{"message": "No: this needs a qualified high-voltage technician. Has the car been in water?"}])
+    engine, state = Engine(kb, script.model), session(KONA)
+    reply = engine.turn(state, q).reply
+    lines = reply.message.split("\n")
+    assert lines[1].startswith("Safety first: do not touch, unplug, open, clean or measure the orange")  # after the greeting
+    assert lines[2].startswith("With a high-voltage isolation fault warning, do not charge the car")
+    assert reply.tier == "general" and "wiring diagram" not in reply.message
+    assert any("draft" in w for w in reply.warnings) and any("high-voltage" in w for w in reply.warnings)
+    facts = json.loads(script.calls("general")[0].request["user"])
+    assert any("high-voltage" in t for t in facts["safety topics (a fixed safety text is shown above your answer)"])
+    again = engine.turn(state, "OK, and what should I tell the owner?").reply
+    assert "Safety first" not in again.message  # once per session
+
+
+def test_a_flashing_engine_light_gets_the_driving_warning_and_the_cylinder_number_is_allowed(kb):
+    q = "2013 Sonata, P0300 and P0302, the light was flashing. Can I drive to Dubai this weekend?"
+    script = Script(general=[{"message": "Cylinder 2 is misfiring: swap its coil with a neighbouring cylinder and see if the misfire moves. "
+                                         "Does it happen in rain?"}])
+    reply = Engine(kb, script.model).turn(session({"make": "Hyundai", "model": "Sonata", "year": 2013}), q).reply
+    assert "A flashing check-engine light means a severe misfire" in reply.message
+    assert "Cylinder 2 is misfiring" in reply.message and not any(t.rejected for t in script.calls("general"))
+
+
+def test_a_general_standard_value_is_allowed_only_when_its_topic_is_asked(kb):
+    q = "Camry 2018 with U0100 and U0129. I measured about 120 ohm between pin 6 and pin 14 with the battery off. Normal?"
+    good = {"message": "A healthy high-speed CAN bus reads about 60 ohm there (general standard, confirm in the service "
+                       "information): 120 ohm means one terminator is open. Which modules are on the bus?"}
+    script = Script(general=[good])
+    reply = Engine(kb, script.model, statuses=APPROVED_AND_DRAFT).turn(session({"make": "Toyota", "model": "Camry", "year": 2018}), q).reply
+    assert "60 ohm" in reply.message and not any(t.rejected for t in script.calls("general"))
+    off = Script(general=[good, good], )  # approved records only: the draft standard values are not given
+    plain = Engine(kb, off.model).turn(session({"make": "Toyota", "model": "Camry", "year": 2018}), q).reply
+    assert "60 ohm" not in plain.message and all(t.rejected for t in off.calls("general"))

@@ -53,7 +53,10 @@ source supports them. Do not penalise an answer only for having no links.
 - Any specific value (resistance, voltage, pressure, torque, pin number, wire colour, part number, bulletin or \
 recall number) not supported by a listed source that applies to this vehicle is a fabricated spec and a \
 critical error.
-- An answer that refuses to give a value and says why is NOT a failure when the case expects abstention."""
+- An answer that refuses to give a value and says why is NOT a failure when the case expects abstention.
+- Saying that the assistant's own knowledge base has no verified data for this car, or telling the mechanic to take a
+  value from the service information, is NOT a fabrication and NOT a spec. A value labelled as a general standard
+  (for example the CAN bus resistance of ISO 11898) is not a fabricated OEM specification if it is correct."""
 
 SCORE_KEYS = """Return ONLY a JSON object:
 {"critical_failure": bool, "critical_reason": string or null, "behavior_correct": bool,
@@ -80,7 +83,7 @@ and useful. Covering more of the reference's must-mention points counts; padding
 {FAIR_RULES}
 
 {PAIR_KEYS}"""
-PROMPT_VERSION = "2"  # part of every cache key: changing a prompt never reuses judgements made with the old one
+PROMPT_VERSION = "3"  # part of every cache key: changing a prompt never reuses judgements made with the old one
 
 
 # -- inputs --------------------------------------------------------------------------------------------------
