@@ -65,7 +65,7 @@ def document_row(d: dict) -> dict | None:
                            "markets": d.get("markets") or ["US"]})}
 
 
-def import_all(source_url: str, target: psycopg.Connection, *, batch: int = 1000, limit: int | None = None,
+def import_all(source_url: str, target: psycopg.Connection, *, batch: int = 2000, limit: int | None = None,
                keep_vectors: bool = False, log=print) -> dict:
     stats = {"documents": 0, "skipped_documents": 0, "chunks": 0, "with_vector": 0}
     last_id, started = 0, time.perf_counter()
@@ -84,24 +84,32 @@ def import_all(source_url: str, target: psycopg.Connection, *, batch: int = 1000
             by_doc: dict[int, list[dict]] = {}
             for c in chunks:
                 by_doc.setdefault(c["document_id"], []).append(c)
-            with target.transaction():
-                for d in docs:
-                    row = document_row(d)
-                    if row is None:
-                        stats["skipped_documents"] += 1
-                        continue
-                    our_id = target.execute(_DOC_SQL, row).fetchone()
-                    our_id = our_id["id"] if isinstance(our_id, dict) else our_id[0]
-                    rows = [{"document_id": our_id, "chunk_index": c["chunk_index"], "text": c["text"],
-                             "make_key": row["make_key"], "model_key": row["model_key"], "year_from": row["year_from"],
-                             "year_to": row["year_to"], "source_type": row["source_type"], "codes": row["codes"],
-                             "embedding": c.get("embedding"), "embedding_model": c.get("embedding_model") if c.get("embedding") else None}
-                            for c in by_doc.get(d["id"], [])]
-                    with target.cursor() as cur:
-                        cur.executemany(_CHUNK_SQL, rows)
-                    stats["documents"] += 1
-                    stats["chunks"] += len(rows)
-                    stats["with_vector"] += sum(r["embedding"] is not None for r in rows)
+            pairs = [(d, document_row(d)) for d in docs]
+            kept = [(d, row) for d, row in pairs if row is not None]
+            stats["skipped_documents"] += len(pairs) - len(kept)
+            with target.transaction(), target.cursor() as cur:
+                # one round trip per batch, not per document (first run: 20 documents/s, about 2 hours for all)
+                ids = []
+                if kept:
+                    cur.executemany(_DOC_SQL, [row for _, row in kept], returning=True)
+                    while True:
+                        got = cur.fetchone()
+                        ids.append(got["id"] if isinstance(got, dict) else got[0])
+                        if not cur.nextset():
+                            break
+                rows = []
+                for (d, row), our_id in zip(kept, ids, strict=True):
+                    rows += [{"document_id": our_id, "chunk_index": c["chunk_index"], "text": c["text"],
+                              "make_key": row["make_key"], "model_key": row["model_key"], "year_from": row["year_from"],
+                              "year_to": row["year_to"], "source_type": row["source_type"], "codes": row["codes"],
+                              "embedding": c.get("embedding"),
+                              "embedding_model": c.get("embedding_model") if c.get("embedding") else None}
+                             for c in by_doc.get(d["id"], [])]
+                if rows:
+                    cur.executemany(_CHUNK_SQL, rows)
+                stats["documents"] += len(kept)
+                stats["chunks"] += len(rows)
+                stats["with_vector"] += sum(r["embedding"] is not None for r in rows)
             log(f"{stats['documents']:>7} documents · {stats['chunks']:>7} pieces · skipped {stats['skipped_documents']} · "
                 f"{time.perf_counter() - started:.0f} s", flush=True)
     return stats
@@ -111,7 +119,7 @@ def main(argv: list[str] | None = None) -> int:
     p = argparse.ArgumentParser(description=__doc__.splitlines()[0])
     p.add_argument("--source", required=True, help="URL of the database holding his restored dump")
     p.add_argument("--limit", type=int, help="import only the first N documents")
-    p.add_argument("--batch", type=int, default=1000)
+    p.add_argument("--batch", type=int, default=2000)
     p.add_argument("--keep-vectors", action="store_true", help="copy his vectors (made with his embedding model)")
     args = p.parse_args(argv)
 
