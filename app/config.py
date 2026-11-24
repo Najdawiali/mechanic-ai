@@ -77,6 +77,28 @@ class Settings(BaseSettings):
     web_blocked_domains: str = "lemon-manuals.*,lemon-manuals.la,lemon-manuals.org.ua,lemon-manuals.gy,charm.li,17vin.com"
     db_pool_max: int = 10
 
+    # Public records (schema pub, app/public): NHTSA recalls, investigations and owner complaints, imported from
+    # the venorexai snapshot. "off" or "nhtsa". Used when there is no verified data, and as a short note of known
+    # records beside a verified answer. US-market data, never shown as verified.
+    public_records: str = "off"
+    # Which record types are used, comma-separated (complaints are owners' unchecked reports).
+    public_record_types: str = "official_recall,official_investigation,unverified_report"
+    # The model that made the pieces' vectors; a query is embedded with the same one. Empty = llm_embedding_model.
+    # Set "Qwen/Qwen3-Embedding-8B" only when the import kept the snapshot's own vectors (--keep-vectors).
+    public_embedding_model: str = ""
+    # A piece less similar to the question than this is not used. Provisional, like search_min_similarity.
+    public_min_similarity: float = 0.5
+    public_max_items: int = 4  # records given to the model when there is no verified data
+    public_known_max: int = 3  # records listed in the note beside a verified answer
+
+    @property
+    def public_types(self) -> tuple[str, ...]:
+        return tuple(t.strip() for t in self.public_record_types.split(",") if t.strip())
+
+    @property
+    def public_model(self) -> str:
+        return self.public_embedding_model.strip() or self.llm_embedding_model
+
     @property
     def web_blocked(self) -> tuple[str, ...]:
         return tuple(d.strip().lower() for d in self.web_blocked_domains.split(",") if d.strip())

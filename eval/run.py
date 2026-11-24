@@ -163,7 +163,7 @@ class NotRunnable(RuntimeError):
 
 
 def play(scenario: Scenario, condition: str, kb: KnowledgeStore, model: ModelClient, *, statuses,
-         roles: Roles | None = None) -> RunResult:
+         roles: Roles | None = None, public=None) -> RunResult:
     if condition in ("case_in_kb", "case_held_out"):
         # Hiding a case that is not there hides nothing, and the run would pass or fail for the wrong reason
         # (first full run: 11 scenarios had no related_case_id, and every held-out run cited its case).
@@ -173,7 +173,7 @@ def play(scenario: Scenario, condition: str, kb: KnowledgeStore, model: ModelCli
             raise NotRunnable(f"{scenario.scenario_id}: related case {key!r} is not in the knowledge base")
     if condition == "case_held_out":
         kb = HeldOut(kb.conn, {scenario.related_case_id})
-    engine = Engine(kb, model, statuses=statuses, roles=roles)
+    engine = Engine(kb, model, statuses=statuses, roles=roles, public=public)
     state = SessionState(vehicle=scenario.vehicle, language=scenario.language)
     result = RunResult(scenario.scenario_id, condition)
     for i, turn in enumerate(scenario.turns, start=1):
@@ -229,6 +229,8 @@ def main(argv: list[str] | None = None) -> int:
     parser.add_argument("--only", help="run scenarios whose id contains this text")
     parser.add_argument("--group", help="run one group: procedure, language, case, diagram, report, no_data, emergency")
     parser.add_argument("--approved-only", action="store_true", help="serve approved records only, as in production")
+    parser.add_argument("--public", action="store_true",
+                        help="with the NHTSA public records (PUBLIC_RECORDS=nhtsa in .env): checks the verified paths still pass")
     args = parser.parse_args(argv)
 
     from app.db import connect
@@ -237,7 +239,8 @@ def main(argv: list[str] | None = None) -> int:
     from app.config import get_settings
 
     settings = get_settings()
-    model = GatewayModel(LLMGateway())
+    gateway = LLMGateway()
+    model = GatewayModel(gateway)
     statuses = APPROVED if args.approved_only else APPROVED_AND_DRAFT
     roles = Roles.from_settings(settings)
     print(f"models: reasoning={settings.llm_reasoning_model} fast={settings.llm_fast_model} vision={settings.llm_vision_model}")
@@ -245,10 +248,18 @@ def main(argv: list[str] | None = None) -> int:
     results = []
     with connect() as conn:
         kb = KnowledgeStore(conn)
+        public = None
+        if args.public:
+            from app.public.source import from_settings as public_records
+
+            public = public_records(settings, conn, gateway)
+            if public is None:
+                print("FAIL  --public needs PUBLIC_RECORDS=nhtsa in .env")
+                return 1
         for scenario in load(args.only, args.group):
             for condition in conditions(scenario):
                 try:
-                    results.append(play(scenario, condition, kb, model, statuses=statuses, roles=roles))
+                    results.append(play(scenario, condition, kb, model, statuses=statuses, roles=roles, public=public))
                 except NotRunnable as exc:
                     results.append(RunResult(scenario.scenario_id, condition,
                                              [TurnResult(0, "", "-", "-", "", error=f"NOT RUN: {exc}")]))

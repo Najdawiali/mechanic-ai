@@ -13,6 +13,7 @@ from __future__ import annotations
 import base64
 import json
 import mimetypes
+import threading
 import time
 from dataclasses import dataclass, field
 from pathlib import Path
@@ -64,6 +65,8 @@ class LLMGateway:
     http_client: httpx.Client | None = None  # tests inject a fake transport here
 
     def __post_init__(self) -> None:
+        self._lock = threading.Lock()
+        self.embed_tokens = 0
         key = self.settings.deepinfra_api_key
         if key is None or not key.get_secret_value().strip():
             raise RuntimeError(
@@ -78,19 +81,24 @@ class LLMGateway:
         )
 
     # -- embeddings --------------------------------------------------------
-    def embed(self, texts: list[str], *, query: bool = False) -> list[list[float]]:
+    def embed(self, texts: list[str], *, query: bool = False, model: str | None = None,
+              instruction: str = SEARCH_INSTRUCTION) -> list[list[float]]:
         """One vector per text, for search by meaning.
 
         A search query is sent with a one-line instruction saying what it is looking for; the
         stored texts are sent as they are. That is how this family of embedding models is meant
         to be used, and it is why a query and a stored text must not be embedded the same way.
+        `model` overrides the setting (the public records may keep another model's vectors);
+        `instruction` says what a query looks for. Tokens used are added to `embed_tokens`.
         """
         if not texts:
             return []
         size = self.settings.embedding_dimensions
-        inputs = [f"Instruct: {SEARCH_INSTRUCTION}\nQuery: {text}" for text in texts] if query else list(texts)
+        inputs = [f"Instruct: {instruction}\nQuery: {text}" for text in texts] if query else list(texts)
         reply = self.client.embeddings.create(
-            model=self.settings.llm_embedding_model, input=inputs, dimensions=size, encoding_format="float")
+            model=model or self.settings.llm_embedding_model, input=inputs, dimensions=size, encoding_format="float")
+        with self._lock:
+            self.embed_tokens += getattr(reply.usage, "prompt_tokens", 0) or 0
         vectors = [item.embedding for item in sorted(reply.data, key=lambda item: item.index)]
         if len(vectors) != len(texts) or any(len(v) != size for v in vectors):
             got = sorted({len(v) for v in vectors})

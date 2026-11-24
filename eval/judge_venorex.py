@@ -240,7 +240,7 @@ def report(summary: dict, meta: dict, systems: list[str]) -> str:
               "and their references are AI drafts, not expert-verified; the expert's review is final. Our assistant "
               "answers one turn of a conversation."), "",
              (f"Cases judged for every system: **{summary['common_cases']}** · our answers from `{meta['ours_file']}` "
-              f"(web search {meta.get('external_source')}) · judge cost ${meta['judge_cost']:.3f}"), "",
+              f"(web search {meta.get('external_source')}, public records {meta.get('public_records', 'off')}) · judge cost ${meta['judge_cost']:.3f}"), "",
              ("| System | Quality, mean [95% CI] | Critical failures | Behaviour OK | Fabricated specs | "
               "Must-not-claim broken | Must-mention missing |"), "|---|---|---|---|---|---|---|"]
     for s in systems:
@@ -335,7 +335,8 @@ def main(argv: list[str] | None = None) -> int:
     detail, summary = run(cases, saved["ours"], his, judge, modes, pair_modes, args.workers)
     stamp = f"{dt.datetime.now(dt.UTC):%Y%m%d-%H%M%S}"
     meta = {"run_at": stamp, "judge": args.judge, "ours_file": args.ours.name, "judge_cost": judge.cost,
-            "external_source": saved.get("meta", {}).get("external_source")}
+            "external_source": saved.get("meta", {}).get("external_source"),
+            "public_records": saved.get("meta", {}).get("public_records", "off")}
     RESULTS.mkdir(exist_ok=True)
     (RESULTS / f"judge-venorex-{stamp}.json").write_text(
         json.dumps({"meta": meta, "summary": summary, **detail}, ensure_ascii=False, indent=1), encoding="utf-8")

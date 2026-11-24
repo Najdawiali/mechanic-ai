@@ -66,6 +66,35 @@ FIXED = {
         "ar": "{codes}: لا توجد بيانات موثقة لهذه السيارة في قاعدة البيانات. ما يلي مأخوذ من صفحات على الإنترنت وغير موثق لهذه السيارة، والروابط في الأسفل:",
         "ur": "{codes}: اس گاڑی کے لیے نالج بیس میں کوئی تصدیق شدہ ڈیٹا نہیں ہے۔ درج ذیل انٹرنیٹ کے صفحات سے لیا گیا ہے اور اس گاڑی کے لیے تصدیق شدہ نہیں، لنکس نیچے ہیں:",
     },
+    "public_header": {
+        "en": "{codes}: no verified data for this car in the knowledge base. What follows comes from US public records (NHTSA: official recalls and investigations, and owners' unverified complaints), not verified for this car; the records are listed below:",
+        "ar": "{codes}: لا توجد بيانات موثقة لهذه السيارة في قاعدة البيانات. ما يلي مأخوذ من سجلات أمريكية عامة (NHTSA: استدعاءات وتحقيقات رسمية وشكاوى مالكين غير موثقة)، وهو غير موثق لهذه السيارة، والسجلات مذكورة في الأسفل:",
+        "ur": "{codes}: اس گاڑی کے لیے نالج بیس میں کوئی تصدیق شدہ ڈیٹا نہیں ہے۔ درج ذیل امریکی سرکاری ریکارڈ (NHTSA: سرکاری ریکالز اور تحقیقات، اور مالکان کی غیر تصدیق شدہ شکایات) سے لیا گیا ہے اور اس گاڑی کے لیے تصدیق شدہ نہیں، ریکارڈ نیچے درج ہیں:",
+    },
+    "public_header_no_code": {
+        "en": "No verified data for this car in the knowledge base. What follows comes from US public records (NHTSA: official recalls and investigations, and owners' unverified complaints), not verified for this car; the records are listed below:",
+        "ar": "لا توجد بيانات موثقة لهذه السيارة في قاعدة البيانات. ما يلي مأخوذ من سجلات أمريكية عامة (NHTSA: استدعاءات وتحقيقات رسمية وشكاوى مالكين غير موثقة)، وهو غير موثق لهذه السيارة، والسجلات مذكورة في الأسفل:",
+        "ur": "اس گاڑی کے لیے نالج بیس میں کوئی تصدیق شدہ ڈیٹا نہیں ہے۔ درج ذیل امریکی سرکاری ریکارڈ (NHTSA: سرکاری ریکالز اور تحقیقات، اور مالکان کی غیر تصدیق شدہ شکایات) سے لیا گیا ہے اور اس گاڑی کے لیے تصدیق شدہ نہیں، ریکارڈ نیچے درج ہیں:",
+    },
+    "sources_header": {
+        "en": "{codes}: no verified data for this car in the knowledge base. What follows comes from web pages and US public records (NHTSA), not verified for this car; the sources are listed below:",
+        "ar": "{codes}: لا توجد بيانات موثقة لهذه السيارة في قاعدة البيانات. ما يلي مأخوذ من صفحات على الإنترنت ومن سجلات أمريكية عامة (NHTSA)، وهو غير موثق لهذه السيارة، والمصادر مذكورة في الأسفل:",
+        "ur": "{codes}: اس گاڑی کے لیے نالج بیس میں کوئی تصدیق شدہ ڈیٹا نہیں ہے۔ درج ذیل انٹرنیٹ کے صفحات اور امریکی سرکاری ریکارڈ (NHTSA) سے لیا گیا ہے اور اس گاڑی کے لیے تصدیق شدہ نہیں، ذرائع نیچے درج ہیں:",
+    },
+    "public_check": {
+        "en": "Some of these records may be for another version or model year of this car, and US-market cars can differ from GCC ones: please confirm they match this car.",
+        "ar": "بعض هذه السجلات قد تكون لنسخة أو سنة صنع أخرى من هذه السيارة، وسيارات السوق الأمريكي قد تختلف عن سيارات الخليج، لذا يرجى التأكد من مطابقتها لهذه السيارة.",
+        "ur": "ان میں سے کچھ ریکارڈ اس گاڑی کے کسی اور ورژن یا ماڈل سال کے ہو سکتے ہیں، اور امریکی مارکیٹ کی گاڑیاں خلیجی گاڑیوں سے مختلف ہو سکتی ہیں، اس لیے براہ کرم تصدیق کریں کہ یہ اس گاڑی سے میل کھاتے ہیں۔",
+    },
+    "public_known": {
+        "en": "Also on record for this car and code (US public records, NHTSA; not part of the verified steps):",
+        "ar": "مسجل أيضاً لهذه السيارة وهذا الكود (سجلات أمريكية عامة من NHTSA، وليست جزءاً من الخطوات الموثقة):",
+        "ur": "اس گاڑی اور کوڈ کے لیے یہ بھی ریکارڈ میں ہے (امریکی سرکاری ریکارڈ NHTSA، تصدیق شدہ مراحل کا حصہ نہیں):",
+    },
+    "label_pub_official_recall": {"en": "Safety recall", "ar": "استدعاء سلامة", "ur": "سیفٹی ریکال"},
+    "label_pub_official_investigation": {"en": "Defect investigation", "ar": "تحقيق في عيب", "ur": "نقص کی تحقیقات"},
+    "label_pub_unverified_report": {"en": "Owner complaint (unverified)", "ar": "شكوى مالك (غير موثقة)", "ur": "مالک کی شکایت (غیر تصدیق شدہ)"},
+    "label_pub_check": {"en": "confirm it matches this car", "ar": "تأكد من مطابقتها لهذه السيارة", "ur": "تصدیق کریں کہ یہ اس گاڑی سے میل کھاتا ہے"},
     "web_check": {
         "en": "Some of these pages may be for another model year or engine: please confirm they match this car before relying on them.",
         "ar": "بعض هذه الصفحات قد تكون لسنة صنع أو محرك آخر، لذا يرجى التأكد من مطابقتها لهذه السيارة قبل الاعتماد عليها.",

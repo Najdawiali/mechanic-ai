@@ -19,8 +19,8 @@ from pydantic import BaseModel, ConfigDict, Field
 from app.kb.schemas import NormalRange, TestPoint
 
 ReplyType = Literal["question", "step", "conclusion", "escalation", "emergency"]
-Tier = Literal["verified", "web", "general", "none"]
-EvidenceType = Literal["procedure", "diagram", "case", "expert_note", "external", "web"]
+Tier = Literal["verified", "web", "public", "general", "none"]
+EvidenceType = Literal["procedure", "diagram", "case", "expert_note", "external", "web", "public"]
 
 
 class _Out(BaseModel):

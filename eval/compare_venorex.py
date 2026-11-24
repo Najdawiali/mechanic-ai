@@ -115,6 +115,7 @@ def run_case(engine_factory, case: dict) -> dict:
             "message": reply.message, "warnings": reply.warnings,
             "sources": [{"type": e.type, "title": e.title, "url": e.url, "applies": e.applies} for e in reply.evidence],
             "calls": len(trace), "web_searches": sum(t.purpose == "web_search" for t in trace),
+            "public_records": sum(e.type == "public" for e in reply.evidence),
             "cost": round(sum(t.cost_usd or 0 for t in trace), 5),
             "refused": sum(t.rejected is not None for t in trace)}
 
@@ -195,12 +196,13 @@ h3{{font-size:13px;margin:6px 0;color:#555}} section{{border:1px solid #ddd;bord
 .cols{{display:grid;grid-template-columns:1fr 1fr;gap:16px}} .msg,.q{{white-space:pre-wrap;unicode-bidi:plaintext;font-size:14px;line-height:1.5}}
 .q{{background:#f5f5f5;padding:8px;border-radius:6px}} .car{{color:#666;font-size:13px;margin:0 0 6px}}
 .badges{{display:flex;gap:6px;flex-wrap:wrap;margin-bottom:6px}} .b{{font-size:12px;padding:1px 8px;border-radius:12px;background:#eee}}
-.b.verified{{background:#d6f5dd}} .b.web{{background:#dbe8ff}} .b.general{{background:#fff1cc}} .b.none{{background:#f3d6d6}}
+.b.verified{{background:#d6f5dd}} .b.web{{background:#dbe8ff}} .b.public{{background:#e8dcff}} .b.general{{background:#fff1cc}} .b.none{{background:#f3d6d6}}
 .warn{{color:#a15c00}} .src{{font-size:12px;color:#555}} details{{margin:4px 0}} summary{{cursor:pointer;color:#444}}
 .filters{{position:sticky;top:0;background:#fff;padding:8px 0;border-bottom:1px solid #eee}}
 </style></head><body>
 <h1>Mechanic AI vs venorexai: the same 100 cases</h1>
 <p>Run {_e(meta.get('run_at'))} · our model roles {_e(meta.get('roles'))} · web search {_e(meta.get('external_source'))} ·
+public records {_e(meta.get('public_records', 'off'))} ·
 records served: {_e(meta.get('records'))}. His answers: stored run phase4-final (repeat 0). The cases and references are
 his team's AI drafts, not expert-verified: judge both answers, do not treat either as the truth.</p>
 {summary}
@@ -250,15 +252,19 @@ def main(argv: list[str] | None = None) -> int:
         external = from_settings(settings)
         statuses = APPROVED if args.approved_only else APPROVED_AND_DRAFT
         meta = {"run_at": stamp, "roles": str(roles), "external_source": settings.external_source,
+                "public_records": settings.public_records,
                 "records": "approved only" if args.approved_only else "approved and draft"}
         ours = {}
         gateway = LLMGateway()
         with connect() as conn:
             kb = KnowledgeStore(conn)
+            from app.public.source import from_settings as public_records
+
+            public = public_records(settings, conn, gateway)
 
             def factory():
                 return Engine(kb, GatewayModel(gateway), statuses=statuses, external=external,
-                              emergency_number=settings.emergency_number, roles=roles)
+                              emergency_number=settings.emergency_number, roles=roles, public=public)
 
             for i, case in enumerate(cases, 1):
                 ours[case["id"]] = run_case(factory, case)

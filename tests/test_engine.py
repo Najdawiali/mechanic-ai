@@ -745,3 +745,95 @@ def test_the_model_never_calls_the_mechanic_colleague(kb):
     script = Script(general=[{"message": said}, {"message": said}])
     reply = Engine(kb, script.model).turn(session(language="ar"), "انتيجرا 2025، الكود P0341").reply
     assert reply.tier == "general" and "يا زميلي" not in reply.message and "يشير الكود" in reply.message
+
+
+# -- NHTSA public records (app/public): no verified data, and a note beside verified answers -----------------
+class FakePublic:
+    """Public records that return the items they are given, and record what they were asked."""
+
+    name = "nhtsa"
+
+    def __init__(self, items=(), known=()):
+        self.items, self.known_items, self.asked, self.asked_known = list(items), list(known), [], []
+
+    def lookup(self, vehicle, codes, question):
+        from app.engine.external import ExternalLookup
+        from app.engine.model import TraceEntry
+
+        self.asked.append((list(codes), question))
+        return ExternalLookup(items=list(self.items), calls=[TraceEntry("public_search", "nhtsa", 0.01)])
+
+    def known(self, vehicle, codes):
+        self.asked_known.append(list(codes))
+        return list(self.known_items)
+
+
+def pub_record(source_type, external_id, title, text, applies="fits"):
+    from app.engine.external import ExternalItem
+    from app.public.source import LABEL
+
+    source = {"official_recall": "nhtsa_recall", "official_investigation": "nhtsa_investigation",
+              "unverified_report": "nhtsa_complaint"}[source_type]
+    return ExternalItem(id=f"pub:{source}:{external_id}:1", provider="nhtsa", title=title, text=text, url=None, kind=source,
+                        extra={"applies": applies, "source_type": source_type, "label": LABEL[source_type],
+                               "external_id": external_id, "domain": "NHTSA (US)"})
+
+
+RECALL = pub_record("official_recall", "23V100", "NHTSA recall 23V100 — Honda Integra 2023-2025: ENGINE",
+                    "VTC oil control solenoid may fail and set P0010. Remedy: dealers will replace the solenoid.")
+COMPLAINT = pub_record("unverified_report", "11500001", "Owner complaint (unverified) — Honda Integra 2024: ENGINE",
+                       "Engine rattles at cold start and the check engine light came on with P0341.", applies="check")
+
+
+def test_no_verified_data_answers_from_public_records_labelled_and_marked(kb):
+    script = Script(web=[{"use": [COMPLAINT.id], "message": "One US owner complaint (unverified) describes a rattle at cold "
+                                                            "start with P0341. First check the oil level. What is the level?"}])
+    public = FakePublic([COMPLAINT])
+    engine, state = Engine(kb, script.model, public=public), session()
+    result = engine.turn(state, "2025 Integra, code P0341.")
+    reply = result.reply
+    assert reply.tier == "public" and reply.confidence == "low"
+    assert "US public records (NHTSA" in reply.message and "US-market cars can differ" in reply.message  # "check" record
+    assert [(e.type, e.applies) for e in reply.evidence] == [("public", "check")]
+    assert reply.evidence[0].title.startswith("NHTSA owner complaint (unverified owner report)")
+    assert public.asked[0][0] == ["P0341"] and [g.tier for g in result.gaps] == ["public"]
+    assert "NHTSA" in script.calls("web")[0].request["system"]  # the model is told what each kind of record is
+
+
+def test_public_records_answer_a_symptom_with_no_code_and_with_web_the_header_names_both(kb):
+    script = Script(web=[{"use": [COMPLAINT.id], "message": "A US owner report describes a cold-start rattle. Is it at the top of the engine?"}])
+    engine = Engine(kb, script.model, public=FakePublic([COMPLAINT]))
+    reply = engine.turn(session(), "the engine rattles when cold").reply
+    assert reply.tier == "public" and reply.message.split("\n")[1].startswith("No verified data")
+    both = Script(web=[{"use": [CAM.id, RECALL.id], "message": "Per example-codes.com and a US recall, check the CMP connector first. What do you see?"}])
+    mixed = Engine(kb, both.model, external=FakeWeb([CAM]), public=FakePublic([RECALL])).turn(session(), "2025 Integra, code P0341.").reply
+    assert mixed.tier == "web" and "web pages and US public records (NHTSA)" in mixed.message
+    assert {e.type for e in mixed.evidence} == {"web", "public"}
+
+
+def test_nothing_used_from_public_records_falls_back_to_general_knowledge(kb):
+    script = Script(web=[{"use": [], "message": ""}], general=[{"message": "Start with the CMP sensor connector. What do you find?"}])
+    reply = Engine(kb, script.model, public=FakePublic([COMPLAINT])).turn(session(), "2025 Integra, code P0341.").reply
+    assert reply.tier == "general"
+
+
+def test_a_verified_procedure_gets_the_known_records_note_once_and_its_steps_unchanged(kb):
+    public = FakePublic(known=[RECALL])
+    plain = Engine(kb, Script().model).turn(session(), "2025 Acura Integra 1.5L turbo, fault code P0010.").reply
+    engine, state = Engine(kb, Script().model, public=public), session()
+    first = engine.turn(state, "2025 Acura Integra 1.5L turbo, fault code P0010.").reply
+    assert first.tier == "verified" and first.step == plain.step  # the verified step is the same
+    assert first.message.startswith(plain.message.split("\n")[0])
+    assert "Also on record for this car and code (US public records, NHTSA" in first.message
+    assert "• Safety recall: NHTSA recall 23V100" in first.message
+    assert [e.type for e in first.evidence][-1] == "public" and public.asked_known == [["P0010"]]
+    assert not public.asked  # verified data exists: no public lookup for the answer itself
+    engine.turn(state, "15 ohm")
+    again = Engine(kb, Script().model, public=public).turn(state, "fault code P0010").reply
+    assert "23V100" not in again.message  # listed once per session
+
+
+def test_public_records_off_changes_nothing(kb):
+    script = Script(general=[{"message": "Start with the CMP sensor connector. What do you find?"}])
+    reply = Engine(kb, script.model, public=None).turn(session(), "2025 Integra, code P0341.").reply
+    assert reply.tier == "general" and "NHTSA" not in reply.message
