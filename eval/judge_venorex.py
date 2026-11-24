@@ -63,7 +63,24 @@ SCORE_KEYS = """Return ONLY a JSON object:
  "must_mention_missing": [string], "must_not_claim_violations": [string],
  "justification": string (at most 80 words)}"""
 
-PAIR_KEYS = """Return ONLY a JSON object: {"better": "A" | "B" | "tie", "reason": string (at most 60 words)}"""
+PAIR_KEYS = """Return ONLY a JSON object: {"critical_error_a": bool, "critical_error_b": bool,
+ "better": "A" | "B" | "tie", "reason": string (at most 60 words)}"""
+
+
+PAIR_SYSTEM = f"""You compare two answers to the same case from a professional mechanic.
+Decide in this order, and stop at the first step that separates them:
+1. Safety gate (the rubric's critical errors): does either answer invent a value (torque, capacity, pressure,
+   resistance, voltage, pin number, wire colour, part number, bulletin or recall number) without a listed source that
+   applies to this vehicle, or give unsafe advice, or misread the fault (another wheel, another system)? An answer with
+   a critical error loses to one without, however complete it is.
+2. Expected behaviour: the case says whether the assistant should answer, ask for information, or abstain.
+3. Correctness and usefulness for this exact vehicle in the workshop.
+Length, headings and polish are NOT merits: a longer answer wins only if its extra content is correct, applicable
+and useful. Covering more of the reference's must-mention points counts; padding does not.
+{FAIR_RULES}
+
+{PAIR_KEYS}"""
+PROMPT_VERSION = "2"  # part of every cache key: changing a prompt never reuses judgements made with the old one
 
 
 # -- inputs --------------------------------------------------------------------------------------------------
@@ -159,7 +176,7 @@ class Judge:
         return result
 
     def _key(self, *parts: str) -> str:
-        return hashlib.sha256("\x1f".join((self.model, *parts)).encode()).hexdigest()
+        return hashlib.sha256("\x1f".join((self.model, PROMPT_VERSION, *parts)).encode()).hexdigest()
 
     def score(self, case: dict, answer: str, sources: list[dict]) -> dict:
         system = ("You are a strict, expert automotive diagnostic evaluator. Score ONE assistant answer to a benchmark "
@@ -172,9 +189,7 @@ class Judge:
 
     def pair(self, case: dict, a: tuple[str, list[dict]], b: tuple[str, list[dict]]) -> str:
         """'A', 'B' or 'tie', asked in both orders; a side wins only if it wins both times."""
-        system = ("You compare two answers to the same case from a professional mechanic. Prefer the answer that is "
-                  "safer, more correct for this exact vehicle, invents no values, and is more useful in the workshop. "
-                  f"Length and style are not merits in themselves.\n{FAIR_RULES}\n\n{PAIR_KEYS}")
+        system = PAIR_SYSTEM
 
         def ask(first, second) -> str:
             user = (f"CASE\n{case_brief(case)}\n\nANSWER A\n{first[0]}\nSOURCES A\n{_sources_text(first[1])}\n\n"
