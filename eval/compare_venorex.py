@@ -117,7 +117,8 @@ def run_case(engine_factory, case: dict) -> dict:
             "calls": len(trace), "web_searches": sum(t.purpose == "web_search" for t in trace),
             "public_records": sum(e.type == "public" for e in reply.evidence),
             "cost": round(sum(t.cost_usd or 0 for t in trace), 5),
-            "refused": sum(t.rejected is not None for t in trace)}
+            "refused": sum(t.rejected is not None for t in trace),
+            "rejected": [f"{t.purpose}: {t.rejected}" for t in trace if t.rejected is not None][:4]}
 
 
 # -- the page ------------------------------------------------------------------------------------------------
