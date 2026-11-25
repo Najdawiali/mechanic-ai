@@ -131,6 +131,22 @@ FIXED = {
         "ar": "لا أستطيع المساعدة في قراءة أو حساب أو تجاوز رمز PIN الخاص بالـ immobilizer أو رموز الحماية، ولا في تعديل عداد المسافة. احصل على رمز PIN من الوكيل أو عبر الوصول الرسمي لبيانات الحماية من الشركة المصنعة، مع إثبات الملكية.",
         "ur": "میں immobilizer کا PIN یا سیکیورٹی کوڈ پڑھنے، حساب لگانے یا بائی پاس کرنے، یا گاڑی کا مائلیج بدلنے میں مدد نہیں کر سکتا۔ PIN ڈیلر سے یا مینوفیکچرر کی سرکاری سیکیورٹی ڈیٹا رسائی کے ذریعے، ملکیت کے ثبوت کے ساتھ حاصل کریں۔",
     },
+    # A CAN-bus resistance reading judged in code against the general standard (app/engine/standards.py; NET-006).
+    "can_reading_ok": {
+        "en": "Your reading of {value} ohm between CAN-H and CAN-L is about the general standard of 60 ohm for a healthy high-speed CAN bus (both terminating resistors present; confirm in the service information).",
+        "ar": "قراءتك {value} ohm بين CAN-H و CAN-L قريبة من القيمة القياسية العامة 60 ohm لشبكة CAN سليمة (المقاومتان الطرفيتان موجودتان؛ أكّدها من معلومات الصيانة).",
+        "ur": "CAN-H اور CAN-L کے درمیان آپ کی ریڈنگ {value} ohm صحت مند ہائی اسپیڈ CAN بس کے عام معیار 60 ohm کے قریب ہے (دونوں ٹرمینیٹنگ ریزسٹر موجود ہیں؛ سروس معلومات سے تصدیق کریں)۔",
+    },
+    "can_reading_open": {
+        "en": "Your reading of {value} ohm between CAN-H and CAN-L is NOT normal: a healthy high-speed CAN bus reads about 60 ohm (general standard, confirm in the service information). About 120 ohm means one terminating resistor or one branch of the bus is open.",
+        "ar": "قراءتك {value} ohm بين CAN-H و CAN-L ليست طبيعية: شبكة CAN السليمة تقرأ حوالي 60 ohm (قيمة قياسية عامة، أكّدها من معلومات الصيانة). قراءة حوالي 120 ohm تعني أن إحدى المقاومتين الطرفيتين أو أحد فروع الشبكة مفتوح.",
+        "ur": "CAN-H اور CAN-L کے درمیان آپ کی ریڈنگ {value} ohm نارمل نہیں ہے: صحت مند ہائی اسپیڈ CAN بس تقریباً 60 ohm پڑھتی ہے (عام معیار، سروس معلومات سے تصدیق کریں)۔ تقریباً 120 ohm کا مطلب ہے کہ ایک ٹرمینیٹنگ ریزسٹر یا بس کی ایک شاخ اوپن ہے۔",
+    },
+    "can_reading_short": {
+        "en": "Your reading of {value} ohm between CAN-H and CAN-L is NOT normal: a healthy high-speed CAN bus reads about 60 ohm (general standard, confirm in the service information). Near 0 ohm means CAN-H and CAN-L are shorted together.",
+        "ar": "قراءتك {value} ohm بين CAN-H و CAN-L ليست طبيعية: شبكة CAN السليمة تقرأ حوالي 60 ohm (قيمة قياسية عامة، أكّدها من معلومات الصيانة). القراءة القريبة من 0 ohm تعني أن CAN-H و CAN-L ملامسان لبعضهما (short).",
+        "ur": "CAN-H اور CAN-L کے درمیان آپ کی ریڈنگ {value} ohm نارمل نہیں ہے: صحت مند ہائی اسپیڈ CAN بس تقریباً 60 ohm پڑھتی ہے (عام معیار، سروس معلومات سے تصدیق کریں)۔ تقریباً 0 ohm کا مطلب ہے کہ CAN-H اور CAN-L آپس میں شارٹ ہیں۔",
+    },
     "web_check": {
         "en": "Some of these pages may be for another model year or engine: please confirm they match this car before relying on them.",
         "ar": "بعض هذه الصفحات قد تكون لسنة صنع أو محرك آخر، لذا يرجى التأكد من مطابقتها لهذه السيارة قبل الاعتماد عليها.",

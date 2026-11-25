@@ -87,3 +87,12 @@ def test_salvage_keeps_a_good_answer_without_its_one_bad_sentence():
     kept = salvaged(good, allowed)
     assert kept is not None and "0.040" not in kept and "fuel cap" in kept and kept.endswith("refuelling?")
     assert salvaged("It reads 7.14 ohm. Check it.", allowed) is None  # most of the text was the bad part
+
+
+def test_can_resistance_readings_are_judged_in_code():
+    from app.engine.standards import can_reading
+    assert can_reading("measured 120 ohm between pin 6 and pin 14") == ("can_reading_open", "120")
+    assert can_reading("U0100, بين بن 6 و بن 14 قرأت 120 أوم") == ("can_reading_open", "120")
+    assert can_reading("CAN-H to CAN-L reads 61 ohm") == ("can_reading_ok", "61")
+    assert can_reading("CAN-H to CAN-L 0.4 ohm") == ("can_reading_short", "0.4")
+    assert can_reading("the injector reads 12 ohm") is None  # not about the CAN bus

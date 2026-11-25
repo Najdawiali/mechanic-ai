@@ -309,7 +309,7 @@ class Engine:
         found = self._hazards(state)
         entries = self._standards(state)
         for entry in entries:
-            allowed.add(entry.text)
+            allowed.add(f"{entry.text} {entry.source}")
         facts = {"high-voltage car": self._high_voltage(state, " ".join(self._mechanic_texts(state))),
                  "fault code kinds": {c: code_kind(c) for c in state.codes}}
         if found.any:
@@ -317,7 +317,17 @@ class Engine:
         if entries:
             facts["general standard values (may be quoted, each as a general standard to confirm in the service information)"] = \
                 standards.as_facts(entries)
+        if (verdict := self._can_reading(state)) is not None:
+            facts["the mechanic's CAN reading, judged in code (shown above your answer; never contradict it)"] = verdict
         return facts
+
+    def _can_reading(self, state: SessionState) -> str | None:
+        """The fixed line judging a CAN-H/CAN-L resistance reading, when the CAN standard values are served."""
+        if not any(e.key == "can_termination" for e in self._standards(state)):
+            return None
+        text = " ".join(t.text + " " + (t.english or "") for t in state.history if t.role == "mechanic")
+        found = standards.can_reading(text)
+        return fixed(found[0], state.language, value=found[1]) if found else None
 
     # -- small helpers ----------------------------------------------------------------------------------
     def _done(self, state: SessionState, reply: Reply, gaps: list[Gap]) -> TurnResult:
@@ -898,6 +908,8 @@ End with exactly one question."""
         if refused is not None and not body:
             return self._reply(state, "conclusion", header, tier="none", confidence="low")
         body = body or fixed("general_fallback", state.language)
+        if (verdict := self._can_reading(state)) is not None:
+            body = f"{verdict}\n{body}"
         warnings = ["This car has a high-voltage system: only a person qualified for high-voltage work should work on it."] if high_voltage else []
         return self._reply(state, "question", f"{header}\n{body}", tier="general", warnings=warnings, confidence="low")
 
@@ -974,10 +986,12 @@ as a related known issue worth checking by VIN."""
                  key: pages, **{k: v for k, v in self._guidance_facts(state, allowed).items() if k != "high-voltage car"}}
         for item in items:
             allowed.add_identifiers(f"{item.title} {item.text}")  # codes and bulletin numbers, never values (design 2.7)
+            if item.provider == "nhtsa":  # its id (ODI numbers are digits only) and its title's model years
+                allowed.add(f"{item.extra.get('external_id', '')} {item.title}")
         out = compose(self.model, "web", system=self.SOURCES_SYSTEM if public else self.WEB_SYSTEM, facts=facts,
                       language=state.language, allowed=allowed,
                       schema_extra={"use": {"type": "array", "items": {"type": "string", "enum": list(pages)}}},
-                      forbidden=_SOLVENTS if high_voltage else None, role=self.roles.general, single_question=True, salvage=True)
+                      forbidden=_SOLVENTS if high_voltage else None, role=self.roles.advise, single_question=True, salvage=True)
         if out is None:
             return None
         used = [i for i in items if i.id in (out.get("use") or [])]

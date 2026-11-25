@@ -884,6 +884,7 @@ def test_a_general_standard_value_is_allowed_only_when_its_topic_is_asked(kb):
     script = Script(general=[good])
     reply = Engine(kb, script.model, statuses=APPROVED_AND_DRAFT).turn(session({"make": "Toyota", "model": "Camry", "year": 2018}), q).reply
     assert "60 ohm" in reply.message and not any(t.rejected for t in script.calls("general"))
+    assert "Your reading of 120 ohm between CAN-H and CAN-L is NOT normal" in reply.message  # judged in code (NET-006)
     off = Script(general=[good, good], )  # approved records only: the draft standard values are not given
     plain = Engine(kb, off.model).turn(session({"make": "Toyota", "model": "Camry", "year": 2018}), q).reply
     assert "60 ohm" not in plain.message and all(t.rejected for t in off.calls("general"))

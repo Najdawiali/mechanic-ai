@@ -73,3 +73,23 @@ def relevant(text: str, codes: list[str], *, drafts: bool) -> list[Standard]:
 
 def as_facts(entries: list[Standard]) -> dict[str, str]:
     return {f"{s.topic} ({s.source})": s.text for s in entries}
+
+
+_OHM = re.compile(r"(\d+(?:\.\d+)?)\s*(?:ohms?|Ω|أوم|اوم|اوہم|اوم)", re.I)
+
+
+def can_reading(text: str) -> tuple[str, str] | None:
+    """A resistance the mechanic measured between CAN-H and CAN-L, judged in code against ISO 11898-2:
+    ("can_reading_ok" | "can_reading_open" | "can_reading_short", the value as written), or None. Only when the text is
+    about the CAN bus; the model had called a 120 ohm reading normal (comparison run 2026-11-25, NET-006)."""
+    if not re.search(_CAN_WORDS, text, re.I):
+        return None
+    for m in _OHM.finditer(text):
+        value = float(m.group(1))
+        if 50 <= value <= 70:
+            return "can_reading_ok", m.group(1)
+        if 100 <= value <= 140:
+            return "can_reading_open", m.group(1)
+        if value <= 5:
+            return "can_reading_short", m.group(1)
+    return None
