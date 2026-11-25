@@ -11,6 +11,9 @@ and put a fixed text first; the model is also told, so it never writes a hands-o
   srs         airbags, pretensioners, clock spring: never probe, disconnect the battery and wait first
   hid         xenon / HID headlamp ballasts: very high voltage at start-up
   flashing    a flashing check-engine light: severe misfire, do not keep driving under load
+  ready       work near belts or pulleys on a hybrid: the engine can start by itself while the car is READY
+  security    immobilizer PIN / security codes / mileage: never read, calculate or bypass them
+              (comparison run 2026-11-25: HYB-012 endorsed a belt check in READY, ABS-006 described reading a PIN)
 
 THE TEXTS ARE DRAFTS (wording.FIXED "hazard_*"), like the emergency texts: the client's expert must approve them.
 """
@@ -54,6 +57,13 @@ _SRS = re.compile(
     + _ar("ايرباق", "ايرباغ", "إيرباق", "ايرباج", "الايرباق", "الوسائد", "شداد")
     + r"|وسادة\s+هوائية|وسائد\s+هوائية|ساعة\s+الدركسون|ساعة\s+الدركسيون|ایئر ?بیگ|ائیر ?بیگ", re.I)
 _HID = re.compile(r"\bhid\b|xenon|ballast|" + _ar("زينون", "زنون", "بالاست", "بلاست") + r"|زینون|بیلسٹ", re.I)
+_READY_WORK = re.compile(r"\b(?:drive|serpentine|accessory|hsg)?\s*belts?\b|pulley|tensioner|\bhsg\b|"
+                         + _ar("حزام", "الحزام", "سير", "السير", "بكرة", "البكرة", "بكرات") + r"|بیلٹ|پلی", re.I)
+_SECURITY = re.compile(r"immobili[sz]er|\bpin\s*code|security\s+code|key\s+(?:programming|coding)|odometer|mileage\s+"
+                       r"(?:correction|change|rollback)|clock(?:ing)?\s+the\s+(?:car|mileage)|"
+                       + _ar("إيموبلايزر", "ايموبلايزر", "الإيموبلايزر", "الايموبلايزر", "ايموبلايزر")
+                       + r"|كود\s+(?:ال)?(?:حماية|أمان|امان|PIN)|رمز\s+(?:ال)?(?:حماية|PIN)|برمجة\s+(?:ال)?مفتاح|عداد\s+(?:ال)?(?:مسافة|كيلو)|"
+                       r"(?:تصفير|ترجيع|تعديل)\s+(?:ال)?عداد|امو بلائزر|اموبلائزر", re.I)
 _FLASH = r"(?:flash\w*|blink\w*|ترمش|يرمش|تومض|يومض|تولع\s+وتطفي|يولع\s+ويطفي|ٹمٹما\w*|جھپک\w*)"
 _ENGINE_LIGHT = (r"(?:check.?engine|engine\s+light|\bcel\b|\bmil\b|لمبة\s+(?:ال)?(?:مكينة|مكينه|محرك|ماكينة)|"
                  r"لمبة\s+(?:ال)?check|انجن\s+لائٹ|چیک\s+انجن)")
@@ -68,10 +78,12 @@ class Hazards:
     srs: bool = False
     hid: bool = False
     flashing: bool = False
+    ready: bool = False
+    security: bool = False
 
     @property
     def any(self) -> bool:
-        return self.hv or self.isolation or self.srs or self.hid or self.flashing
+        return self.hv or self.isolation or self.srs or self.hid or self.flashing or self.ready or self.security
 
     @property
     def hands_on(self) -> bool:
@@ -79,7 +91,7 @@ class Hazards:
         return self.hv or self.srs or self.hid
 
     def keys(self) -> list[str]:
-        return [k for k in ("hv", "isolation", "srs", "hid", "flashing") if getattr(self, k)]
+        return [k for k in ("hv", "isolation", "srs", "hid", "flashing", "ready", "security") if getattr(self, k)]
 
 
 def check(text: str, *, high_voltage_car: bool = False, codes: list[str] | tuple[str, ...] = ()) -> Hazards:
@@ -87,4 +99,5 @@ def check(text: str, *, high_voltage_car: bool = False, codes: list[str] | tuple
     isolation = (bool(_ISOLATION.search(text)) and (high_voltage_car or hv_object)) or \
         bool(ISOLATION_CODES & {c.upper() for c in codes})
     return Hazards(hv=hv_object and (bool(_HANDS_ON.search(text)) or isolation), isolation=isolation,
-                   srs=bool(_SRS.search(text)), hid=bool(_HID.search(text)), flashing=bool(_FLASHING.search(text)))
+                   srs=bool(_SRS.search(text)), hid=bool(_HID.search(text)), flashing=bool(_FLASHING.search(text)),
+                   ready=high_voltage_car and bool(_READY_WORK.search(text)), security=bool(_SECURITY.search(text)))

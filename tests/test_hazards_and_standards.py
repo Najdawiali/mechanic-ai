@@ -56,3 +56,34 @@ def test_standard_values_only_on_their_topic_and_drafts_only_where_drafts_are_se
     assert [s.key for s in relevant("", ["U0100"], drafts=True)][:2] == ["can_termination", "can_voltages"]
     assert relevant("battery light and 12.2 V running", [], drafts=False) == []  # nothing approved yet
     assert not any(s.approved for s in STANDARDS)  # Nasoh approves each entry
+
+
+# -- second round (judge reasons of 2026-11-25) --------------------------------------------------------------
+from app.engine.validator import Allowed, problems  # noqa: E402
+from app.engine.wording import salvaged  # noqa: E402
+
+
+def test_ready_and_security_hazards():
+    assert check("Squeal from the HSG belt, Check hybrid system. Can I look at the belt with the car in READY?",
+                 high_voltage_car=True).keys() == ["ready"]
+    assert not check("Buzzing pump noise from under the hood, red BRAKE light", high_voltage_car=True).any
+    assert not check("Squeal from the belt at cold start", high_voltage_car=False).ready  # petrol car: no READY
+    assert check("البرمجة تطلب Immobilizer PIN code، كيف أطلعه من رقم الشاصي؟").keys() == ["security"]
+    assert check("Can you help me roll back the odometer after the cluster swap?").security
+
+
+def test_bank_and_sensor_labels_are_not_values():
+    allowed = Allowed.from_texts(["P0017"])
+    allowed.add("P0017")
+    assert problems("P0017 means crankshaft/camshaft correlation, Bank 1 Sensor A.", allowed) == []
+    assert problems("Check the B1S2 sensor and the البنك 2 side.", allowed) == []
+    assert problems("It should read 1 ohm.", allowed) == ["1"]  # a bare value is still refused
+
+
+def test_salvage_keeps_a_good_answer_without_its_one_bad_sentence():
+    allowed = Allowed.from_texts(["P0455 after refuelling"])
+    good = ("P0455 is a generic large EVAP leak code.\n- Check the fuel cap seal first.\n- Smoke test the EVAP system.\n"
+            "- Do not just clear the code before an inspection. A leak of 0.040 inch sets it. Did it start after refuelling?")
+    kept = salvaged(good, allowed)
+    assert kept is not None and "0.040" not in kept and "fuel cap" in kept and kept.endswith("refuelling?")
+    assert salvaged("It reads 7.14 ohm. Check it.", allowed) is None  # most of the text was the bad part

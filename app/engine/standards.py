@@ -41,10 +41,10 @@ class Standard:
 
 STANDARDS: tuple[Standard, ...] = (
     Standard("can_termination", "high-speed CAN bus",
-             "On a high-speed CAN bus there is a 120 ohm terminating resistor at each end of the bus, so with the battery "
-             "disconnected the resistance between CAN-H and CAN-L (for example OBD port pins 6 and 14) reads about 60 ohm. "
-             "About 120 ohm points to one terminator or one branch of the bus open; near 0 ohm points to CAN-H and CAN-L "
-             "shorted together.", "ISO 11898-2", _CAN_WORDS, r"U0\d{3}"),
+             "A healthy high-speed CAN bus measures about 60 ohm between CAN-H and CAN-L (for example OBD port pins 6 and "
+             "14) with the battery disconnected, because its two 120 ohm terminating resistors are in parallel. A measured "
+             "120 ohm is NOT normal: it means one terminator or one branch of the bus is open. Near 0 ohm means CAN-H and "
+             "CAN-L are shorted together.", "ISO 11898-2", _CAN_WORDS, r"U0\d{3}"),
     Standard("can_voltages", "high-speed CAN bus",
              "With the bus idle (recessive), CAN-H and CAN-L each sit at about 2.5 V to ground; when a module transmits "
              "(dominant), CAN-H rises to about 3.5 V and CAN-L falls to about 1.5 V. Use an oscilloscope to see the signal.",

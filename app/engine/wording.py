@@ -121,6 +121,16 @@ FIXED = {
         "ar": "وميض لمبة المكينة يعني misfire شديد: لا تكمل القيادة بحمل أو في مشوار طويل، لأن ذلك قد يسبب سخونة زائدة في الـ catalytic converter وقد يسبب حريقاً. قُد بهدوء إلى أقرب ورشة فقط، أو انقل السيارة بالسحب.",
         "ur": "چیک انجن لائٹ کا ٹمٹمانا شدید misfire کی علامت ہے: بوجھ کے ساتھ یا لمبے سفر پر گاڑی نہ چلائیں، کیونکہ اس سے catalytic converter بہت گرم ہو سکتا ہے اور آگ لگ سکتی ہے۔ صرف آہستہ سے قریبی ورکشاپ تک جائیں، یا گاڑی ٹو کروائیں۔",
     },
+    "hazard_ready": {
+        "en": "On a hybrid the engine can start by itself while the car is READY: switch the car off (not READY) and keep the key away before working near belts, pulleys or the fan, and never check a belt with the car in READY.",
+        "ar": "في السيارة الهايبرد قد يشتغل المحرك وحده والسيارة في وضع READY: أطفئ السيارة (ليست READY) وأبعد المفتاح قبل العمل قرب السيور أو البكرات أو المروحة، ولا تفحص السير أبداً والسيارة في وضع READY.",
+        "ur": "ہائبرڈ گاڑی میں READY کی حالت میں انجن خود سے اسٹارٹ ہو سکتا ہے: بیلٹ، پلی یا پنکھے کے قریب کام کرنے سے پہلے گاڑی بند کریں (READY نہ ہو) اور چابی دور رکھیں، اور READY کی حالت میں کبھی بیلٹ چیک نہ کریں۔",
+    },
+    "hazard_security": {
+        "en": "I can't help read, calculate or bypass an immobilizer PIN or security code, or change a car's mileage. Get the PIN from the dealer or through the maker's official security-data access, with proof of ownership.",
+        "ar": "لا أستطيع المساعدة في قراءة أو حساب أو تجاوز رمز PIN الخاص بالـ immobilizer أو رموز الحماية، ولا في تعديل عداد المسافة. احصل على رمز PIN من الوكيل أو عبر الوصول الرسمي لبيانات الحماية من الشركة المصنعة، مع إثبات الملكية.",
+        "ur": "میں immobilizer کا PIN یا سیکیورٹی کوڈ پڑھنے، حساب لگانے یا بائی پاس کرنے، یا گاڑی کا مائلیج بدلنے میں مدد نہیں کر سکتا۔ PIN ڈیلر سے یا مینوفیکچرر کی سرکاری سیکیورٹی ڈیٹا رسائی کے ذریعے، ملکیت کے ثبوت کے ساتھ حاصل کریں۔",
+    },
     "web_check": {
         "en": "Some of these pages may be for another model year or engine: please confirm they match this car before relying on them.",
         "ar": "بعض هذه الصفحات قد تكون لسنة صنع أو محرك آخر، لذا يرجى التأكد من مطابقتها لهذه السيارة قبل الاعتماد عليها.",
@@ -429,11 +439,35 @@ def one_question(text: str) -> str:
     return re.sub(r"[ \t]{2,}", " ", re.sub(r" +\n", "\n", text)).strip()
 
 
+_SENTENCE_END = re.compile(r"(?<=[.!?؟])\s+")
+
+
+def salvaged(message: str, allowed: Allowed, forbidden: re.Pattern[str] | None = None) -> str | None:
+    """The message without the sentences that have a number, pin or value with no source (or a forbidden word),
+    when at least two thirds of its text remains; else None. Better than a fixed fallback when one sentence of a good
+    answer named an unsupported value (comparison run 2026-11-25: 4 answers became "start with the basics")."""
+    lines, dropped = [], 0
+    for line in message.split("\n"):
+        kept = []
+        for sentence in _SENTENCE_END.split(line):
+            if problems(sentence, allowed) or (forbidden is not None and forbidden.search(sentence)):
+                dropped += len(sentence)
+            else:
+                kept.append(sentence)
+        if kept or not line.strip():
+            lines.append(" ".join(kept))
+    text = re.sub(r"\n{3,}", "\n\n", "\n".join(lines)).strip()
+    if not text or dropped > len(message) / 3:
+        return None
+    return text
+
+
 def compose(model: ModelClient, purpose: str, *, system: str, facts: dict, language: Language, allowed: Allowed,
             schema_extra: dict | None = None, max_tokens: int = 900, forbidden: re.Pattern[str] | None = None,
-            role: str = "reasoning", single_question: bool = False) -> dict | None:
+            role: str = "reasoning", single_question: bool = False, salvage: bool = False) -> dict | None:
     """The model's reply as a dict with at least "message" (possibly empty), or None when it failed the
-    validator twice or did not answer."""
+    validator twice or did not answer. `salvage`: after the second refusal, keep the answer without the sentences
+    that failed, when most of it remains (general answers only; see `salvaged`)."""
     properties = {"message": {"type": "string"}, **(schema_extra or {})}
     schema = {"type": "object", "additionalProperties": False, "required": list(properties), "properties": properties}
     full_system = (system + f"\n\n{TONE}\nWrite the message in {LANGUAGE_NAME[language]}. Keep fault codes, part and component names, "
@@ -465,6 +499,10 @@ def compose(model: ModelClient, purpose: str, *, system: str, facts: dict, langu
         if not found:  # an empty message is an answer too ("no record fits"): the caller decides
             return out
         reject(model, "; ".join(found))
+        if attempt == 1 and salvage:
+            kept = salvaged(message, allowed, forbidden)
+            if kept is not None:
+                return {**out, "message": kept}
         user = json.dumps({**facts, "IMPORTANT": f"Your last message was refused: {'; '.join(found)}. Write it again without these "
                                                  "problems, with no number, pin, code or value that is not in the facts or in "
                                                  "the mechanic's words; do not number a list."}, ensure_ascii=False, default=str)
