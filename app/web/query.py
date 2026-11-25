@@ -32,3 +32,19 @@ def build(vehicle: Vehicle, code: str) -> tuple[str, str] | None:
     parts = [str(vehicle.year) if vehicle.year else "", _safe(vehicle.make), _safe(vehicle.model), _safe(vehicle.engine_code, 20), code]
     query = " ".join(p for p in parts if p) + " meaning causes diagnosis"
     return query, f"{code} meaning causes test"
+
+
+_VIN = re.compile(r"\b[A-HJ-NPR-Z0-9]{17}\b", re.IGNORECASE)
+_PHONE = re.compile(r"\+?\d[\d\s\-]{6,}\d")
+_EMAIL = re.compile(r"\S+@\S+")
+
+
+def build_symptom(vehicle: Vehicle, symptom: str) -> tuple[str, str] | None:
+    """(query, highlight) for a question with no fault code: the car and the symptom in English, cleaned of anything
+    that could identify a person or a car (VIN, phone numbers, emails), cut to a short query. None when nothing is left."""
+    text = _EMAIL.sub(" ", _PHONE.sub(" ", _VIN.sub(" ", symptom or "")))
+    text = _safe(text, 140)
+    if len(text) < 8:
+        return None
+    parts = [str(vehicle.year) if vehicle.year else "", _safe(vehicle.make), _safe(vehicle.model), _safe(vehicle.engine_code, 20), text]
+    return " ".join(p for p in parts if p) + " causes diagnosis", f"{text} causes diagnosis"

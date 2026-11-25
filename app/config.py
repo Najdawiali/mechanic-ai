@@ -71,6 +71,9 @@ class Settings(BaseSettings):
     web_budget_s: float = 8.0
     web_max_results: int = 5
     web_searches_per_session: int = 6
+    # Also search when no fault code was given, with the car and the mechanic's symptom (in English, cleaned: no VIN,
+    # phone number or email). Off by default: providers keep what they are sent (design 2.5, 2.12). For tests.
+    web_symptom_search: bool = False
     # Sites never used as a source, comma-separated: they republish manuals without showing any right to them.
     # "name.*" blocks the name on any domain ending (it moves); the known endings are listed too, because the
     # providers' exclude lists take plain domains only.

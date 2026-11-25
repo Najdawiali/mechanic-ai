@@ -945,7 +945,8 @@ as a related known issue worth checking by VIN."""
         mechanic's words), each an ExternalItem. Returns (items, trace entries, whether web was searched)."""
         items, calls, searched_web = [], [], False
         left = self.external.searches_per_session - state.external_searches
-        if state.codes and left > 0 and self.external.codes_per_lookup > 0:
+        symptom = not state.codes and getattr(self.external, "symptom_search", False)
+        if (state.codes or symptom) and left > 0 and self.external.codes_per_lookup > 0:
             codes = list(state.codes)[: min(self.external.codes_per_lookup, left)]
             found = self.external.lookup(state.vehicle, codes, intake.english if intake else "")
             state.external_searches += found.searched
@@ -998,13 +999,8 @@ as a related known issue worth checking by VIN."""
         codes_text = ", ".join(state.codes)
         web_used = any(i.provider != "nhtsa" for i in used)
         pub_used = any(i.provider == "nhtsa" for i in used)
-        if web_used and pub_used:
-            header = fixed("sources_header", state.language, codes=codes_text)
-        elif pub_used:
-            header = fixed("public_header", state.language, codes=codes_text) if codes_text else \
-                fixed("public_header_no_code", state.language)
-        else:
-            header = fixed("web_header", state.language, codes=codes_text)
+        kind = "sources_header" if web_used and pub_used else "public_header" if pub_used else "web_header"
+        header = fixed(kind, state.language, codes=codes_text) if codes_text else fixed(f"{kind}_no_code", state.language)
         body = strip_header(out.get("message") or "", header, codes_text)
         if not used or not body:
             return None

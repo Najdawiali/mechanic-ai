@@ -96,3 +96,13 @@ def test_can_resistance_readings_are_judged_in_code():
     assert can_reading("CAN-H to CAN-L reads 61 ohm") == ("can_reading_ok", "61")
     assert can_reading("CAN-H to CAN-L 0.4 ohm") == ("can_reading_short", "0.4")
     assert can_reading("the injector reads 12 ohm") is None  # not about the CAN bus
+
+
+def test_a_symptom_query_carries_no_vin_phone_or_email():
+    from app.kb.schemas import Vehicle
+    from app.web.query import build_symptom
+    q, _ = build_symptom(Vehicle(make="Toyota", model="Camry", year=2018),
+                         "engine stalls at idle when hot, VIN 4T1B11HK5JU123456, call me on +962 79 123 4567 or a@b.com")
+    assert q.startswith("2018 Toyota Camry engine stalls at idle when hot")
+    assert "4T1B11HK5JU123456" not in q and "123 4567" not in q and "@" not in q
+    assert build_symptom(Vehicle(make="Toyota", model="Camry"), "hi") is None

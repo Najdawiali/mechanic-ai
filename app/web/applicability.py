@@ -131,7 +131,7 @@ def judge(vehicle: Vehicle, code: str, url: str, title: str, text: str, blocked:
         return Mark("drop", ["blocked site"])
     whole = f"{title} {text}"
     low = whole.lower()
-    if not code_named(code, whole):
+    if code and not code_named(code, whole):  # code "" = a symptom search: no code to check
         return Mark("drop", [f"{code} is not named"])
     make = make_named(vehicle.make, low, domain)
     model = any(_named(w, low) for w in model_words(vehicle.model))

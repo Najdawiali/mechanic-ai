@@ -147,6 +147,16 @@ FIXED = {
         "ar": "قراءتك {value} ohm بين CAN-H و CAN-L ليست طبيعية: شبكة CAN السليمة تقرأ حوالي 60 ohm (قيمة قياسية عامة، أكّدها من معلومات الصيانة). القراءة القريبة من 0 ohm تعني أن CAN-H و CAN-L ملامسان لبعضهما (short).",
         "ur": "CAN-H اور CAN-L کے درمیان آپ کی ریڈنگ {value} ohm نارمل نہیں ہے: صحت مند ہائی اسپیڈ CAN بس تقریباً 60 ohm پڑھتی ہے (عام معیار، سروس معلومات سے تصدیق کریں)۔ تقریباً 0 ohm کا مطلب ہے کہ CAN-H اور CAN-L آپس میں شارٹ ہیں۔",
     },
+    "web_header_no_code": {
+        "en": "No verified data for this car in the knowledge base. What follows comes from web pages, not verified for this car; the links are below:",
+        "ar": "لا توجد بيانات موثقة لهذه السيارة في قاعدة البيانات. ما يلي مأخوذ من صفحات على الإنترنت وغير موثق لهذه السيارة، والروابط في الأسفل:",
+        "ur": "اس گاڑی کے لیے نالج بیس میں کوئی تصدیق شدہ ڈیٹا نہیں ہے۔ درج ذیل انٹرنیٹ کے صفحات سے لیا گیا ہے اور اس گاڑی کے لیے تصدیق شدہ نہیں، لنکس نیچے ہیں:",
+    },
+    "sources_header_no_code": {
+        "en": "No verified data for this car in the knowledge base. What follows comes from web pages and US public records (NHTSA), not verified for this car; the sources are listed below:",
+        "ar": "لا توجد بيانات موثقة لهذه السيارة في قاعدة البيانات. ما يلي مأخوذ من صفحات على الإنترنت ومن سجلات أمريكية عامة (NHTSA)، وهو غير موثق لهذه السيارة، والمصادر مذكورة في الأسفل:",
+        "ur": "اس گاڑی کے لیے نالج بیس میں کوئی تصدیق شدہ ڈیٹا نہیں ہے۔ درج ذیل انٹرنیٹ کے صفحات اور امریکی سرکاری ریکارڈ (NHTSA) سے لیا گیا ہے اور اس گاڑی کے لیے تصدیق شدہ نہیں، ذرائع نیچے درج ہیں:",
+    },
     "web_check": {
         "en": "Some of these pages may be for another model year or engine: please confirm they match this car before relying on them.",
         "ar": "بعض هذه الصفحات قد تكون لسنة صنع أو محرك آخر، لذا يرجى التأكد من مطابقتها لهذه السيارة قبل الاعتماد عليها.",

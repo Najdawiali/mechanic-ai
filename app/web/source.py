@@ -40,6 +40,7 @@ class WebConfig:
     blocked: tuple[str, ...] = ()
     searches_per_session: int = 6
     codes_per_lookup: int = 2
+    symptom_search: bool = False
 
 
 def item_id(url: str) -> str:
@@ -54,6 +55,7 @@ class WebSource:
         self.http = http
         self.searches_per_session = config.searches_per_session
         self.codes_per_lookup = config.codes_per_lookup
+        self.symptom_search = config.symptom_search
 
     @classmethod
     def from_settings(cls, settings: Settings) -> WebSource:
@@ -65,7 +67,7 @@ class WebSource:
             search_type=settings.web_search_type, timeout_s=settings.web_timeout_s,
             fallback_timeout_s=settings.web_fallback_timeout_s, budget_s=settings.web_budget_s,
             max_results=settings.web_max_results, blocked=settings.web_blocked,
-            searches_per_session=settings.web_searches_per_session))
+            searches_per_session=settings.web_searches_per_session, symptom_search=settings.web_symptom_search))
 
     # -- one code -------------------------------------------------------------------------------------
     def _search(self, vehicle: Vehicle, code: str, q: str, highlight: str) -> tuple[list[providers.ProviderRun], list[ExternalItem], list[TraceEntry]]:
@@ -96,12 +98,15 @@ class WebSource:
 
     # -- the lookup ------------------------------------------------------------------------------------
     def lookup(self, vehicle: Vehicle, codes: list[str], question: str) -> ExternalLookup:
-        """question (the mechanic's words) is not used: it never goes into a query (app/web/query.py)."""
+        """question (the mechanic's words, in English) is used only with no fault code and symptom search on,
+        cleaned by query.build_symptom; otherwise it never goes into a query (app/web/query.py)."""
         jobs = {}
         for code in codes[: self.codes_per_lookup]:
             built = query.build(vehicle, code)
             if built is not None:
                 jobs[_POOL.submit(self._search, vehicle, code, *built)] = code
+        if not codes and self.symptom_search and (built := query.build_symptom(vehicle, question)) is not None:
+            jobs[_POOL.submit(self._search, vehicle, "", *built)] = "symptom"
         if not jobs:
             return ExternalLookup()
         done, late = wait(jobs, timeout=self.config.budget_s)
