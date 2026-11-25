@@ -1000,7 +1000,7 @@ as a related known issue worth checking by VIN."""
         out = compose(self.model, "web", system=self.SOURCES_SYSTEM if public else self.WEB_SYSTEM, facts=facts,
                       language=state.language, allowed=allowed,
                       schema_extra={"use": {"type": "array", "items": {"type": "string", "enum": list(pages)}}},
-                      forbidden=_SOLVENTS if high_voltage else None, role=self.roles.advise, single_question=True, salvage=True)
+                      forbidden=_SOLVENTS if high_voltage else None, role=self.roles.general, single_question=True, salvage=True)
         if out is None:
             return None
         used = [i for i in items if i.id in (out.get("use") or [])]
