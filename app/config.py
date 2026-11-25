@@ -31,7 +31,7 @@ class Settings(BaseSettings):
     # Measured 2026-11-16 (case scenarios, 24 runs): the fast model writes hints in 2.5-7 s against 15-25 s,
     # with the same content on every case-in-KB run read; off-topic cases are kept out in code, not by the model.
     llm_role_advise: str = "fast"
-    llm_role_general: str = "fast"
+    llm_role_general: str = "reasoning"  # 31B: +6 quality, half the critical failures on the venorexai benchmark (2026-11-25)
     llm_role_summary: str = "reasoning"
     llm_role_translate: str = "fast"
     llm_role_translate_ur: str = "fast"
