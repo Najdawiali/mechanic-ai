@@ -99,14 +99,18 @@ repair: if this message reports a repair the mechanic did (replaced, re-seated, 
   updated...), a short English phrase naming it, whether or not it fixed the fault; else null.
 result_words: if intent is fix_confirmed, the words of the message that say the fault is gone, copied exactly
   (e.g. "the car runs normally", "وراح العطل"); else null.
-danger_now: the safety check. "vehicle" if the message says something dangerous is happening now, or was just seen
-  and may still be happening: fire or a flame, smoke from the car (in the cabin, from the engine, wiring, a connector,
-  the battery or under the car), a burning smell that is there now or getting stronger, sparks or arcing, wiring,
-  insulation or a connector melting, softening or dripping, a battery swelling, cracking, leaking, hissing or venting.
-  "person" if someone got an electric shock just now or still has symptoms from one. Otherwise "none", including:
-  exhaust smoke described as a fault symptom (its colour, at a cold start, under load), smoke from a smoke-test
-  machine, a warning light that came on, spark plugs or a spark tester, hot weather, and old damage on a part that
-  is already removed or unplugged. When unsure whether it is happening now, answer "vehicle".
+danger_now: the fire and electric-shock check; a yes stops the conversation with an evacuation message. "vehicle"
+  ONLY if the message says one of these is happening now, or was just seen and may still be happening: fire or a
+  flame; smoke from the car (in the cabin, from the engine, wiring, a connector, the battery or under the car); a
+  burning smell that is there now or getting stronger; sparks or arcing; wiring, insulation or a connector melting,
+  softening or dripping; a battery swelling, cracking, leaking, hissing or venting; fuel leaking onto a hot engine or
+  exhaust or near sparks. "person" if someone got an electric shock just now or still has symptoms from one.
+  Everything else is "none", because the answer gives its own safety advice for it: brake or steering faults, a fuel
+  smell or drip with no fire or heat near it, overheating, steam or coolant, working under a car or on a jack, a
+  warning light that came on, exhaust smoke described as a fault symptom (its colour, at a cold start, under load),
+  smoke from a smoke-test machine, spark plugs or a spark tester, hot weather, old damage on a removed or unplugged
+  part, and questions on how to test or repair a system. When one of the events above is described and you are
+  unsure whether it is happening now, answer "vehicle".
 fix: if intent is fix_confirmed, a short English phrase naming the cause found and every repair done in this
   conversation that fixed it, using "earlier messages" too; name a procedure in words, not only by its code
   (e.g. "internal short in the inverter: inverter replaced"; "connectors re-seated and window regulator basic setting";

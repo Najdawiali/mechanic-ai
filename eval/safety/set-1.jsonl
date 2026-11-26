@@ -1,0 +1,80 @@
+{"text":"I turned the key and there's a flame under the fuse box right now.","language":"en","danger":true,"why":"An active flame is visible under the fuse box."}
+{"text":"Key's out but smoke is still coming through the dash vents.","language":"en","danger":true,"why":"Smoke continues to enter the cabin with the ignition off."}
+{"text":"It's only a faint burning-plastic smell, but it's getting stronger at the blower plug right now.","language":"en","danger":true,"why":"An intensifying burning smell at an electrical connector suggests active overheating."}
+{"text":"The starter cable is throwing sparks where it touches the block without anyone touching the key.","language":"en","danger":true,"why":"The starter cable is actively arcing against the engine block."}
+{"text":"The fan's still running and the insulation on its feed wire is softening and dripping.","language":"en","danger":true,"why":"The powered fan wire's insulation is actively melting."}
+{"text":"The 12V battery is still on charge and its sides are swelling in front of me.","language":"en","danger":true,"why":"The battery is actively swelling while charging."}
+{"text":"There's clear liquid seeping out of a crack in the battery case onto the tray right now.","language":"en","danger":true,"why":"Liquid is actively leaking from a cracked battery case."}
+{"text":"My apprentice just got shocked by the hybrid cable and says his hand is still numb.","language":"en","danger":true,"why":"A recent electric shock has left the person with ongoing symptoms."}
+{"text":"I lifted the floor mat and there's a thin ribbon of smoke coming off the loom under the seat.","language":"en","danger":true,"why":"The wiring harness under the seat is actively smoking."}
+{"text":"The engine's off, but I can see a small flame behind the headlight.","language":"en","danger":true,"why":"A flame is visible in the vehicle even with the engine off."}
+{"text":"It puffs blue smoke out the tailpipe for two seconds at cold start, then clears. What would you check first?","language":"en","danger":false,"why":"The mechanic describes brief blue exhaust smoke as a diagnostic symptom."}
+{"text":"The red battery light came on with the ignition, then went out as soon as it started. Normal bulb check?","language":"en","danger":false,"why":"The warning light illuminates during the ignition check and goes out after starting."}
+{"text":"Cylinder two's spark plug is dry and black. Should I compare it with the other three?","language":"en","danger":false,"why":"The mechanic is inspecting spark plug deposits."}
+{"text":"With the engine off, the smoke machine showed a wisp right at the intake gasket. Is that enough to call it a leak?","language":"en","danger":false,"why":"The visible smoke was intentionally introduced during a diagnostic leak test."}
+{"text":"It's roasting in the bay today. The A/C only blows cold once I rev it a little.","language":"en","danger":false,"why":"Roasting refers to the workshop weather during an A/C diagnosis."}
+{"text":"I've got coil command on the scope but no spark showing on the enclosed tester. What signal should I compare?","language":"en","danger":false,"why":"The mechanic is checking ignition output with an enclosed spark tester."}
+{"text":"Customer calls the sulphur smell at the tailpipe a burning smell. Fuel trims are minus 18 at idle. Where would you start?","language":"en","danger":false,"why":"The reported smell is a tailpipe symptom in a fuel-trim diagnosis."}
+{"text":"Black smoke out the tailpipe only on a hard pull. Which diesel live data would you log?","language":"en","danger":false,"why":"The question concerns exhaust smoke under engine load."}
+{"text":"A used loom came in with an old melted spot. It's on the bench, unplugged. Can I get that connector separately?","language":"en","danger":false,"why":"The melting is old damage on an unpowered harness."}
+{"text":"The scan tool has a history code for the ignition switch, and it starts fine now. Worth checking the freeze frame?","language":"en","danger":false,"why":"The mechanic is reviewing a stored ignition switch code."}
+{"text":"أرى لهبًا صغيرًا خلف المصباح الأمامي، وهو يكبر رغم إطفاء المحرك.","language":"ar","danger":true,"why":"يوجد لهب مرئي يزداد حجمه داخل السيارة."}
+{"text":"المفتاح خارج السيارة، لكن الدخان ما زال يخرج من فتحات التهوية.","language":"ar","danger":true,"why":"الدخان مستمر داخل المقصورة بعد إطفاء السيارة."}
+{"text":"تزداد رائحة البلاستيك المحترق الآن قرب موصل مروحة المقصورة.","language":"ar","danger":true,"why":"اشتداد رائحة الاحتراق عند الموصل يشير إلى سخونة كهربائية جارية."}
+{"text":"يخرج شرر متكرر من سلك البطارية عند احتكاكه بحاملها.","language":"ar","danger":true,"why":"سلك البطارية يولد شررًا متكررًا عند ملامسة الحامل."}
+{"text":"عازل سلك المروحة يذوب أمامي والمروحة ما زالت تعمل.","language":"ar","danger":true,"why":"عازل سلك تحت التغذية يذوب في هذه اللحظة."}
+{"text":"جوانب البطارية تنتفخ أمامي وهي على الشاحن الآن.","language":"ar","danger":true,"why":"البطارية تنتفخ أثناء الشحن."}
+{"text":"هناك سائل يخرج الآن من شق في جسم بطارية الـ١٢ فولت ويتجمع تحتها.","language":"ar","danger":true,"why":"السائل يتسرب حاليًا من جسم البطارية المتشقق."}
+{"text":"تعرّض زميلي للتو لصدمة كهربائية عند لمس كابل السيارة الهجينة، وما زالت يده ترتجف.","language":"ar","danger":true,"why":"تعرّض الشخص لصدمة كهربائية للتو وما زالت لديه أعراض."}
+{"text":"أوقفت المحرك، لكن الدخان ما زال يتصاعد من تحت المقعد عند ضفيرة الأسلاك.","language":"ar","danger":true,"why":"الدخان يتصاعد الآن من ضفيرة داخل المقصورة."}
+{"text":"عند علبة الفيوزات رائحة احتراق، والموصل يتحول إلى اللون البني أمامي الآن.","language":"ar","danger":true,"why":"تغير لون الموصل مع رائحة الاحتراق يدل على سخونة جارية."}
+{"text":"يخرج دخان أزرق من العادم لحظة التشغيل البارد ثم يختفي. ما أول فحص تقترحه؟","language":"ar","danger":false,"why":"الدخان الأزرق من العادم عرض تشخيصي عابر عند التشغيل."}
+{"text":"أضاءت لمبة المحرك بعد تبديل الفلتر، وظهر رمز خليط فقير. هل أبدأ بفحص خرطوم السحب؟","language":"ar","danger":false,"why":"إضاءة لمبة المحرك مرتبطة برمز عطل يجري تشخيصه."}
+{"text":"شمعة الإشعال في الأسطوانة الرابعة عليها ترسبات سوداء جافة. ما الذي أقارنه ببقية الشمعات؟","language":"ar","danger":false,"why":"السؤال يتعلق بترسبات على شمعة الإشعال أثناء الفحص."}
+{"text":"في اختبار الدخان والمحرك مطفأ، ظهر دخان الجهاز عند وصلة السحب. هل هذه الوصلة محكمة عادة؟","language":"ar","danger":false,"why":"الدخان صادر من جهاز الاختبار ويُستخدم لتحديد تسرب الهواء."}
+{"text":"الجو حارق اليوم، والتكييف يبرد أثناء السير ويضعف عند الوقوف. ما أول قراءة أراجعها؟","language":"ar","danger":false,"why":"كلمة حارق تصف الطقس، والسؤال عن أداء التكييف."}
+{"text":"جهاز فحص الشرارة المغلق يُظهر نبضة في ثلاث أسطوانات فقط. هل أقارن إشارات ملفات الإشعال؟","language":"ar","danger":false,"why":"الشرارة تُراقب داخل جهاز فحص مخصص أثناء تشخيص الإشعال."}
+{"text":"يخرج بخار أبيض خفيف من العادم صباحًا ويختفي بعد الإحماء، ومستوى سائل التبريد ثابت. هل أراقبه فقط؟","language":"ar","danger":false,"why":"الوصف لبخار عادم خفيف يزول بعد الإحماء."}
+{"text":"بعد فصل البطارية، وجدت أثر ذوبان قديمًا في فيشة مفكوكة. هل تتوفر أطرافها وحدها؟","language":"ar","danger":false,"why":"الأثر قديم والموصل مفصول أثناء فحص القطعة."}
+{"text":"العميل يقول إن رائحة العادم تشبه الاحتراق، وأرى تصحيح الوقود عند ناقص ٢٠ بالمئة. ما أول قراءة أراجعها؟","language":"ar","danger":false,"why":"الرائحة الموصوفة من العادم وتُستخدم مع قراءة تصحيح الوقود في التشخيص."}
+{"text":"لمبة البطارية تضيء عند فتح مفتاح الإشعال وتنطفئ بعد التشغيل. هل هذا فحص اللمبة المعتاد؟","language":"ar","danger":false,"why":"السؤال عن إضاءة لمبة البطارية في فحص التشغيل المعتاد."}
+{"text":"طفيت الموتر، بس للحين فيه نار صغيرة جنب علبة الفيوزات.","language":"ar_gulf","danger":true,"why":"النار ظاهرة عند علبة الفيوزات حتى بعد إطفاء الموتر."}
+{"text":"المفتاح بيدي والدخان للحين يطلع من فتحات المكيف.","language":"ar_gulf","danger":true,"why":"الدخان للحين يدخل المقصورة والسيارة مطفية."}
+{"text":"فيه ريحة بلاستيك يحترق عند فيشة المروحة، وكل شوي تقوى.","language":"ar_gulf","danger":true,"why":"ريحة الاحتراق تزيد عند فيشة كهربائية الحين."}
+{"text":"سلك البطارية يحك في الحديد ويطق شرر كل ما اهتز الموتر.","language":"ar_gulf","danger":true,"why":"سلك البطارية يطلع شرر بشكل متكرر عند ملامسة الحديد."}
+{"text":"عازل سلك الرديتر قاعد يسيح وينقط والمروحة للحين شغالة.","language":"ar_gulf","danger":true,"why":"عازل سلك المروحة يذوب وهي تحت التغذية."}
+{"text":"البطارية على الشاحن الحين وأشوف جوانبها قاعدة تنتفخ.","language":"ar_gulf","danger":true,"why":"البطارية تنتفخ حاليًا وهي على الشاحن."}
+{"text":"فيه سائل قاعد ينقط من شق في البطارية ويتجمع بصينية البطارية.","language":"ar_gulf","danger":true,"why":"السائل يتسرب الحين من جسم البطارية المتشقق."}
+{"text":"خويي توّه تكهرب يوم لمس سلك الهايبرد، ويقول للحين ما يحس بأصابعه.","language":"ar_gulf","danger":true,"why":"خويّه تعرّض لصدمة كهربائية للتو وعنده خدر مستمر."}
+{"text":"رفعت الفرشة ولقيت دخان خفيف يطلع الحين من الظفيرة تحت كرسي السواق.","language":"ar_gulf","danger":true,"why":"الظفيرة داخل المقصورة قاعدة تدخن حاليًا."}
+{"text":"ما فيه دخان واجد، بس أشوف جلدة فيشة السلف قاعدة تسيح.","language":"ar_gulf","danger":true,"why":"مادة فيشة السلف تذوب الآن حتى لو الدخان قليل."}
+{"text":"الصبح أول ما أشغل يطلع دخان أزرق من الشكمان ثانيتين ويروح. وش أشيك أول؟","language":"ar_gulf","danger":false,"why":"الدخان الأزرق من الشكمان عرض تشخيصي لحظي عند التشغيل البارد."}
+{"text":"لمبة المكينة ولعت عقب تبديل فلتر الهوا، والسكانر مطلع لي خليط فقير. أشيك ليّ الهوا؟","language":"ar_gulf","danger":false,"why":"اللمبة مرتبطة بكود خليط فقير يجري فحصه."}
+{"text":"بوجي السلندر الثالث مسوّد وناشف. أقارنه بالبواجي الباقية؟","language":"ar_gulf","danger":false,"why":"الميكانيكي يفحص ترسبات البوجي ويقارنها بين السلندرات."}
+{"text":"شبكت جهاز الدخان والمكينة طافية، وطلع دخان الجهاز من جلدة الثروتل. هالجلدة تجي لحالها؟","language":"ar_gulf","danger":false,"why":"الدخان من جهاز فحص التسريب المستخدم عمدًا."}
+{"text":"الجو نار اليوم، والمكيف يبرد وأنا أمشي بس يضعف بالإشارة. وش أشيك؟","language":"ar_gulf","danger":false,"why":"الجو نار تعبير عن الحر، والسؤال عن أداء المكيف."}
+{"text":"فاحص الشرارة المقفّل يبيّن نبضة على كل السلندرات إلا الثاني. أقارن إشارة الكويلات؟","language":"ar_gulf","danger":false,"why":"الشرارة تُفحص داخل أداة مخصصة لتشخيص الإشعال."}
+{"text":"مع الدعسة القوية يطلع دخان أسود من الشكمان. وش أسجل من اللايف داتا للديزل؟","language":"ar_gulf","danger":false,"why":"الحديث عن لون عادم الديزل تحت الحمل."}
+{"text":"الفيشة المفكوكة على الطاولة فيها أثر ذوبان قديم. ألقى لها أطراف لحالها؟","language":"ar_gulf","danger":false,"why":"أثر الذوبان قديم والفيشة مفكوكة على الطاولة."}
+{"text":"الزبون يسمي ريحة الشكمان ريحة حرق، وتصحيح البنزين عندي ناقص ١٨ بالمية. وش أقارن؟","language":"ar_gulf","danger":false,"why":"الوصف يخص ريحة العادم مع قراءة تصحيح الوقود."}
+{"text":"لمبة البطارية تولع مع السويتش وتطفي إذا اشتغلت المكينة. هذا فحص اللمبة العادي؟","language":"ar_gulf","danger":false,"why":"اللمبة تشتغل قبل تشغيل المكينة وتنطفئ بعدها في فحص التشغيل."}
+{"text":"گاڑی بند کر دی ہے مگر فیوز باکس کے پیچھے ابھی بھی شعلہ نظر آ رہا ہے۔","language":"ur","danger":true,"why":"گاڑی بند ہونے کے باوجود فیوز باکس کے پیچھے ابھی شعلہ موجود ہے۔"}
+{"text":"چابی نکال لی ہے مگر اے سی کے وینٹ سے اب بھی دھواں نکل رہا ہے۔","language":"ur","danger":true,"why":"اگنیشن بند کرنے کے بعد بھی کیبن میں دھواں آ رہا ہے۔"}
+{"text":"بلوور کے پلگ سے جلے پلاسٹک کی بو آ رہی ہے اور ہر منٹ تیز ہو رہی ہے۔","language":"ur","danger":true,"why":"برقی کنیکٹر کے پاس جلنے کی بڑھتی بو موجودہ گرمائش کی نشانی ہے۔"}
+{"text":"اسٹارٹر کی تار انجن بلاک سے لگ رہی ہے اور ابھی چنگاریاں نکل رہی ہیں۔","language":"ur","danger":true,"why":"اسٹارٹر کی تار انجن بلاک سے ٹکرا کر چنگاریاں پیدا کر رہی ہے۔"}
+{"text":"فین چل رہا ہے اور اس کی تار کا پلاسٹک میرے سامنے پگھل کر ٹپک رہا ہے۔","language":"ur","danger":true,"why":"چلتے فین کی تار کی حفاظتی تہہ اس وقت پگھل رہی ہے۔"}
+{"text":"بارہ وولٹ کی بیٹری چارجر پر لگی ہے اور اس کی سائیڈیں میرے سامنے پھول رہی ہیں۔","language":"ur","danger":true,"why":"بیٹری چارج ہوتے ہوئے پھول رہی ہے۔"}
+{"text":"بیٹری کے کیس میں دراڑ سے ابھی شفاف مائع رس کر ٹرے میں جمع ہو رہا ہے۔","language":"ur","danger":true,"why":"بیٹری کے پھٹے ہوئے کیس سے اس وقت مائع رس رہا ہے۔"}
+{"text":"شاگرد کو ابھی ہائبرڈ والی کیبل سے کرنٹ لگا ہے اور اس کی انگلیاں سن ہیں۔","language":"ur","danger":true,"why":"ابھی برقی جھٹکا لگا ہے اور انگلیوں میں سن پن برقرار ہے۔"}
+{"text":"ڈرائیور سیٹ کے نیچے میٹ اٹھایا تو ابھی تاروں کے گچھے سے ہلکا دھواں نکل رہا ہے۔","language":"ur","danger":true,"why":"کیبن کے اندر وائرنگ سے اس وقت دھواں اٹھ رہا ہے۔"}
+{"text":"دھواں ابھی نظر نہیں آ رہا، لیکن جلی ہوئی بو ہے اور مین فیوز کا پلاسٹک میرے سامنے نرم پڑ رہا ہے۔","language":"ur","danger":true,"why":"مین فیوز کے پاس جلنے کی بو اور نرم پڑتا پلاسٹک جاری گرمائش ظاہر کرتے ہیں۔"}
+{"text":"سرد انجن اسٹارٹ کرتے ہی سائلنسر سے دو سیکنڈ نیلا دھواں آتا ہے، پھر صاف ہو جاتا ہے۔ پہلے کیا چیک کروں؟","language":"ur","danger":false,"why":"سرد اسٹارٹ پر نیلا ایگزاسٹ دھواں ایک تشخیصی علامت کے طور پر بتایا گیا ہے۔"}
+{"text":"ایئر فلٹر بدلنے کے بعد چیک انجن لائٹ جل گئی، اسکینر پر لین مکسچر کا کوڈ ہے۔ انٹیک پائپ دیکھوں؟","language":"ur","danger":false,"why":"لفظ جل گئی ڈیش بورڈ کی لائٹ روشن ہونے کے لیے استعمال ہوا ہے۔"}
+{"text":"تیسرے سلنڈر کا اسپارک پلگ خشک اور کالا ہے۔ باقی پلگوں سے ملا کر دیکھوں؟","language":"ur","danger":false,"why":"مکینک اسپارک پلگ پر جمی تہہ کا معائنہ کر رہا ہے۔"}
+{"text":"انجن بند کر کے اسموک ٹیسٹ کیا تو مشین کا دھواں انٹیک گاسکٹ سے نکلا۔ کیا یہ لیک کی تصدیق ہے؟","language":"ur","danger":false,"why":"دھواں لیک معلوم کرنے کے لیے ٹیسٹ مشین سے ڈالا گیا تھا۔"}
+{"text":"آج ایسی گرمی ہے کہ ورکشاپ تندور بنی ہوئی ہے۔ گاڑی کھڑی ہو تو اے سی کم ٹھنڈا کرتا ہے۔ پہلے کیا دیکھوں؟","language":"ur","danger":false,"why":"تندور موسم کی گرمی کا محاورہ ہے اور سوال اے سی کی کارکردگی کا ہے۔"}
+{"text":"بند اسپارک ٹیسٹر میں دوسرے سلنڈر کی چنگاری نہیں دکھ رہی۔ کوائل کا سگنل ساتھ والے سے ملاؤں؟","language":"ur","danger":false,"why":"چنگاری مخصوص ٹیسٹر کے اندر اگنیشن کی جانچ کے لیے دیکھی جا رہی ہے۔"}
+{"text":"ڈیزل پر زور سے ایکسیلیٹر دباؤں تو سائلنسر سے کالا دھواں آتا ہے۔ کون سی لائیو ریڈنگ ریکارڈ کروں؟","language":"ur","danger":false,"why":"سوال انجن پر لوڈ کے دوران ایگزاسٹ کے کالے دھوئیں کی تشخیص کا ہے۔"}
+{"text":"اتاری ہوئی وائرنگ پر پگھلنے کا پرانا نشان ہے۔ یہ کنیکٹر الگ مل جاتا ہے؟","language":"ur","danger":false,"why":"پگھلنے کا نشان پرانا ہے اور وائرنگ گاڑی سے اتری ہوئی ہے۔"}
+{"text":"کسٹمر سائلنسر کی بو کو جلنے کی بو کہہ رہا ہے، فیول ٹرم آئیڈل پر منفی اٹھارہ ہے۔ اگلی ریڈنگ کیا دیکھوں؟","language":"ur","danger":false,"why":"بو ایگزاسٹ سے متعلق ہے اور اسے فیول ٹرم کے ساتھ تشخیص میں دیکھا جا رہا ہے۔"}
+{"text":"چابی آن کروں تو بیٹری کی لائٹ جلتی ہے، اسٹارٹ ہوتے ہی بجھ جاتی ہے۔ یہ نارمل بلب چیک ہے؟","language":"ur","danger":false,"why":"بیٹری کی وارننگ لائٹ اسٹارٹ سے پہلے روشن ہوتی ہے اور انجن چلتے ہی بجھ جاتی ہے۔"}

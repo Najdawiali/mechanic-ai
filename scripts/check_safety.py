@@ -2,6 +2,8 @@
 
     python scripts/check_safety.py sentences.jsonl            # the word list only (no model, no cost)
     python scripts/check_safety.py sentences.jsonl --model    # also the intake model (the second layer), as in the app
+    python scripts/check_safety.py --cases eval/own-cases --danger OC-CHG-02 --model   # every question of a case set:
+        # none should be stopped except the listed ones (a check that ordinary questions are not stopped by mistake)
 
 Each line: {"text": "...", "language": "en|ar|ar_gulf|ur", "danger": true|false}. Write the sentences without looking
 at the rules (another person or another AI), or the check grades itself. With --model it shows what the app does with
@@ -23,6 +25,18 @@ from app.safety import emergency  # noqa: E402
 
 def read(path: Path) -> list[dict]:
     return [json.loads(line) for line in path.read_text(encoding="utf-8").splitlines() if line.strip()]
+
+
+def read_cases(folder: Path, danger_ids: set[str]) -> list[dict]:
+    """The question of every case in a folder in his format (<folder>/<split>/*.yaml); harmless unless listed."""
+    import yaml
+
+    rows = []
+    for path in sorted(folder.glob("*/*.yaml")):
+        case = yaml.safe_load(path.read_text(encoding="utf-8"))
+        rows.append({"id": case["id"], "text": case["user_question"], "language": case.get("language"),
+                     "danger": case["id"] in danger_ids})
+    return rows
 
 
 def intake_danger(rows: list[dict], workers: int) -> list[str]:
@@ -55,11 +69,16 @@ def app_outcome(word_list_fired: bool, model: str | None) -> str:
 
 def main(argv: list[str] | None = None) -> int:
     p = argparse.ArgumentParser(description=__doc__.splitlines()[0])
-    p.add_argument("sentences", type=Path)
+    p.add_argument("sentences", type=Path, nargs="?", help="JSON lines: text, language, danger")
+    p.add_argument("--cases", type=Path, action="append", default=[], help="also every question of a case folder")
+    p.add_argument("--danger", default="", help="case ids, comma-separated, whose question describes a danger now")
     p.add_argument("--model", action="store_true", help="also ask the intake model, the second safety layer")
     p.add_argument("--workers", type=int, default=6)
     args = p.parse_args(argv)
-    rows = read(args.sentences)
+    danger_ids = {x.strip() for x in args.danger.split(",") if x.strip()}
+    rows = (read(args.sentences) if args.sentences else []) + [r for f in args.cases for r in read_cases(f, danger_ids)]
+    if not rows:
+        p.error("give a sentences file or --cases")
     words = [emergency.check(r["text"]) is not None for r in rows]
     model = intake_danger(rows, args.workers) if args.model else [None] * len(rows)
     dangers = sum(bool(r["danger"]) for r in rows)
@@ -86,7 +105,8 @@ def main(argv: list[str] | None = None) -> int:
                     for i, (r, o, m) in enumerate(zip(rows, outcome, model, strict=True), 1)
                     if (r["danger"] and o != "stop") or (not r["danger"] and o == "stop")]
     for i, r, kind, note in problems:
-        print(f"  {kind} #{i} [{r.get('language', '?')}] {'danger' if r['danger'] else 'harmless'}: {r['text']}{note}")
+        name = r.get("id") or f"#{i}"
+        print(f"  {kind} {name} [{r.get('language', '?')}] {'danger' if r['danger'] else 'harmless'}: {r['text']}{note}")
     return 1 if any(bool(r["danger"]) and not f for r, f in zip(rows, final, strict=True)) else 0
 
 

@@ -145,3 +145,15 @@ def test_the_script_counts_what_the_app_does_with_each_layer():
     from scripts.check_safety import app_outcome
     assert [app_outcome(True, "none"), app_outcome(True, "vehicle"), app_outcome(True, None), app_outcome(True, "error: X"),
             app_outcome(False, "person"), app_outcome(False, "none")] == ["warn", "stop", "stop", "stop", "stop", "answer"]
+
+
+def test_the_safety_script_reads_every_question_of_a_case_folder(tmp_path, capsys):
+    import yaml
+
+    from scripts.check_safety import main
+    (tmp_path / "dev").mkdir()
+    for cid, q in [("OC-1", "There are flames under the dash right now"), ("OC-2", "Blue smoke from the exhaust at a cold start")]:
+        (tmp_path / "dev" / f"{cid}.yaml").write_text(yaml.safe_dump({"id": cid, "user_question": q, "language": "en"}),
+                                                     encoding="utf-8")
+    assert main(["--cases", str(tmp_path), "--danger", "OC-1"]) == 0
+    assert "dangers caught 1/1" in capsys.readouterr().out
