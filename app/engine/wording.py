@@ -505,7 +505,7 @@ def salvaged(message: str, allowed: Allowed, forbidden: re.Pattern[str] | None =
 
 
 def compose(model: ModelClient, purpose: str, *, system: str, facts: dict, language: Language, allowed: Allowed,
-            schema_extra: dict | None = None, max_tokens: int = 2000, forbidden: re.Pattern[str] | None = None,
+            schema_extra: dict | None = None, max_tokens: int = 3000, forbidden: re.Pattern[str] | None = None,
             role: str = "reasoning", single_question: bool = False, salvage: bool = False) -> dict | None:
     """The model's reply as a dict with at least "message" (possibly empty), or None when it failed the
     validator twice or did not answer. `salvage`: after the second refusal, keep the answer without the sentences
