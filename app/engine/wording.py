@@ -440,6 +440,22 @@ def translate_lines(model: ModelClient, items: list[tuple[str, bool]], language:
 
 # The model reports its own length ("120 words.", "120 words limit reached."): fifth run, 5 refused answers.
 _BARE_NUMBER = re.compile(r"(?:(?<=[.!?:] )|^)\d+\.(?=\s|$)")  # a sentence that is only a number: "120."
+
+
+def strip_ids(message: str, ids) -> str:
+    """The message without the source ids it was told to put only in "use": "(web:FD4822EE507E)", "[pub:...]" or the
+    bare hex. Run 2026-11-25: 83 of 113 refusals were these ids, 28 web answers fell back to general knowledge and 8
+    lost their causes to salvage."""
+    for i in sorted({str(x) for x in ids or [] if x}, key=len, reverse=True):
+        tail = i.split(":")[-1]
+        names = [re.escape(i)] + ([re.escape(tail)] if len(tail) >= 6 else [])
+        alt = "|".join(names)
+        message = re.sub(rf"\s*[\(\[]\s*(?:id:?\s*)?(?:{alt})\s*[\)\]]", "", message)  # "(web:ABC)" / "[ABC]"
+        message = re.sub(rf"(?<![\w:])(?:{alt})(?![\w])", "", message)
+    message = re.sub(r"\s*[\(\[]\s*(?:[,;]\s*)*[\)\]]", "", message)  # "( , )" left by two ids
+    return re.sub(r"[ \t]{2,}", " ", message).replace(" ,", ",").replace(" .", ".")
+
+
 _WORD_COUNT = re.compile(r"(?i)(?:\(\s*)?\b\d+\s+words?(?:\s+(?:limit\s+)?(?:reached|used|max(?:imum)?))?\s*(?:\)|\.)?")
 
 
@@ -502,13 +518,14 @@ def compose(model: ModelClient, purpose: str, *, system: str, facts: dict, langu
     if single_question:
         full_system += "\nAsk exactly one question, at the end of the message."
     user = json.dumps(facts, ensure_ascii=False, default=str)
+    ids = ((schema_extra or {}).get("use") or {}).get("items", {}).get("enum") or []
     for attempt in range(2):
         try:
             out = model.json(purpose, role=role, system=full_system, user=user, schema=schema, max_tokens=max_tokens)
         except ModelError:
             return None
         message = out.get("message") if isinstance(out.get("message"), str) else ""
-        message = _BARE_NUMBER.sub("", _WORD_COUNT.sub("", message))  # notes about the prompt's length, not content
+        message = _BARE_NUMBER.sub("", _WORD_COUNT.sub("", strip_ids(message, ids)))  # notes about the prompt's length, not content
         message = re.sub(r"[ \t]{2,}", " ", message.replace(FIXED["greeting"][language], "")).strip()  # greeted in code
         message = _GREETING.sub("", message, count=1).strip()  # its own greeting too ("مساء الخير." after the mechanic's)
         message = _VOCATIVE.sub("", message, count=1).strip()  # and a title for the mechanic ("يا زميلي.")

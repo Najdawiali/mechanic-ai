@@ -106,3 +106,37 @@ def test_a_symptom_query_carries_no_vin_phone_or_email():
     assert q.startswith("2018 Toyota Camry engine stalls at idle when hot")
     assert "4T1B11HK5JU123456" not in q and "123 4567" not in q and "@" not in q
     assert build_symptom(Vehicle(make="Toyota", model="Camry"), "hi") is None
+
+
+def test_source_ids_are_removed_before_the_check():
+    """Run 2026-11-25: the model cited page ids in the message; the checker refused them as numbers."""
+    from app.engine.wording import strip_ids
+    ids = ["web:FD4822EE507E", "web:4C55130ADEC7"]
+    assert strip_ids("- Alternator failure (web:FD4822EE507E).", ids) == "- Alternator failure."
+    assert strip_ids("Belt [FD4822EE507E, 4C55130ADEC7] worn.", ids) == "Belt worn."
+    assert strip_ids("No id here, P0420 stays.", ids) == "No id here, P0420 stays."
+
+
+def test_compose_accepts_an_answer_that_cites_page_ids():
+    from app.engine.validator import Allowed
+    from app.engine.wording import compose
+
+    class Model:
+        trace: list = []
+        def __init__(self):
+            self.calls = 0
+        def json(self, *a, **k):
+            self.calls += 1
+            return {"message": "Likely the alternator (web:FD4822EE507E). Is the belt intact?", "use": ["web:FD4822EE507E"]}
+
+    m = Model()
+    out = compose(m, "web", system="s", facts={}, language="en", allowed=Allowed(),
+                  schema_extra={"use": {"type": "array", "items": {"type": "string", "enum": ["web:FD4822EE507E"]}}})
+    assert out is not None and m.calls == 1
+    assert "FD4822EE507E" not in out["message"]
+
+
+def test_recall_number_forms():
+    from app.engine.engine import _campaign_forms
+    assert "24V-481" in _campaign_forms("24V481000").split()
+    assert _campaign_forms("11119409") == ""
