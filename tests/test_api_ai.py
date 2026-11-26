@@ -1,5 +1,8 @@
 """The assistant's API through HTTP: real database, scripted model."""
 
+import json
+from contextlib import contextmanager
+
 import pytest
 from fastapi.testclient import TestClient
 from pydantic import SecretStr
@@ -39,6 +42,7 @@ def client(conn, monkeypatch, script):
             raise
 
     app.dependency_overrides[ai.get_conn] = one_transaction
+    app.dependency_overrides[ai.get_connector] = lambda: contextmanager(one_transaction)  # the streamed turn's own transaction
     app.dependency_overrides[ai.get_model] = lambda: script.model
     yield TestClient(app)
     app.dependency_overrides.clear()
@@ -114,3 +118,46 @@ def test_a_file_in_the_shared_storage_is_queued_once_and_a_missing_one_is_refuse
     assert first.status_code == 202 and first.json()["action"] == "created" and first.json()["job_id"]
     assert client.post("/ai/ingest", json=body, headers=KEY).json()["action"] == "unchanged"
     assert client.post("/ai/ingest", json=body | {"storage_key": "uploads/none.pdf"}, headers=KEY).status_code == 404
+
+
+def streamed(client, path, body, headers=KEY):
+    """The Server-Sent Events of a streamed turn, as (event, data) pairs; or the HTTP error."""
+    with client.stream("POST", path, json=body, headers=headers) as response:
+        if response.status_code != 200:
+            return response.status_code
+        assert response.headers["content-type"].startswith("text/event-stream")
+        events = []
+        for block in response.read().decode("utf-8").split("\n\n"):
+            lines = [line for line in block.split("\n") if line and not line.startswith(":")]
+            if lines:
+                name = next(line[6:].strip() for line in lines if line.startswith("event:"))
+                data = json.loads("".join(line[5:].strip() for line in lines if line.startswith("data:")))
+                events.append((name, data))
+        return events
+
+
+def test_a_streamed_turn_shows_its_progress_then_the_saved_reply_and_a_retry_gets_it_again(client, script):
+    open_session(client, "s5", {"make": "Toyota", "model": "Camry", "year": 2018})
+    body = {"message_id": "m1", "text": "Camry 2018 with P0420, what do I check?"}
+    events = streamed(client, "/ai/sessions/s5/turns/stream", body)
+    names = [name for name, _ in events]
+    assert names[0] == "status" and events[0][1] == {"stage": "reading"} and names[-1] == "reply"
+    assert "delta" in names and "error" not in names
+    reply = events[-1][1]
+    shown = "".join(data["text"] for name, data in events if name == "delta")
+    assert reply["tier"] == "general" and shown == reply["message"]
+
+    calls = len(script.model.trace)
+    assert streamed(client, "/ai/sessions/s5/turns/stream", body) == [("reply", reply)]  # stored: no new work
+    assert len(script.model.trace) == calls
+    assert client.post("/ai/sessions/s5/turns", json=body, headers=KEY).json() == reply  # the same turn, not streamed
+
+
+def test_a_streamed_turn_that_cannot_start_is_a_plain_http_error(client):
+    body = {"message_id": "m1", "text": "hello"}
+    assert streamed(client, "/ai/sessions/none/turns/stream", body) == 404
+    assert streamed(client, "/ai/sessions/none/turns/stream", body, headers={}) == 401
+    open_session(client, "s6")
+    assert streamed(client, "/ai/sessions/s6/turns/stream", {"message_id": "m1", "text": " "}) == 422
+    client.post("/ai/sessions/s6/turns", json=body, headers=KEY)
+    assert streamed(client, "/ai/sessions/s6/turns/stream", {"message_id": "m1", "text": "other"}) == 409

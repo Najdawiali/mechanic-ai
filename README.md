@@ -269,6 +269,13 @@ Before going live:
 - **Blocked sites:** `WEB_BLOCKED_DOMAINS` keeps sites that copy licensed manuals out. The measurement ran with the
   list empty; whether production does the same is the client's decision.
 
+Streaming replies: the app can call `POST /ai/sessions/{id}/turns/stream` (same body as `.../turns`) to show the
+answer while it is written. It sends Server-Sent Events: `status` (reading, searching, searching_web, writing),
+`delta` (the next checked piece of text), `reset` (withdraw what was shown) and `reply` (the saved final reply,
+which replaces everything shown). The protocol is in the endpoint's docstring (`app/api/ai.py`). Behind a proxy,
+turn response buffering off for this path (the service sends `X-Accel-Buffering: no` for nginx) and allow a read
+timeout of at least 180 s; a keep-alive comment is sent every 15 s.
+
 Checks:
 
 ```bash

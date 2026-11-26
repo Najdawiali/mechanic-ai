@@ -4,6 +4,7 @@
   GET  /demo/scenarios           the evaluation scenarios, offered as ready-made demo conversations
   GET  /demo/asset?path=...      a scenario's attachment (a scan-report photo)
   GET  /demo/diagram?key=...     a diagram page image sent in a reply
+  POST /demo/api/sessions/{id}/turns/stream   the streamed turn of /ai, called in this service (see turn_stream)
   *    /demo/api/...             passed to /ai/... with the service key added on the server
 """
 
@@ -18,6 +19,7 @@ from fastapi import APIRouter, Depends, HTTPException, Request, Response
 from fastapi.responses import HTMLResponse
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
+from app.api import ai
 from app.config import get_settings
 
 REPO = Path(__file__).resolve().parents[2]
@@ -84,6 +86,17 @@ def diagram(key: str) -> Response:
         return Response(get_store().get(key), media_type="image/png")
     except ObjectNotFound:
         raise HTTPException(404, "the page image is not in storage") from None
+
+
+@router.post("/api/sessions/{session_id}/turns/stream", dependencies=[Depends(viewer)])
+def turn_stream(session_id: str, body: ai.TurnIn, connect: ai.Connector = Depends(ai.get_connector),
+                model: ai.ModelClient = Depends(ai.get_model)) -> Response:
+    """The streamed turn, called in this service rather than through the pass-through below: httpx's ASGI transport
+    collects a whole response before returning it, which would undo the streaming. Same rule as the pass-through:
+    it works only when the service key is set."""
+    if get_settings().ai_service_key is None:
+        raise HTTPException(503, "set AI_SERVICE_KEY in .env: the demo calls /ai with it")
+    return ai.turn_stream(session_id, body, connect, model)
 
 
 @router.api_route("/api/{path:path}", methods=["GET", "POST", "DELETE"], dependencies=[Depends(viewer)])

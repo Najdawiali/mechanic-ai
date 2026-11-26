@@ -4,7 +4,7 @@ The app shows `message`; everything else is structured, so the app can render a 
 and the pictures without parsing text. `tier` is the answer policy's label:
 
   verified  every specific fact in the reply comes from a record in the knowledge base, cited in `evidence`
-  general   general knowledge, labelled as not verified for this car
+  general   general knowledge, labelled as general guidance (not from a record about this car)
   web       no verified data: the reply comes from web pages, each one linked in `evidence` with its fit for
             this car ("fits" or "check"); never verified, never the source of a value (project doc web-search-design.md)
   none      no basis: the reply asks a question, or says there is no verified information

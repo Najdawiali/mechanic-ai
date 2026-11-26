@@ -200,7 +200,7 @@ def test_a_pin_question_with_no_diagram_is_refused_first_then_gets_the_general_m
     engine, state = Engine(kb, script.model), session({"make": "Toyota", "model": "Camry", "year": 2018})
     reply = engine.turn(state, "Which ECM pin is the rear oxygen sensor?").reply
     assert reply.tier == "general" and reply.evidence == []
-    assert reply.message.split("\n")[1].startswith("Sorry, there is no verified information") and "pin number, wire colour" in reply.message
+    assert reply.message.split("\n")[1].startswith("I can't give an exact pin number, wire colour") and "won't guess" in reply.message
     assert "not available: never give it" in json.loads(script.calls("general")[0].request["user"])["the exact value, pin or wire asked for"]
     invents = Script(intakes={"Which ECM pin is the rear oxygen sensor?": {"intent": "spec_question"}},
                      general=[{"message": "It is ECM pin 23. Can you reach it?"}] * 2)
@@ -588,7 +588,7 @@ def test_a_partly_copied_header_is_removed_too():
     from app.engine.wording import fixed
     codes = "P2B5313, P2B5411"
     header = fixed("general_header", "ar", codes=codes)
-    copied = "P2B5313, P2B5411: لا توجد بيانات موثقة لهذه السيارة في قاعدة البيانات. افحص الوصلات أولاً."
+    copied = "P2B5313, P2B5411: إرشادات تشخيص عامة لهذا العطل: افحص الوصلات أولاً."
     assert strip_header(copied, header, codes) == "افحص الوصلات أولاً."
     assert strip_header("Less than 1. Then check it.", fixed("general_header", "en", codes="P0341"), "P0341") == "Less than 1. Then check it."
 
@@ -726,7 +726,7 @@ def test_no_verified_data_answers_from_web_pages_each_linked_and_marked(kb):
     result = engine.turn(state, "2025 Integra, code P0341.")
     reply = result.reply
     assert reply.tier == "web" and reply.type == "question" and reply.confidence == "low"
-    assert "web pages, not verified" in reply.message and "confirm they match this car" in reply.message  # one page is "check"
+    assert "P0341: based on web sources (links below)" in reply.message and "confirm they match this car" in reply.message  # one page is "check"
     assert [(e.type, e.url, e.applies) for e in reply.evidence] == [("web", CAM.url, "fits"), ("web", BULLETIN.url, "check")]
     assert web.asked == [["P0341"]] and state.external_searches == 1
     assert [t.model for t in script.model.trace if t.purpose == "web_search"] == ["exa"]
@@ -850,10 +850,10 @@ def test_public_records_answer_a_symptom_with_no_code_and_with_web_the_header_na
     script = Script(web=[{"use": [COMPLAINT.id], "message": "A US owner report describes a cold-start rattle. Is it at the top of the engine?"}])
     engine = Engine(kb, script.model, public=FakePublic([COMPLAINT]))
     reply = engine.turn(session(), "the engine rattles when cold").reply
-    assert reply.tier == "public" and reply.message.split("\n")[1].startswith("No verified data")
+    assert reply.tier == "public" and reply.message.split("\n")[1].startswith("Based on US public records (NHTSA")
     both = Script(web=[{"use": [CAM.id, RECALL.id], "message": "Per example-codes.com and a US recall, check the CMP connector first. What do you see?"}])
     mixed = Engine(kb, both.model, external=FakeWeb([CAM]), public=FakePublic([RECALL])).turn(session(), "2025 Integra, code P0341.").reply
-    assert mixed.tier == "web" and "web pages and US public records (NHTSA)" in mixed.message
+    assert mixed.tier == "web" and "web sources and US public records (NHTSA)" in mixed.message
     assert {e.type for e in mixed.evidence} == {"web", "public"}
 
 
@@ -948,7 +948,7 @@ def test_symptom_search_runs_with_no_code_only_when_switched_on(kb):
     web.symptom_search = True
     reply = Engine(kb, script.model, external=web).turn(session(), "the engine stalls when hot").reply
     assert web.asked == [[]] and reply.tier == "web"
-    assert reply.message.split("\n")[1].startswith("No verified data for this car in the knowledge base. What follows comes from web pages")
+    assert reply.message.split("\n")[1] == "Based on web sources (links below) and general diagnostic knowledge:"
     off = FakeWeb([CAM])
     Engine(kb, Script().model, external=off).turn(session(), "the engine stalls when hot")
     assert off.asked == []  # off by default: no code, no search

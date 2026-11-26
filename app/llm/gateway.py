@@ -15,6 +15,7 @@ import json
 import mimetypes
 import threading
 import time
+from collections.abc import Callable
 from dataclasses import dataclass, field
 from pathlib import Path
 from typing import Any, Literal
@@ -129,10 +130,15 @@ class LLMGateway:
         tool_choice: str | dict[str, Any] | None = None,
         temperature: float = 0.0,
         max_tokens: int = 1024,
+        on_text: Callable[[str], None] | None = None,  # streamed: each piece of the answer's text as it arrives
     ) -> LLMResult:
         kwargs = self._kwargs(messages, role, model, json_mode, json_schema, tools, tool_choice,
                               temperature, max_tokens)
         start = time.perf_counter()
+        if on_text is not None:
+            if tools:
+                raise ValueError("a streamed call cannot use tools")
+            return self._streamed(kwargs, on_text, start)
         resp = self.client.chat.completions.create(**kwargs)
         latency = time.perf_counter() - start
 
@@ -162,6 +168,42 @@ class LLMGateway:
             completion_tokens=usage.completion_tokens if usage else 0,
             cost_usd=usage_extra.get("estimated_cost"),
             latency_s=latency,
+        )
+
+    def _streamed(self, kwargs: dict[str, Any], on_text: Callable[[str], None], start: float) -> LLMResult:
+        """The same result as `chat`, read from the provider's stream (Server-Sent Events, as OpenAI's API).
+        The usage comes in the last chunk (stream_options.include_usage)."""
+        parts: list[str] = []
+        thinking: list[str] = []
+        finish: str | None = None
+        usage = None
+        stream = self.client.chat.completions.create(stream=True, stream_options={"include_usage": True}, **kwargs)
+        for chunk in stream:
+            if getattr(chunk, "usage", None):
+                usage = chunk.usage
+            if not chunk.choices:
+                continue
+            choice = chunk.choices[0]
+            delta = choice.delta
+            extra = (delta.model_extra or {}) if delta is not None else {}
+            if piece := extra.get("reasoning_content") or extra.get("reasoning"):
+                thinking.append(piece)
+            if delta is not None and delta.content:
+                parts.append(delta.content)
+                on_text(delta.content)
+            if choice.finish_reason:
+                finish = choice.finish_reason
+        usage_extra = (usage.model_extra or {}) if usage else {}
+        return LLMResult(
+            model=kwargs["model"],
+            text="".join(parts),
+            reasoning="".join(thinking) or None,
+            tool_calls=[],
+            finish_reason=finish,
+            prompt_tokens=usage.prompt_tokens if usage else 0,
+            completion_tokens=usage.completion_tokens if usage else 0,
+            cost_usd=usage_extra.get("estimated_cost"),
+            latency_s=time.perf_counter() - start,
         )
 
     def chat_stream(

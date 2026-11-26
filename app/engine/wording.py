@@ -10,7 +10,7 @@ Two kinds of text:
                must pass the validator: nothing specific without a source. Asked again once with
                the problems listed; then the caller's fallback (written in code) is used.
 
-Fixed short texts (the "no verified information" reply, notes, labels) are written here in the
+Fixed short texts (the refusal to guess a value, the source labels, notes) are written here in the
 three languages and need no model. Arabic and Urdu wording is ours: a native reader should check it.
 """
 
@@ -18,10 +18,14 @@ from __future__ import annotations
 
 import json
 import re
+from typing import TYPE_CHECKING
 
 from app.engine.model import ModelClient, ModelError, reject
 from app.engine.validator import Allowed, problems, tokens
 from app.lang.script import Language
+
+if TYPE_CHECKING:
+    from app.engine.streaming import MessageStream
 
 LANGUAGE_NAME = {"en": "English", "ar": "Arabic: clear, polite and professional, easily understood in Jordan, in Arabic script, no slang",
                  "ur": "Urdu, written in Urdu script (never Roman Urdu in Latin letters)"}
@@ -42,44 +46,44 @@ FIXED = {
         "ur": "درج ذیل متن ماخذ سے انگریزی میں ہے:",
     },
     "no_verified": {
-        "en": "Sorry, there is no verified information on this for this car in the knowledge base, so I can't give a pin number, wire colour or value for it. Please take it from the manufacturer's service information or wiring diagram for this car, or ask the workshop's expert.",
-        "ar": 'عذراً، لا توجد معلومات موثقة عن هذا لهذه السيارة في قاعدة البيانات، لذلك لا أستطيع إعطاء رقم بن أو لون سلك أو قيمة. يرجى أخذها من معلومات الصيانة أو مخطط الأسلاك الخاص بالشركة المصنعة لهذه السيارة، أو سؤال خبير الورشة.',
-        "ur": 'معذرت، اس گاڑی کے لیے نالج بیس میں اس بارے میں کوئی تصدیق شدہ معلومات نہیں ہیں، اس لیے میں پن نمبر، تار کا رنگ یا ویلیو نہیں دے سکتا۔ براہ کرم یہ اس گاڑی کی مینوفیکچرر سروس معلومات یا وائرنگ ڈایاگرام سے لیں، یا ورکشاپ کے ماہر سے پوچھیں۔',
+        "en": "I can't give an exact pin number, wire colour or value for this car without its wiring diagram, and I won't guess one. Please take it from the manufacturer's service information or wiring diagram for this car, or ask the workshop's expert.",
+        "ar": "لا أستطيع إعطاء رقم بن أو لون سلك أو قيمة دقيقة لهذه السيارة دون مخطط الأسلاك الخاص بها، ولن أخمّنها. يرجى أخذها من معلومات الصيانة أو مخطط الأسلاك الخاص بالشركة المصنعة لهذه السيارة، أو سؤال خبير الورشة.",
+        "ur": "اس گاڑی کے وائرنگ ڈایاگرام کے بغیر میں درست پن نمبر، تار کا رنگ یا ویلیو نہیں دے سکتا، اور اندازہ نہیں لگاؤں گا۔ براہ کرم یہ اس گاڑی کی مینوفیکچرر سروس معلومات یا وائرنگ ڈایاگرام سے لیں، یا ورکشاپ کے ماہر سے پوچھیں۔",
     },
     "no_verified_spec": {
-        "en": "Sorry, there is no verified information on this for this car in the knowledge base, so I can't give an exact value or specification for it. Please take it from the manufacturer's service information for this car, or ask the workshop's expert.",
-        "ar": "عذراً، لا توجد معلومات موثقة عن هذا لهذه السيارة في قاعدة البيانات، لذلك لا أستطيع إعطاء قيمة أو مواصفة دقيقة له. يرجى أخذها من معلومات الصيانة الخاصة بالشركة المصنعة لهذه السيارة، أو سؤال خبير الورشة.",
-        "ur": "معذرت، اس گاڑی کے لیے نالج بیس میں اس بارے میں کوئی تصدیق شدہ معلومات نہیں ہیں، اس لیے میں اس کی درست ویلیو یا اسپیسیفکیشن نہیں دے سکتا۔ براہ کرم یہ اس گاڑی کی مینوفیکچرر سروس معلومات سے لیں، یا ورکشاپ کے ماہر سے پوچھیں۔",
+        "en": "I can't give an exact value or specification for this car without its service information, and I won't guess one. Please take it from the manufacturer's service information for this car, or ask the workshop's expert.",
+        "ar": "لا أستطيع إعطاء قيمة أو مواصفة دقيقة لهذه السيارة دون معلومات الصيانة الخاصة بها، ولن أخمّنها. يرجى أخذها من معلومات الصيانة الخاصة بالشركة المصنعة لهذه السيارة، أو سؤال خبير الورشة.",
+        "ur": "اس گاڑی کی سروس معلومات کے بغیر میں اس کی درست ویلیو یا اسپیسیفکیشن نہیں دے سکتا، اور اندازہ نہیں لگاؤں گا۔ براہ کرم یہ اس گاڑی کی مینوفیکچرر سروس معلومات سے لیں، یا ورکشاپ کے ماہر سے پوچھیں۔",
     },
     "general_header": {
-        "en": "{codes}: no verified data for this car in the knowledge base. What follows is general knowledge, not verified for this car:",
-        "ar": "{codes}: لا توجد بيانات موثقة لهذه السيارة في قاعدة البيانات. ما يلي معلومات عامة غير موثقة لهذه السيارة:",
-        "ur": "{codes}: اس گاڑی کے لیے نالج بیس میں کوئی تصدیق شدہ ڈیٹا نہیں ہے۔ درج ذیل عمومی معلومات ہیں، اس گاڑی کے لیے تصدیق شدہ نہیں:",
+        "en": "{codes}: general diagnostic guidance for this fault:",
+        "ar": "{codes}: إرشادات تشخيص عامة لهذا العطل:",
+        "ur": "{codes}: اس خرابی کے لیے عمومی تشخیصی رہنمائی:",
     },
     "general_header_no_code": {
-        "en": "No verified data for this on this car in the knowledge base. What follows is general knowledge, not verified for this car:",
-        "ar": "لا توجد بيانات موثقة عن هذا لهذه السيارة في قاعدة البيانات. ما يلي معلومات عامة غير موثقة لهذه السيارة:",
-        "ur": "اس گاڑی کے لیے نالج بیس میں اس بارے میں کوئی تصدیق شدہ ڈیٹا نہیں ہے۔ درج ذیل عمومی معلومات ہیں، اس گاڑی کے لیے تصدیق شدہ نہیں:",
+        "en": "General diagnostic guidance:",
+        "ar": "إرشادات تشخيص عامة:",
+        "ur": "عمومی تشخیصی رہنمائی:",
     },
     "web_header": {
-        "en": "{codes}: no verified data for this car in the knowledge base. What follows comes from web pages, not verified for this car; the links are below:",
-        "ar": "{codes}: لا توجد بيانات موثقة لهذه السيارة في قاعدة البيانات. ما يلي مأخوذ من صفحات على الإنترنت وغير موثق لهذه السيارة، والروابط في الأسفل:",
-        "ur": "{codes}: اس گاڑی کے لیے نالج بیس میں کوئی تصدیق شدہ ڈیٹا نہیں ہے۔ درج ذیل انٹرنیٹ کے صفحات سے لیا گیا ہے اور اس گاڑی کے لیے تصدیق شدہ نہیں، لنکس نیچے ہیں:",
+        "en": "{codes}: based on web sources (links below) and general diagnostic knowledge:",
+        "ar": "{codes}: بناءً على مصادر من الإنترنت (الروابط في الأسفل) ومعرفة تشخيصية عامة:",
+        "ur": "{codes}: انٹرنیٹ کے ذرائع (لنکس نیچے ہیں) اور عمومی تشخیصی معلومات کی بنیاد پر:",
     },
     "public_header": {
-        "en": "{codes}: no verified data for this car in the knowledge base. What follows comes from US public records (NHTSA: official recalls and investigations, and owners' unverified complaints), not verified for this car; the records are listed below:",
-        "ar": "{codes}: لا توجد بيانات موثقة لهذه السيارة في قاعدة البيانات. ما يلي مأخوذ من سجلات أمريكية عامة (NHTSA: استدعاءات وتحقيقات رسمية وشكاوى مالكين غير موثقة)، وهو غير موثق لهذه السيارة، والسجلات مذكورة في الأسفل:",
-        "ur": "{codes}: اس گاڑی کے لیے نالج بیس میں کوئی تصدیق شدہ ڈیٹا نہیں ہے۔ درج ذیل امریکی سرکاری ریکارڈ (NHTSA: سرکاری ریکالز اور تحقیقات، اور مالکان کی غیر تصدیق شدہ شکایات) سے لیا گیا ہے اور اس گاڑی کے لیے تصدیق شدہ نہیں، ریکارڈ نیچے درج ہیں:",
+        "en": "{codes}: based on US public records (NHTSA: official recalls and investigations, and owner complaints; listed below) and general diagnostic knowledge:",
+        "ar": "{codes}: بناءً على سجلات أمريكية عامة (NHTSA: استدعاءات وتحقيقات رسمية وشكاوى مالكين، مذكورة في الأسفل) ومعرفة تشخيصية عامة:",
+        "ur": "{codes}: امریکی سرکاری ریکارڈ (NHTSA: سرکاری ریکالز اور تحقیقات، اور مالکان کی شکایات، نیچے درج ہیں) اور عمومی تشخیصی معلومات کی بنیاد پر:",
     },
     "public_header_no_code": {
-        "en": "No verified data for this car in the knowledge base. What follows comes from US public records (NHTSA: official recalls and investigations, and owners' unverified complaints), not verified for this car; the records are listed below:",
-        "ar": "لا توجد بيانات موثقة لهذه السيارة في قاعدة البيانات. ما يلي مأخوذ من سجلات أمريكية عامة (NHTSA: استدعاءات وتحقيقات رسمية وشكاوى مالكين غير موثقة)، وهو غير موثق لهذه السيارة، والسجلات مذكورة في الأسفل:",
-        "ur": "اس گاڑی کے لیے نالج بیس میں کوئی تصدیق شدہ ڈیٹا نہیں ہے۔ درج ذیل امریکی سرکاری ریکارڈ (NHTSA: سرکاری ریکالز اور تحقیقات، اور مالکان کی غیر تصدیق شدہ شکایات) سے لیا گیا ہے اور اس گاڑی کے لیے تصدیق شدہ نہیں، ریکارڈ نیچے درج ہیں:",
+        "en": "Based on US public records (NHTSA: official recalls and investigations, and owner complaints; listed below) and general diagnostic knowledge:",
+        "ar": "بناءً على سجلات أمريكية عامة (NHTSA: استدعاءات وتحقيقات رسمية وشكاوى مالكين، مذكورة في الأسفل) ومعرفة تشخيصية عامة:",
+        "ur": "امریکی سرکاری ریکارڈ (NHTSA: سرکاری ریکالز اور تحقیقات، اور مالکان کی شکایات، نیچے درج ہیں) اور عمومی تشخیصی معلومات کی بنیاد پر:",
     },
     "sources_header": {
-        "en": "{codes}: no verified data for this car in the knowledge base. What follows comes from web pages and US public records (NHTSA), not verified for this car; the sources are listed below:",
-        "ar": "{codes}: لا توجد بيانات موثقة لهذه السيارة في قاعدة البيانات. ما يلي مأخوذ من صفحات على الإنترنت ومن سجلات أمريكية عامة (NHTSA)، وهو غير موثق لهذه السيارة، والمصادر مذكورة في الأسفل:",
-        "ur": "{codes}: اس گاڑی کے لیے نالج بیس میں کوئی تصدیق شدہ ڈیٹا نہیں ہے۔ درج ذیل انٹرنیٹ کے صفحات اور امریکی سرکاری ریکارڈ (NHTSA) سے لیا گیا ہے اور اس گاڑی کے لیے تصدیق شدہ نہیں، ذرائع نیچے درج ہیں:",
+        "en": "{codes}: based on web sources and US public records (NHTSA), listed below, and general diagnostic knowledge:",
+        "ar": "{codes}: بناءً على مصادر من الإنترنت وسجلات أمريكية عامة (NHTSA)، مذكورة في الأسفل، ومعرفة تشخيصية عامة:",
+        "ur": "{codes}: انٹرنیٹ کے ذرائع اور امریکی سرکاری ریکارڈ (NHTSA)، نیچے درج ہیں، اور عمومی تشخیصی معلومات کی بنیاد پر:",
     },
     "public_check": {
         "en": "Some of these records may be for another version or model year of this car, and US-market cars can differ from GCC ones: please confirm they match this car.",
@@ -153,14 +157,14 @@ FIXED = {
         "ur": "CAN-H اور CAN-L کے درمیان آپ کی ریڈنگ {value} ohm نارمل نہیں ہے: صحت مند ہائی اسپیڈ CAN بس تقریباً 60 ohm پڑھتی ہے (عام معیار، سروس معلومات سے تصدیق کریں)۔ تقریباً 0 ohm کا مطلب ہے کہ CAN-H اور CAN-L آپس میں شارٹ ہیں۔",
     },
     "web_header_no_code": {
-        "en": "No verified data for this car in the knowledge base. What follows comes from web pages, not verified for this car; the links are below:",
-        "ar": "لا توجد بيانات موثقة لهذه السيارة في قاعدة البيانات. ما يلي مأخوذ من صفحات على الإنترنت وغير موثق لهذه السيارة، والروابط في الأسفل:",
-        "ur": "اس گاڑی کے لیے نالج بیس میں کوئی تصدیق شدہ ڈیٹا نہیں ہے۔ درج ذیل انٹرنیٹ کے صفحات سے لیا گیا ہے اور اس گاڑی کے لیے تصدیق شدہ نہیں، لنکس نیچے ہیں:",
+        "en": "Based on web sources (links below) and general diagnostic knowledge:",
+        "ar": "بناءً على مصادر من الإنترنت (الروابط في الأسفل) ومعرفة تشخيصية عامة:",
+        "ur": "انٹرنیٹ کے ذرائع (لنکس نیچے ہیں) اور عمومی تشخیصی معلومات کی بنیاد پر:",
     },
     "sources_header_no_code": {
-        "en": "No verified data for this car in the knowledge base. What follows comes from web pages and US public records (NHTSA), not verified for this car; the sources are listed below:",
-        "ar": "لا توجد بيانات موثقة لهذه السيارة في قاعدة البيانات. ما يلي مأخوذ من صفحات على الإنترنت ومن سجلات أمريكية عامة (NHTSA)، وهو غير موثق لهذه السيارة، والمصادر مذكورة في الأسفل:",
-        "ur": "اس گاڑی کے لیے نالج بیس میں کوئی تصدیق شدہ ڈیٹا نہیں ہے۔ درج ذیل انٹرنیٹ کے صفحات اور امریکی سرکاری ریکارڈ (NHTSA) سے لیا گیا ہے اور اس گاڑی کے لیے تصدیق شدہ نہیں، ذرائع نیچے درج ہیں:",
+        "en": "Based on web sources and US public records (NHTSA), listed below, and general diagnostic knowledge:",
+        "ar": "بناءً على مصادر من الإنترنت وسجلات أمريكية عامة (NHTSA)، مذكورة في الأسفل، ومعرفة تشخيصية عامة:",
+        "ur": "انٹرنیٹ کے ذرائع اور امریکی سرکاری ریکارڈ (NHTSA)، نیچے درج ہیں، اور عمومی تشخیصی معلومات کی بنیاد پر:",
     },
     "web_check": {
         "en": "Some of these pages may be for another model year or engine: please confirm they match this car before relying on them.",
@@ -486,6 +490,19 @@ def one_question(text: str) -> str:
     return re.sub(r"[ \t]{2,}", " ", re.sub(r" +\n", "\n", text)).strip()
 
 
+def tidy(message: str, ids, language: Language, *, start: bool = True) -> str:
+    """The clean-up every model message gets (and each sentence of the streamed preview, app/engine/streaming.py):
+    no source ids, no notes about its own length, no greeting (the reply greets in code). `start`: the text is the
+    start of the message, where the model's own greeting and a title for the mechanic are removed too."""
+    message = _BARE_NUMBER.sub("", _WORD_COUNT.sub("", strip_ids(message, ids)))  # notes about the prompt's length, not content
+    message = re.sub(r"[ \t]{2,}", " ", message.replace(FIXED["greeting"][language], "")).strip()  # greeted in code
+    if start:
+        message = _GREETING.sub("", message, count=1).strip()  # its own greeting too ("مساء الخير." after the mechanic's)
+        message = _VOCATIVE.sub("", message, count=1).strip()  # and a title for the mechanic ("يا زميلي.")
+        message = message[:1].upper() + message[1:]  # "Good afternoon, check the fuse." -> "Check the fuse."
+    return message
+
+
 _SENTENCE_END = re.compile(r"(?<=[.!?؟])\s+")
 
 
@@ -511,10 +528,12 @@ def salvaged(message: str, allowed: Allowed, forbidden: re.Pattern[str] | None =
 
 def compose(model: ModelClient, purpose: str, *, system: str, facts: dict, language: Language, allowed: Allowed,
             schema_extra: dict | None = None, max_tokens: int = 3000, forbidden: re.Pattern[str] | None = None,
-            role: str = "reasoning", single_question: bool = False, salvage: bool = False) -> dict | None:
+            role: str = "reasoning", single_question: bool = False, salvage: bool = False,
+            stream: MessageStream | None = None) -> dict | None:
     """The model's reply as a dict with at least "message" (possibly empty), or None when it failed the
     validator twice or did not answer. `salvage`: after the second refusal, keep the answer without the sentences
-    that failed, when most of it remains (general answers only; see `salvaged`)."""
+    that failed, when most of it remains (general answers only; see `salvaged`). `stream`: show the message to the
+    mechanic while it is written, sentence by sentence, with the same checks (app/engine/streaming.py)."""
     properties = {"message": {"type": "string"}, **(schema_extra or {})}
     schema = {"type": "object", "additionalProperties": False, "required": list(properties), "properties": properties}
     full_system = (system + f"\n\n{TONE}\nWrite the message in {LANGUAGE_NAME[language]}. Keep fault codes, part and component names, "
@@ -525,16 +544,16 @@ def compose(model: ModelClient, purpose: str, *, system: str, facts: dict, langu
     user = json.dumps(facts, ensure_ascii=False, default=str)
     ids = ((schema_extra or {}).get("use") or {}).get("items", {}).get("enum") or []
     for attempt in range(2):
+        preview = {}
+        if stream is not None:
+            stream.begin(attempt, allowed=allowed, forbidden=forbidden, ids=ids, language=language, salvage=salvage,
+                         single_question=single_question)
+            preview["on_text"] = stream.feed
         try:
-            out = model.json(purpose, role=role, system=full_system, user=user, schema=schema, max_tokens=max_tokens)
+            out = model.json(purpose, role=role, system=full_system, user=user, schema=schema, max_tokens=max_tokens, **preview)
         except ModelError:
             return None
-        message = out.get("message") if isinstance(out.get("message"), str) else ""
-        message = _BARE_NUMBER.sub("", _WORD_COUNT.sub("", strip_ids(message, ids)))  # notes about the prompt's length, not content
-        message = re.sub(r"[ \t]{2,}", " ", message.replace(FIXED["greeting"][language], "")).strip()  # greeted in code
-        message = _GREETING.sub("", message, count=1).strip()  # its own greeting too ("مساء الخير." after the mechanic's)
-        message = _VOCATIVE.sub("", message, count=1).strip()  # and a title for the mechanic ("يا زميلي.")
-        message = message[:1].upper() + message[1:]  # "Good afternoon, check the fuse." -> "Check the fuse."
+        message = tidy(out.get("message") if isinstance(out.get("message"), str) else "", ids, language)
         asked = len(_QUESTION.findall(message))
         if single_question and asked > 1 and attempt == 1:
             message, asked = one_question(message), 1  # asked again already: keep its last question

@@ -3,7 +3,10 @@
 import pytest
 
 from app.demo import router as demo_router
-from tests.test_api_ai import client, script  # noqa: F401  the same app, database and scripted model
+from tests.test_api_ai import (  # noqa: F401  the same app, database and scripted model
+    client,
+    script,
+)
 
 
 @pytest.fixture
@@ -38,6 +41,18 @@ def test_the_page_talks_to_the_ai_api_with_the_key_kept_on_the_server(demo):
     assert done["type"] == "conclusion"
     assert demo.get("/demo/api/sessions/d1/trace").status_code == 200
     assert demo.post("/demo/api/sessions/d1/close").json()["record"]["codes"] == ["P0010"]
+
+
+def test_the_page_streams_a_turn_in_this_service(demo):
+    from tests.test_api_ai import streamed
+
+    demo.post("/demo/api/sessions", json={"session_id": "d2", "vehicle": {"make": "Toyota", "model": "Camry", "year": 2018},
+                                          "language": "en"})
+    events = streamed(demo, "/demo/api/sessions/d2/turns/stream", {"message_id": "m1", "text": "Camry 2018 with P0420"}, headers={})
+    assert events[-1][0] == "reply" and events[-1][1]["tier"] == "general"
+    assert "".join(d["text"] for n, d in events if n == "delta") == events[-1][1]["message"]
+    page = demo.get("/demo").text
+    assert "turns/stream" in page and "No verified data" not in page
 
 
 def test_only_a_sessions_calls_and_known_files_can_be_reached(demo):

@@ -47,7 +47,7 @@ class ModelClient(Protocol):
     trace: list[TraceEntry]
 
     def json(self, purpose: str, *, role: Role, system: str, user: str | list[dict], schema: dict,
-             max_tokens: int = 800) -> dict: ...
+             max_tokens: int = 800, on_text: Callable[[str], None] | None = None) -> dict: ...
 
     def embed_query(self, text: str) -> list[float] | None: ...
 
@@ -75,13 +75,16 @@ class GatewayModel:
     trace: list[TraceEntry] = field(default_factory=list)
 
     def json(self, purpose: str, *, role: Role, system: str, user: str | list[dict], schema: dict,
-             max_tokens: int = 800) -> dict:
+             max_tokens: int = 800, on_text: Callable[[str], None] | None = None) -> dict:
+        """`on_text`: the answer's text is streamed to it as it arrives (first try only: a failed stream is
+        tried again without streaming, so a provider that cannot stream still answers)."""
         messages = [{"role": "system", "content": system}, {"role": "user", "content": user}]
         last_error = None
-        for _ in range(2):
+        for attempt in range(2):
             start = time.perf_counter()
             try:
-                result = self.gateway.chat(messages, role=role, json_schema=schema, max_tokens=max_tokens)
+                result = self.gateway.chat(messages, role=role, json_schema=schema, max_tokens=max_tokens,
+                                           on_text=on_text if attempt == 0 else None)
             except Exception as exc:  # noqa: BLE001  the provider failed: traced, then retried once
                 last_error = f"{type(exc).__name__}: {exc}"
                 self.trace.append(TraceEntry(purpose, self.gateway.model_for(role), time.perf_counter() - start,
@@ -112,12 +115,16 @@ class ScriptedModel:
     vectors: Callable[[str], list[float] | None] | None = None
 
     def json(self, purpose: str, *, role: Role, system: str, user: str | list[dict], schema: dict,
-             max_tokens: int = 800) -> dict:
+             max_tokens: int = 800, on_text: Callable[[str], None] | None = None) -> dict:
         if purpose not in self.handlers:
             raise ModelError(f"no scripted answer for {purpose!r}")
         out = self.handlers[purpose](system, user, schema)
+        text = json.dumps(out, ensure_ascii=False)
+        if on_text is not None:  # streamed in small pieces, as a provider sends it
+            for i in range(0, len(text), 7):
+                on_text(text[i:i + 7])
         self.trace.append(TraceEntry(purpose, "scripted", 0.0, request={"system": system, "user": _short(user)},
-                                     output=json.dumps(out, ensure_ascii=False)))
+                                     output=text))
         return out
 
     def embed_query(self, text: str) -> list[float] | None:
