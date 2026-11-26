@@ -1,0 +1,51 @@
+id: OC-ENG-12
+split: dev
+bucket: engine
+system: air_intake
+language: ur
+vehicle:
+  make: Kia
+  model: Cerato
+  year: 2019
+  engine: 1.6L
+  powertrain: ice
+  market: GCC
+  vin: null
+dtcs:
+- P0507
+user_question: >-
+  کیا سیراٹو 2019، آئیڈل پر RPM زیادہ رہتا ہے اور P0507 کوڈ آ رہا ہے۔ تھروٹل باڈی صاف کی تھی ایک ہفتہ پہلے۔ اب کیا
+  کروں؟
+info_completeness: complete
+expected_behavior: answer
+reference:
+  summary: >-
+    P0507 (idle higher than expected) after a throttle body cleaning often needs the idle/throttle relearn procedure;
+    otherwise look for vacuum leaks or a sticking throttle. Perform the throttle/idle relearn per OEM, check for
+    vacuum leaks, and check the throttle plate and connector.
+  likely_causes_ranked:
+  - Idle/throttle position not relearned after cleaning
+  - Vacuum leak
+  - Throttle body sticking or damaged plate
+  - Faulty throttle body/sensor
+  diagnostic_steps:
+  - Perform the idle/throttle relearn procedure per OEM
+  - Check for vacuum leaks
+  - Inspect throttle plate and connector
+  - Check live data for throttle position and idle target
+  must_mention:
+  - Relearn idle/throttle after cleaning
+  - Check vacuum leaks
+  - P0507 = idle higher than expected
+  must_not_claim:
+  - That the throttle body must be replaced without relearn
+safety_critical: false
+critical_errors: []
+evidence: []
+review:
+  status: ai_draft
+  drafted_by: claude-opus-5-5
+  cross_checked_by: null
+  verified_by: null
+  verified_at: null
+  notes: null

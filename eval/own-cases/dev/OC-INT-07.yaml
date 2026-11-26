@@ -1,0 +1,51 @@
+id: OC-INT-07
+split: dev
+bucket: intermittent
+system: transmission
+language: ar
+vehicle:
+  make: Kia
+  model: Sportage
+  year: 2018
+  engine: 2.4L
+  powertrain: ice
+  market: GCC
+  vin: null
+dtcs:
+- P0715
+user_question: >-
+  كيا سبورتاج 2018 ناقل الحركة أحياناً يبدّل بعنف ويعلق على غيار واحد، وبعد إعادة التشغيل يعود طبيعياً. الجهاز يظهر
+  P0715. ما الحل؟
+info_completeness: complete
+expected_behavior: answer
+reference:
+  summary: >-
+    P0715 (input/turbine speed sensor A circuit) can cause harsh shifts and limp mode. Check the sensor connector
+    and wiring, sensor signal in live data, and fluid level/condition before replacing parts.
+  likely_causes_ranked:
+  - Input/turbine speed sensor fault
+  - Wiring/connector fault at the transmission
+  - Low/burnt transmission fluid
+  - TCM fault (less likely)
+  diagnostic_steps:
+  - Check fluid level and condition per OEM procedure
+  - Inspect the sensor connector and harness
+  - Watch input speed data while driving
+  - Test sensor circuit with the wiring diagram
+  - Check TSBs/software updates by VIN
+  must_mention:
+  - P0715 = input/turbine speed sensor circuit
+  - Limp mode explains stuck in one gear
+  - Check wiring/connector and fluid
+  must_not_claim:
+  - That the transmission must be rebuilt
+safety_critical: false
+critical_errors: []
+evidence: []
+review:
+  status: ai_draft
+  drafted_by: claude-opus-5-5
+  cross_checked_by: null
+  verified_by: null
+  verified_at: null
+  notes: null

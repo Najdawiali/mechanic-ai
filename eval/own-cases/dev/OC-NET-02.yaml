@@ -1,0 +1,51 @@
+id: OC-NET-02
+split: dev
+bucket: can_lin
+system: network
+language: ar
+vehicle:
+  make: Toyota
+  model: Camry
+  year: 2019
+  engine: 2.5L A25A
+  powertrain: ice
+  market: GCC
+  vin: null
+dtcs:
+- U0121
+user_question: >-
+  كامري 2019 بعد إصلاح حادث في الأمام، ظهرت لمبات ABS والتحكم بالثبات، والفحص يظهر U0121 في عدة وحدات. ماذا أفحص؟
+info_completeness: complete
+expected_behavior: answer
+reference:
+  summary: >-
+    U0121 (lost communication with ABS control module) after front collision repair points to the ABS module connector,
+    its power/ground fuses, or CAN wiring damaged in the repair area. Check the connector seating, fuses, grounds
+    and CAN wires near the repair.
+  likely_causes_ranked:
+  - ABS module connector not fully seated or damaged
+  - Blown ABS fuse or missing power/ground
+  - CAN wiring damaged in the collision area
+  - ABS module fault
+  diagnostic_steps:
+  - Inspect ABS module connector and locking
+  - Check ABS fuses, powers and grounds
+  - Inspect harness in the repaired area for damage
+  - Check CAN continuity/resistance and voltages
+  - Scan again after repairs
+  must_mention:
+  - U0121 = lost communication with ABS module
+  - Check connector, fuses and grounds of the ABS module
+  - Inspect wiring in the collision area
+  must_not_claim:
+  - That the ABS module is definitely faulty
+safety_critical: false
+critical_errors: []
+evidence: []
+review:
+  status: ai_draft
+  drafted_by: claude-opus-5-5
+  cross_checked_by: null
+  verified_by: null
+  verified_at: null
+  notes: null

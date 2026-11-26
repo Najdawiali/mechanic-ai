@@ -1,0 +1,50 @@
+id: OC-NET-09
+split: dev
+bucket: can_lin
+system: network
+language: ur
+vehicle:
+  make: Honda
+  model: Accord
+  year: 2019
+  engine: 1.5L turbo
+  powertrain: ice
+  market: GCC
+  vin: null
+dtcs:
+- U0073
+user_question: >-
+  ہونڈا اکارڈ 2019، بیٹری بدلنے کے بعد سے بہت سی وارننگ لائٹس آ گئیں اور U0073 کوڈ ہے۔ گاڑی چلتی ہے۔ کیا یہ خود
+  ٹھیک ہو جائیں گی؟
+info_completeness: complete
+expected_behavior: answer
+reference:
+  summary: >-
+    Warnings after a battery change can be from voltage dips or the battery reconnect needing relearn procedures,
+    but U0073 (communication bus A off) should be verified: check battery terminals and grounds, clear codes, and
+    see if it returns before deeper network tests.
+  likely_causes_ranked:
+  - Low voltage events during battery change
+  - Loose battery terminal or ground
+  - Required relearn/initialization after battery change
+  - Real CAN bus fault
+  diagnostic_steps:
+  - Check battery terminals, grounds and voltage
+  - Clear codes and drive; recheck
+  - Perform OEM initialization procedures (windows, steering angle etc.) if required
+  - If U0073 returns, test the bus
+  must_mention:
+  - Check terminals/grounds after battery change
+  - Clear codes and recheck before deep diagnosis
+  must_not_claim:
+  - That a module must be replaced
+safety_critical: false
+critical_errors: []
+evidence: []
+review:
+  status: ai_draft
+  drafted_by: claude-opus-5-5
+  cross_checked_by: null
+  verified_by: null
+  verified_at: null
+  notes: null

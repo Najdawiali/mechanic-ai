@@ -1,0 +1,47 @@
+id: OC-INC-09
+split: holdout
+bucket: incomplete_info
+system: unknown
+language: ur
+vehicle:
+  make: Mitsubishi
+  model: Lancer
+  year: null
+  engine: null
+  powertrain: null
+  market: GCC
+  vin: null
+dtcs: []
+user_question: لانسر میں بجلی کا مسئلہ ہے۔ کیا چیک کروں؟
+info_completeness: insufficient
+expected_behavior: ask_for_info
+reference:
+  summary: >-
+    "Electrical problem" is too broad: ask what exactly fails (no start, lights, windows, battery drain, warning
+    lights), when, year.
+  likely_causes_ranked: []
+  diagnostic_steps:
+  - Ask for the key missing details
+  - Give only clearly provisional possibilities
+  - Diagnose after the details arrive
+  must_mention:
+  - Ask what exactly fails
+  - Ask what happened before it started
+  - Ask for codes/warnings
+  must_not_claim:
+  - A definite cause or a specific part to replace without more information
+  questions_to_ask:
+  - What exactly doesn't work?
+  - Since when, and did anything happen before (battery change, accessory install, water)?
+  - Any warning lights or codes?
+  - Year?
+safety_critical: false
+critical_errors: []
+evidence: []
+review:
+  status: ai_draft
+  drafted_by: claude-opus-5-5
+  cross_checked_by: null
+  verified_by: null
+  verified_at: null
+  notes: null

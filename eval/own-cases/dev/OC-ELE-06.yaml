@@ -1,0 +1,51 @@
+id: OC-ELE-06
+split: dev
+bucket: electrical
+system: charging
+language: ur
+vehicle:
+  make: Mitsubishi
+  model: L200
+  year: 2017
+  engine: 2.4L diesel 4N15
+  powertrain: ice
+  market: GCC
+  vin: null
+dtcs: []
+user_question: >-
+  مٹسوبشی L200 ڈیزل 2017، رات کو گاڑی کھڑی کرو تو صبح بیٹری ختم ہو جاتی ہے۔ نئی بیٹری لگائی پھر بھی یہی مسئلہ۔ گاڑی
+  میں آفٹر مارکیٹ ریڈیو اور لائٹ بار لگا ہوا ہے۔ کیسے پتا کروں؟
+info_completeness: complete
+expected_behavior: answer
+reference:
+  summary: >-
+    A new battery that still goes flat overnight means a parasitic drain or no charging. Aftermarket radio and light
+    bar wiring are prime suspects. Measure parasitic draw after modules sleep, then pull fuses/disconnect accessories
+    one by one; also confirm charging voltage.
+  likely_causes_ranked:
+  - Aftermarket radio/light bar wired to permanent power or a stuck relay
+  - A module not going to sleep (glovebox/boot light, door switch)
+  - Alternator diode leakage
+  - Undercharging so the battery never fully charges
+  diagnostic_steps:
+  - Confirm charging voltage with the engine running
+  - Measure parasitic draw with an ammeter in series after all modules sleep
+  - Disconnect the aftermarket radio and light bar and re-measure
+  - Pull fuses one by one (or measure voltage drop across fuses) to find the circuit
+  - Check the alternator for diode leakage
+  must_mention:
+  - Parasitic draw test with modules asleep
+  - Suspect the aftermarket radio and light bar wiring first
+  - Check the charging system too
+  must_not_claim:
+  - That another new battery will fix it
+safety_critical: false
+critical_errors: []
+evidence: []
+review:
+  status: ai_draft
+  drafted_by: claude-opus-5-5
+  cross_checked_by: null
+  verified_by: null
+  verified_at: null
+  notes: null

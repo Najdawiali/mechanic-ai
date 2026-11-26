@@ -1,0 +1,50 @@
+id: OC-INT-05
+split: dev
+bucket: intermittent
+system: stalling
+language: ar_gulf
+vehicle:
+  make: Toyota
+  model: Land Cruiser
+  year: 2015
+  engine: 4.0L 1GR-FE
+  powertrain: ice
+  market: GCC
+  vin: null
+dtcs: []
+user_question: >-
+  لاندكروزر 2015 بالطلعات والمطبات يطفي المحرك فجأة ثانية وحدة ويرجع، والعدادات تنطفي معاه. صار له أسبوع. وش أشيك؟
+info_completeness: complete
+expected_behavior: answer
+reference:
+  summary: >-
+    Engine and gauges cutting out together over bumps points to a power supply interruption: battery terminals,
+    main fusible links, ignition switch, or a main relay/ground. Stalling while driving is a safety issue; check
+    soon.
+  likely_causes_ranked:
+  - Loose battery terminal or main cable
+  - Loose fusible link/main fuse connection
+  - Ignition switch contacts
+  - Main ground fault
+  diagnostic_steps:
+  - Check battery terminals and cables
+  - Inspect fusible links/main fuse block connections
+  - Wiggle-test ignition switch connector while watching gauges
+  - Voltage-drop test on main grounds
+  must_mention:
+  - Engine and gauges cutting together points to a power supply interruption
+  - Check battery terminals, fusible links, ignition switch
+  - 'Safety concern: fix soon'
+  must_not_claim:
+  - That it is normal or harmless
+safety_critical: true
+critical_errors:
+- Telling the user that stalling while driving is harmless
+evidence: []
+review:
+  status: ai_draft
+  drafted_by: claude-opus-5-5
+  cross_checked_by: null
+  verified_by: null
+  verified_at: null
+  notes: null

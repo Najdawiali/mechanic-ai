@@ -1,0 +1,47 @@
+id: OC-EV-08
+split: dev
+bucket: ev
+system: ev_charging
+language: en
+vehicle:
+  make: MG
+  model: ZS EV
+  year: 2022
+  engine: null
+  powertrain: bev
+  market: GCC
+  vin: null
+dtcs: []
+user_question: >-
+  2022 MG ZS EV, customer complains it always stops charging at 80% at home and on DC. No warning lights. Is the
+  battery damaged?
+info_completeness: complete
+expected_behavior: answer
+reference:
+  summary: >-
+    Stopping at 80% every time with no warnings is usually a charge limit setting (in the car or app), or normal
+    DC fast-charge tapering at high charge. Check the charge limit setting and charging app before suspecting the
+    battery.
+  likely_causes_ranked:
+  - Charge limit set to 80% in the car or app
+  - Normal DC charging taper at high state of charge
+  - Charger/app scheduling setting
+  diagnostic_steps:
+  - Check charge limit settings in the car and the app
+  - Check the home charger's settings
+  - If limit is 100% and it still stops, scan for codes and check software updates
+  must_mention:
+  - Check the charge limit setting first
+  - 'DC charging slows near full: that is normal'
+  must_not_claim:
+  - That the battery is damaged
+safety_critical: false
+critical_errors: []
+evidence: []
+review:
+  status: ai_draft
+  drafted_by: claude-opus-5-5
+  cross_checked_by: null
+  verified_by: null
+  verified_at: null
+  notes: null

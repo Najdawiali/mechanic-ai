@@ -1,0 +1,53 @@
+id: OC-ENG-07
+split: dev
+bucket: engine
+system: air_intake
+language: ar_gulf
+vehicle:
+  make: Toyota
+  model: Land Cruiser
+  year: 2022
+  engine: 3.5L V35A twin turbo
+  powertrain: ice
+  market: GCC
+  vin: null
+dtcs:
+- P0299
+user_question: >-
+  لاندكروزر 2022 تويِن تيربو، تطلع لمبة المكينة وكود P0299 والسيارة ضعيفة بالتسارع. الوكالة بعيدة، وش أقدر أفحص
+  بنفسي قبل ما أوديها؟
+info_completeness: complete
+expected_behavior: answer
+reference:
+  summary: >-
+    P0299 (turbo/supercharger underboost) means actual boost is below desired. Common causes are boost leaks (intercooler
+    hoses/clamps), wastegate/actuator issues, intake restrictions, or turbo faults. Check hoses and clamps for leaks/oil,
+    check for TSBs/updates by VIN, then compare desired vs actual boost with a scan tool.
+  likely_causes_ranked:
+  - Boost leak (charge pipe, intercooler hose, clamp)
+  - Wastegate actuator/control fault
+  - Air intake restriction
+  - Turbocharger fault
+  - Boost pressure sensor fault
+  diagnostic_steps:
+  - Visually inspect charge pipes, hoses and clamps for leaks or oil
+  - Check air filter/intake restriction
+  - Compare desired vs actual boost in live data
+  - Smoke/pressure test the charge-air system
+  - Check TSBs/software updates by VIN
+  must_mention:
+  - 'P0299 = underboost: actual boost lower than desired'
+  - Check for boost leaks in hoses/clamps
+  - Compare desired vs actual boost
+  must_not_claim:
+  - That the turbos must be replaced immediately
+safety_critical: false
+critical_errors: []
+evidence: []
+review:
+  status: ai_draft
+  drafted_by: claude-opus-5-5
+  cross_checked_by: null
+  verified_by: null
+  verified_at: null
+  notes: null

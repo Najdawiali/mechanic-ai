@@ -1,0 +1,48 @@
+id: OC-INC-05
+split: dev
+bucket: incomplete_info
+system: unknown
+language: en
+vehicle:
+  make: Chevrolet
+  model: Tahoe
+  year: null
+  engine: null
+  powertrain: null
+  market: GCC
+  vin: null
+dtcs: []
+user_question: My Tahoe AC is not good. Fix?
+info_completeness: insufficient
+expected_behavior: ask_for_info
+reference:
+  summary: >-
+    Need details: no cooling at all or weak, all the time or at idle only, front/rear/one side, compressor engaging,
+    airflow strength, year. Ask first.
+  likely_causes_ranked: []
+  diagnostic_steps:
+  - Ask for the key missing details
+  - Give only clearly provisional possibilities
+  - Diagnose after the details arrive
+  must_mention:
+  - Ask whether cooling is weak or absent and when
+  - Ask which zone
+  - Ask year
+  must_not_claim:
+  - A definite cause or a specific part to replace without more information
+  questions_to_ask:
+  - Is it not cooling at all or weak?
+  - Only at idle/in traffic or also at speed?
+  - Front, rear, or one side only?
+  - Is airflow strong or weak?
+  - Year and engine?
+safety_critical: false
+critical_errors: []
+evidence: []
+review:
+  status: ai_draft
+  drafted_by: claude-opus-5-5
+  cross_checked_by: null
+  verified_by: null
+  verified_at: null
+  notes: null

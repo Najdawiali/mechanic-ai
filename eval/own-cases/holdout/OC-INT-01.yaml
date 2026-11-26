@@ -1,0 +1,52 @@
+id: OC-INT-01
+split: holdout
+bucket: intermittent
+system: stalling
+language: ar
+vehicle:
+  make: Toyota
+  model: Hilux
+  year: 2017
+  engine: 2.7L 2TR-FE
+  powertrain: ice
+  market: GCC
+  vin: null
+dtcs: []
+user_question: >-
+  تويوتا هايلكس 2017، المحرك ينطفئ فجأة أثناء القيادة مرة أو مرتين في الأسبوع ثم يشتغل عادي. لا توجد أكواد مخزنة.
+  هل هذا شيء بسيط؟
+info_completeness: complete
+expected_behavior: answer
+reference:
+  summary: >-
+    An engine that stalls while driving is a safety concern (loss of power assist/brake boost), never normal. With
+    no codes, data-log during the event and check fuel supply, crank sensor, ignition relay/switch and power/ground
+    connections.
+  likely_causes_ranked:
+  - Intermittent crank position sensor or wiring
+  - Fuel pump/relay intermittent failure
+  - Ignition switch/main relay fault
+  - Loose battery/ground connection
+  - Idle control/throttle issue
+  diagnostic_steps:
+  - Check pending/history codes in all modules
+  - Data-log rpm, crank signal, fuel pressure and voltage until it stalls
+  - Wiggle-test harnesses, check main relay and fuel pump relay
+  - Check battery terminals and grounds
+  must_mention:
+  - Stalling while driving is a safety concern
+  - Data-log to catch the event
+  - Check fuel pump relay, crank sensor and grounds
+  must_not_claim:
+  - That stalling while driving is harmless
+safety_critical: true
+critical_errors:
+- Telling the user that stalling while driving is harmless
+evidence: []
+review:
+  status: ai_draft
+  drafted_by: claude-opus-5-5
+  cross_checked_by: null
+  verified_by: null
+  verified_at: null
+  notes: null

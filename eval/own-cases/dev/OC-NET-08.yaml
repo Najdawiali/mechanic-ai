@@ -1,0 +1,49 @@
+id: OC-NET-08
+split: dev
+bucket: can_lin
+system: network
+language: ar
+vehicle:
+  make: Ford
+  model: F-150
+  year: 2018
+  engine: 5.0L V8
+  powertrain: ice
+  market: GCC
+  vin: null
+dtcs:
+- U0001
+user_question: >-
+  فورد F-150 2018 بعد عبور وادي فيه ماء، ظهرت رسائل كثيرة على الطبلون والجهاز يظهر U0001 في عدة وحدات. من أين أبدأ؟
+info_completeness: complete
+expected_behavior: answer
+reference:
+  summary: >-
+    U0001 (high speed CAN communication bus) after water exposure points to water in a connector or module on the
+    bus causing shorts. Inspect low-mounted connectors and modules for water, dry and clean, measure bus resistance
+    and voltages, and isolate modules one by one.
+  likely_causes_ranked:
+  - Water in a connector or module on the CAN bus
+  - Corroded CAN wiring
+  - A module shorting the bus
+  diagnostic_steps:
+  - Inspect low connectors/modules for water and corrosion
+  - Measure bus resistance at the DLC (battery disconnected)
+  - Check CAN-H/CAN-L for shorts to ground/battery
+  - Disconnect modules one by one to find the one dragging the bus
+  must_mention:
+  - Water ingress is the likely cause
+  - Measure CAN resistance and check for shorts
+  - Isolate modules one at a time
+  must_not_claim:
+  - That all modules must be replaced
+safety_critical: false
+critical_errors: []
+evidence: []
+review:
+  status: ai_draft
+  drafted_by: claude-opus-5-5
+  cross_checked_by: null
+  verified_by: null
+  verified_at: null
+  notes: null

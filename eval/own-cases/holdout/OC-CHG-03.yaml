@@ -1,0 +1,51 @@
+id: OC-CHG-03
+split: holdout
+bucket: charging_starting
+system: starting
+language: ur
+vehicle:
+  make: Toyota
+  model: Hiace
+  year: 2018
+  engine: 2.7L 2TR-FE
+  powertrain: ice
+  market: GCC
+  vin: null
+dtcs: []
+user_question: >-
+  ٹویوٹا ہائی ایس 2018، اسٹارٹ کرنے پر انجن بہت آہستہ گھومتا ہے، خاص کر گرمی میں انجن گرم ہو تو۔ بیٹری نئی ہے۔ کیا
+  وجہ ہو سکتی ہے؟
+info_completeness: complete
+expected_behavior: answer
+reference:
+  summary: >-
+    Slow cranking when hot with a new battery points to high resistance in the starter circuit (cables, grounds)
+    or a starter drawing too much current when hot. Do voltage-drop tests on the positive and ground paths while
+    cranking, then check starter current draw.
+  likely_causes_ranked:
+  - Starter motor worn (high current draw when hot)
+  - Corroded or undersized positive cable/connections
+  - Poor engine-to-body ground
+  - Battery not fully charged by the alternator
+  diagnostic_steps:
+  - Check battery voltage and state of charge
+  - Voltage-drop test of positive cable and ground path while cranking
+  - Clean/tighten terminals and grounds
+  - Measure starter current draw if possible
+  - Test the starter
+  must_mention:
+  - Voltage drop test on cables and grounds while cranking
+  - Heat-soaked starter can draw high current
+  - Check battery charge
+  must_not_claim:
+  - That the new battery is definitely faulty
+safety_critical: false
+critical_errors: []
+evidence: []
+review:
+  status: ai_draft
+  drafted_by: claude-opus-5-5
+  cross_checked_by: null
+  verified_by: null
+  verified_at: null
+  notes: null

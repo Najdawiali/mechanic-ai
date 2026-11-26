@@ -1,0 +1,47 @@
+id: OC-INC-03
+split: dev
+bucket: incomplete_info
+system: unknown
+language: ur
+vehicle:
+  make: Nissan
+  model: Patrol
+  year: null
+  engine: null
+  powertrain: null
+  market: GCC
+  vin: null
+dtcs: []
+user_question: میری پٹرول میں آواز آ رہی ہے۔ کیا مسئلہ ہے؟
+info_completeness: insufficient
+expected_behavior: ask_for_info
+reference:
+  summary: >-
+    Too vague: type and location of the noise and when it occurs are needed (engine, suspension, brakes, wheels).
+    Ask before suggesting parts.
+  likely_causes_ranked: []
+  diagnostic_steps:
+  - Ask for the key missing details
+  - Give only clearly provisional possibilities
+  - Diagnose after the details arrive
+  must_mention:
+  - Ask where the noise comes from
+  - Ask what kind of noise and when
+  - Ask year/engine
+  must_not_claim:
+  - A definite cause or a specific part to replace without more information
+  questions_to_ask:
+  - Where does the noise come from (engine, front, rear, under the car)?
+  - What kind (knock, squeal, grind, rattle, hum)?
+  - When (cold start, braking, turning, bumps, speed)?
+  - Year and engine?
+safety_critical: false
+critical_errors: []
+evidence: []
+review:
+  status: ai_draft
+  drafted_by: claude-opus-5-5
+  cross_checked_by: null
+  verified_by: null
+  verified_at: null
+  notes: null

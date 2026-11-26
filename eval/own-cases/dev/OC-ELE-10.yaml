@@ -1,0 +1,47 @@
+id: OC-ELE-10
+split: dev
+bucket: electrical
+system: body
+language: ur
+vehicle:
+  make: Toyota
+  model: Corolla
+  year: 2015
+  engine: 1.6L 1ZR-FE
+  powertrain: ice
+  market: GCC
+  vin: null
+dtcs: []
+user_question: >-
+  کرولا 2015 کا ہارن کام نہیں کر رہا۔ ریلے کی آواز آتی ہے جب ہارن دباتے ہیں۔ فیوز ٹھیک ہے۔ ہارن خود خراب ہے یا تار؟
+info_completeness: complete
+expected_behavior: answer
+reference:
+  summary: >-
+    A clicking relay means the switch side works; check power and ground at the horn itself. If voltage arrives,
+    the horn or its ground is faulty; if not, the relay contacts or the wire to the horn.
+  likely_causes_ranked:
+  - Failed horn unit (corroded, front-mounted)
+  - Broken wire or corroded connector at the horn
+  - Horn ground fault
+  - Burnt relay contacts (clicks but does not pass current)
+  diagnostic_steps:
+  - With the horn pressed, measure voltage at the horn connector
+  - If voltage is present, check the horn ground then the horn itself
+  - If no voltage, swap/test the relay and check the wire from the relay to the horn
+  must_mention:
+  - Relay clicking means the control side works
+  - Measure voltage at the horn while pressing
+  - Check horn ground
+  must_not_claim:
+  - That the clock spring is the cause when the relay clicks
+safety_critical: false
+critical_errors: []
+evidence: []
+review:
+  status: ai_draft
+  drafted_by: claude-opus-5-5
+  cross_checked_by: null
+  verified_by: null
+  verified_at: null
+  notes: null

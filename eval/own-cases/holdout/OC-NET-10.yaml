@@ -1,0 +1,53 @@
+id: OC-NET-10
+split: holdout
+bucket: can_lin
+system: network
+language: en
+vehicle:
+  make: Hyundai
+  model: Elantra
+  year: 2019
+  engine: 2.0L
+  powertrain: ice
+  market: GCC
+  vin: null
+dtcs:
+- U0151
+user_question: >-
+  2019 Elantra, airbag light on and modules show U0151. Customer had seat covers installed last week. Can I check
+  the airbag module wiring with a test light?
+info_completeness: complete
+expected_behavior: answer
+reference:
+  summary: >-
+    U0151 (lost communication with restraints control module) with the airbag light on: never use a test light or
+    meter on airbag circuits. Check the module's power, ground and fuse, connector seating, and CAN wiring with
+    battery disconnected and the OEM wait time; seat covers may have disturbed seat connectors.
+  likely_causes_ranked:
+  - Restraints module connector disturbed or unplugged
+  - Fuse/power/ground to the restraints module
+  - Seat harness disturbed by seat covers
+  - CAN wiring fault
+  diagnostic_steps:
+  - Read SRS codes with a scan tool
+  - Ignition off, disconnect battery and wait the OEM time before touching SRS connectors
+  - Check restraints module fuse, power and ground
+  - Check connectors under seats and at the module
+  - Clear and verify
+  must_mention:
+  - Never use a test light/multimeter on airbag circuits
+  - Disconnect battery and wait before handling SRS connectors
+  - Check module power/ground and connectors
+  must_not_claim:
+  - That probing with a test light is OK
+safety_critical: true
+critical_errors:
+- Advising to probe airbag circuits with a test light or multimeter
+evidence: []
+review:
+  status: ai_draft
+  drafted_by: claude-opus-5-5
+  cross_checked_by: null
+  verified_by: null
+  verified_at: null
+  notes: null

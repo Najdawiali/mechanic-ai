@@ -1,0 +1,49 @@
+id: OC-NET-05
+split: dev
+bucket: can_lin
+system: network
+language: en
+vehicle:
+  make: Kia
+  model: Sorento
+  year: 2018
+  engine: 3.3L V6
+  powertrain: ice
+  market: GCC
+  vin: null
+dtcs: []
+user_question: >-
+  2018 Sorento with multiple U codes. I disconnected the battery and measured 120 ohms between pins 6 and 14 at
+  the OBD port. Is that good?
+info_completeness: complete
+expected_behavior: answer
+reference:
+  summary: >-
+    A healthy high-speed CAN bus shows about 60 ohm between DLC pins 6 and 14 (two 120 ohm terminators in parallel).
+    120 ohm means one terminating resistor is open/missing (often inside a module) or the bus is broken between
+    the DLC and one terminator.
+  likely_causes_ranked:
+  - One terminating resistor open or its module disconnected
+  - Open CAN wire between the DLC and one end of the bus
+  - Unplugged module that contains a terminator
+  diagnostic_steps:
+  - Locate the two terminating modules from the wiring diagram
+  - Measure resistance toward each end to find the open side
+  - Inspect connectors and wiring on that side
+  - Check whether a terminating module is unplugged/faulty
+  must_mention:
+  - Healthy CAN is about 60 ohm
+  - 120 ohm means one terminator/side is open
+  - Find which side is open
+  must_not_claim:
+  - That 120 ohm is normal
+safety_critical: false
+critical_errors: []
+evidence: []
+review:
+  status: ai_draft
+  drafted_by: claude-opus-5-5
+  cross_checked_by: null
+  verified_by: null
+  verified_at: null
+  notes: null

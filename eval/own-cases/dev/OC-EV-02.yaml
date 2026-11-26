@@ -1,0 +1,49 @@
+id: OC-EV-02
+split: dev
+bucket: ev
+system: ev_battery
+language: ar
+vehicle:
+  make: Nissan
+  model: Leaf
+  year: 2019
+  engine: null
+  powertrain: bev
+  market: GCC
+  vin: null
+dtcs: []
+user_question: >-
+  نيسان ليف 2019، في الصيف المدى ينخفض كثيراً ومؤشر حرارة البطارية يرتفع، والشحن السريع الثاني يصبح بطيئاً جداً.
+  هل البطارية تالفة؟
+info_completeness: complete
+expected_behavior: answer
+reference:
+  summary: >-
+    The Leaf's battery is passively (air) cooled, so heat raises battery temperature, reduces fast-charge speed
+    (especially on repeated fast charges) and can reduce range; this is expected behaviour, not proof of failure.
+    Check battery state of health with a proper tool/dealer report, avoid repeated fast charging in heat, check
+    for software updates.
+  likely_causes_ranked:
+  - High battery temperature from heat and fast charging (passive cooling)
+  - Battery degradation over time
+  - Software limits on charging
+  diagnostic_steps:
+  - Read battery state of health and temperature data with a proper tool
+  - Compare range with ambient conditions and driving
+  - Check for software updates by VIN
+  - Limit repeated DC fast charges in hot weather
+  must_mention:
+  - 'Air-cooled battery: heat reduces fast charge speed'
+  - Check battery state of health before concluding it is failing
+  must_not_claim:
+  - That the battery must be replaced without a health check
+safety_critical: false
+critical_errors: []
+evidence: []
+review:
+  status: ai_draft
+  drafted_by: claude-opus-5-5
+  cross_checked_by: null
+  verified_by: null
+  verified_at: null
+  notes: null

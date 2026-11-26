@@ -1,0 +1,49 @@
+id: OC-ELE-09
+split: holdout
+bucket: electrical
+system: lighting
+language: ar
+vehicle:
+  make: Toyota
+  model: Camry
+  year: 2020
+  engine: 2.5L A25A
+  powertrain: ice
+  market: GCC
+  vin: null
+dtcs: []
+user_question: >-
+  تويوتا كامري 2020، إشارة الانعطاف اليسرى تومض بسرعة مضاعفة، والأمامية تعمل والخلفية تعمل. ماذا يعني ذلك؟
+info_completeness: complete
+expected_behavior: answer
+reference:
+  summary: >-
+    Hyper-flash usually means the system sees a lamp-out (lower current) on that side: a failed bulb (often the
+    mirror or side repeater), a poor connection, or an LED retrofit. Since front and rear work, check the mirror/side
+    repeater lamp and connectors; check for aftermarket LED bulbs.
+  likely_causes_ranked:
+  - Failed side/mirror repeater lamp on the left
+  - Poor connection or ground at a left turn lamp
+  - Aftermarket LED bulb with lower current draw
+  - Wrong bulb type
+  diagnostic_steps:
+  - Check every left turn lamp including the mirror repeater
+  - Inspect connectors and grounds
+  - Check for LED retrofits or wrong bulbs
+  - Measure current/voltage at the suspect lamp if all look lit
+  must_mention:
+  - Fast flashing indicates a lamp-out condition on that side
+  - Check the mirror/side repeater
+  - LED retrofit can cause it
+  must_not_claim:
+  - That the flasher relay/body module is definitely faulty
+safety_critical: false
+critical_errors: []
+evidence: []
+review:
+  status: ai_draft
+  drafted_by: claude-opus-5-5
+  cross_checked_by: null
+  verified_by: null
+  verified_at: null
+  notes: null

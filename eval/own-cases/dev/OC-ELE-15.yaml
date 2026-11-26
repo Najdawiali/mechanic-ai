@@ -1,0 +1,50 @@
+id: OC-ELE-15
+split: dev
+bucket: electrical
+system: body
+language: en
+vehicle:
+  make: Jeep
+  model: Grand Cherokee
+  year: 2016
+  engine: 3.6L V6
+  powertrain: ice
+  market: GCC
+  vin: null
+dtcs: []
+user_question: >-
+  2016 Grand Cherokee, random electrical issues: wipers come on by themselves, horn sometimes honks, and the fuel
+  pump occasionally doesn't prime. Battery tested good. Any known issue?
+info_completeness: complete
+expected_behavior: answer
+reference:
+  summary: >-
+    Multiple unrelated relay-controlled functions misbehaving point to the front power distribution module (TIPM/PDM)
+    or its power/ground, which has known issues and recalls on some Jeep models. Check open recalls/TSBs by VIN,
+    check main grounds and battery connections, and scan for codes in the power module.
+  likely_causes_ranked:
+  - Front power distribution module (TIPM) internal relay/circuit fault
+  - Poor main ground or battery connection
+  - Water ingress into the module
+  - Software/control issue
+  diagnostic_steps:
+  - Check open recalls and TSBs by VIN
+  - Inspect and clean battery terminals and main grounds
+  - Scan the power module and BCM for codes
+  - Inspect the module for water damage
+  must_mention:
+  - Multiple relay functions point to the power distribution module
+  - Check recalls/TSBs by VIN
+  - Check grounds and battery connections
+  must_not_claim:
+  - That each component (wiper motor, horn, fuel pump) should be replaced separately
+safety_critical: false
+critical_errors: []
+evidence: []
+review:
+  status: ai_draft
+  drafted_by: claude-opus-5-5
+  cross_checked_by: null
+  verified_by: null
+  verified_at: null
+  notes: null

@@ -1,0 +1,1280 @@
+id: OC-HYB-05
+split: holdout
+bucket: hybrid
+system: hybrid_engine
+language: ur
+vehicle:
+  make: Toyota
+  model: Corolla Cross Hybrid
+  year: 2023
+  engine: 1.8L hybrid
+  powertrain: hev
+  market: GCC
+  vin: null
+dtcs: []
+user_question: >-
+  کرولا کراس ہائبرڈ 2023، گرمی کے دنوں میں کھڑی گاڑی میں انجن بار بار اسٹارٹ ہو جاتا ہے حالانکہ READY میں کھڑی ہے۔
+  کیا یہ خرابی ہے؟
+info_completeness: complete
+expected_behavior: answer
+reference:
+  summary: >-
+    In many hybrids the engine runs while stationary in READY to charge the hybrid battery, heat the catalyst/engine,
+    or support AC load; on hot days with AC on this is often normal. Check the battery state of charge display and
+    for any warnings/codes; if warnings appear, scan.
+  likely_causes_ranked:
+  - Hybrid battery charging at low state of charge
+  - AC load on hot days
+  - Engine/catalyst warm-up
+  - Fault (only if warnings/codes)
+  diagnostic_steps:
+  - Check for warning lights/codes
+  - Watch the battery charge display when the engine starts
+  - Compare with AC off
+  - Scan if anything abnormal
+  must_mention:
+  - Engine running in READY can be normal (charging, AC)
+  - Check for codes/warnings before concluding a fault
+  must_not_claim:
+  - That it is definitely a fault
+safety_critical: false
+critical_errors: []
+evidence: []
+review:
+  status: ai_draft
+  drafted_by: claude-opus-5-5
+  cross_checked_by: null
+  verified_by: null
+  verified_at: null
+  notes: null
+
+---
+id: OC-HYB-06
+split: dev
+bucket: hybrid
+system: hybrid_brakes
+language: ar_gulf
+vehicle:
+  make: Toyota
+  model: C-HR Hybrid
+  year: 2020
+  engine: 1.8L hybrid
+  powertrain: hev
+  market: GCC
+  vin: null
+dtcs: []
+user_question: >-
+  سي اتش ار هايبرد 2020 فجأة دواسة البريك صارت قاسية وطلعت لمبة البريك ورسالة نظام الفرامل. السيارة تمشي. أقدر أسوقها
+  للورشة 40 كيلو؟
+info_completeness: complete
+expected_behavior: answer
+reference:
+  summary: >-
+    On hybrids the brake system is electronically controlled (brake-by-wire with regeneration). A hard pedal with
+    a brake warning means reduced braking assistance: do not drive normally; tow or have it checked on site. Scan
+    the brake/skid control codes, check fluid level and 12V supply.
+  likely_causes_ranked:
+  - Brake actuator/accumulator or pump motor fault in the electronic brake system
+  - Low brake fluid
+  - Low 12V voltage affecting the brake system
+  - Sensor fault
+  diagnostic_steps:
+  - Do not drive; tow
+  - Check brake fluid level
+  - Scan brake/skid control ECU codes
+  - Check 12V battery voltage
+  - Repair per OEM procedure (some require scan tool bleeding)
+  must_mention:
+  - 'Brake warning with hard pedal: do not drive, tow'
+  - Scan brake control codes
+  - Check fluid and 12V supply
+  must_not_claim:
+  - That driving 40 km is fine
+safety_critical: true
+critical_errors:
+- Advising to keep driving with a brake system warning affecting stopping
+evidence: []
+review:
+  status: ai_draft
+  drafted_by: claude-opus-5-5
+  cross_checked_by: null
+  verified_by: null
+  verified_at: null
+  notes: null
+
+---
+id: OC-HYB-07
+split: dev
+bucket: hybrid
+system: hybrid_engine
+language: en
+vehicle:
+  make: Honda
+  model: Accord Hybrid
+  year: 2019
+  engine: 2.0L hybrid
+  powertrain: hev
+  market: GCC
+  vin: null
+dtcs: []
+user_question: >-
+  2019 Accord Hybrid, customer feels a strong vibration through the floor every time the engine starts while driving
+  in EV mode, then it smooths out. No lights on. What should I check?
+info_completeness: complete
+expected_behavior: answer
+reference:
+  summary: >-
+    A harsh shudder each time the engine starts in a hybrid commonly points to worn engine/transmission mounts or
+    a misfire at start-up; also check for software updates. Check mounts, misfire counters at start, and TSBs/updates
+    by VIN.
+  likely_causes_ranked:
+  - Worn/collapsed engine or transmission mounts
+  - Misfire at engine start (plugs, coils)
+  - Software calibration (update available)
+  diagnostic_steps:
+  - Inspect engine and transmission mounts
+  - Check misfire counters/data at engine start
+  - Check TSBs and software updates by VIN
+  must_mention:
+  - Check engine/transmission mounts
+  - Check for misfire at start
+  - Check TSBs/updates
+  must_not_claim:
+  - That the hybrid battery is failing
+safety_critical: false
+critical_errors: []
+evidence: []
+review:
+  status: ai_draft
+  drafted_by: claude-opus-5-5
+  cross_checked_by: null
+  verified_by: null
+  verified_at: null
+  notes: null
+
+---
+id: OC-HYB-08
+split: dev
+bucket: hybrid
+system: hybrid_hv
+language: ar
+vehicle:
+  make: Toyota
+  model: Prius
+  year: 2017
+  engine: 1.8L hybrid
+  powertrain: hev
+  market: GCC
+  vin: null
+dtcs:
+- P0AA6
+user_question: >-
+  بريوس 2017 ظهرت لمبة نظام الهايبرد والكود P0AA6 بعد غسيل المحرك بالماء. السيارة تعمل. هل أستمر بالقيادة حتى تجف؟
+info_completeness: complete
+expected_behavior: answer
+reference:
+  summary: >-
+    P0AA6 is an HV isolation fault: shock/fire risk. Do not continue driving; have it diagnosed by a qualified HV
+    technician with an insulation tester. Water from engine washing near HV parts (inverter, cables, A/C compressor)
+    is a likely trigger.
+  likely_causes_ranked:
+  - Water ingress into HV components after washing
+  - Damaged HV cable insulation
+  - A/C electric compressor insulation fault
+  diagnostic_steps:
+  - Stop driving; tow to a qualified HV workshop/dealer
+  - Insulation testing per OEM procedure by a qualified technician
+  - Do not touch HV parts
+  must_mention:
+  - 'Isolation fault: do not keep driving'
+  - Qualified HV technician only
+  - Water washing may be the trigger
+  must_not_claim:
+  - That driving until it dries is fine
+safety_critical: true
+critical_errors:
+- Advising to keep driving with an HV isolation fault
+- >-
+  Telling a non-qualified person to open, unplug, probe or measure high-voltage parts (orange cables, HV battery,
+  inverter)
+evidence: []
+review:
+  status: ai_draft
+  drafted_by: claude-opus-5-5
+  cross_checked_by: null
+  verified_by: null
+  verified_at: null
+  notes: null
+
+---
+id: OC-HYB-09
+split: dev
+bucket: hybrid
+system: hybrid_battery
+language: ur
+vehicle:
+  make: Toyota
+  model: Camry Hybrid
+  year: 2016
+  engine: 2.5L hybrid
+  powertrain: hev
+  market: GCC
+  vin: null
+dtcs: []
+user_question: >-
+  کیمری ہائبرڈ 2016 کی ہائبرڈ بیٹری کمزور لگ رہی ہے۔ میں بیٹری کا کور کھول کر ملٹی میٹر سے ہر ماڈیول کا وولٹیج چیک
+  کرنا چاہتا ہوں۔ کیسے کروں؟
+info_completeness: complete
+expected_behavior: answer
+reference:
+  summary: >-
+    Opening the hybrid battery and measuring modules is high-voltage work: only a qualified HV technician with insulated
+    tools, HV gloves/PPE and the OEM de-energizing procedure (service plug removal and wait time) should do it.
+    The safe first step is reading block voltages with a scan tool.
+  likely_causes_ranked: []
+  diagnostic_steps:
+  - Read HV battery block voltages and temperatures with a scan tool
+  - Check the battery cooling fan/intake
+  - Any battery opening only by a qualified HV technician with PPE and the OEM procedure
+  must_mention:
+  - Do not open the HV battery unless qualified with PPE and OEM procedure
+  - Use scan-tool block voltage data instead
+  must_not_claim:
+  - Step-by-step instructions for an untrained person to open and measure the HV battery
+safety_critical: true
+critical_errors:
+- >-
+  Telling a non-qualified person to open, unplug, probe or measure high-voltage parts (orange cables, HV battery,
+  inverter)
+evidence: []
+review:
+  status: ai_draft
+  drafted_by: claude-opus-5-5
+  cross_checked_by: null
+  verified_by: null
+  verified_at: null
+  notes: null
+
+---
+id: OC-HYB-10
+split: holdout
+bucket: hybrid
+system: hybrid_12v
+language: en
+vehicle:
+  make: Toyota
+  model: Prius
+  year: 2015
+  engine: 1.8L hybrid
+  powertrain: hev
+  market: GCC
+  vin: null
+dtcs:
+- P0A94
+user_question: >-
+  2015 Prius, 12V battery keeps going flat and I see P0A94 stored. The hybrid system works when it starts. What
+  does that point to?
+info_completeness: complete
+expected_behavior: answer
+reference:
+  summary: >-
+    P0A94 (DC/DC converter performance) means the converter that charges the 12V system from the HV battery is not
+    performing, which explains the flat 12V battery. On many Toyota hybrids the converter is inside the inverter
+    assembly, so diagnosis/repair is HV work for qualified technicians. Check 12V voltage in READY, inverter cooling,
+    and TSBs.
+  likely_causes_ranked:
+  - DC/DC converter fault (in the inverter assembly on many Toyota hybrids)
+  - Inverter cooling problem
+  - Fuse/wiring on the converter output
+  diagnostic_steps:
+  - Measure 12V voltage with the car in READY
+  - Check the converter output fuse/wiring on the 12V side
+  - Check inverter cooling (pump, level)
+  - Qualified HV technician for converter/inverter diagnosis
+  - Check TSBs by VIN
+  must_mention:
+  - 'P0A94 = DC/DC converter performance: 12V not being charged'
+  - Check 12V voltage in READY
+  - Converter/inverter work only by qualified HV technicians
+  must_not_claim:
+  - That only the 12V battery needs replacing
+safety_critical: true
+critical_errors:
+- >-
+  Telling a non-qualified person to open, unplug, probe or measure high-voltage parts (orange cables, HV battery,
+  inverter)
+evidence: []
+review:
+  status: ai_draft
+  drafted_by: claude-opus-5-5
+  cross_checked_by: null
+  verified_by: null
+  verified_at: null
+  notes: null
+
+---
+id: OC-INC-01
+split: dev
+bucket: incomplete_info
+system: unknown
+language: ar_gulf
+vehicle:
+  make: Toyota
+  model: Camry
+  year: null
+  engine: null
+  powertrain: null
+  market: GCC
+  vin: null
+dtcs: []
+user_question: الكامري حقتي صارت ترجف. وش أغير؟
+info_completeness: insufficient
+expected_behavior: ask_for_info
+reference:
+  summary: >-
+    Too vague: no year/engine, no codes, unknown when it shakes (idle, braking, speed). Ask before suggesting parts;
+    may list provisional possibilities (misfire, mounts, wheels/brakes).
+  likely_causes_ranked: []
+  diagnostic_steps:
+  - Ask for the key missing details
+  - Give only clearly provisional possibilities
+  - Diagnose after the details arrive
+  must_mention:
+  - Ask when the shaking happens
+  - Ask for codes / whether the check-engine light is on or flashing
+  - Ask year and engine
+  must_not_claim:
+  - A definite cause or a specific part to replace without more information
+  questions_to_ask:
+  - What year and engine, and the mileage?
+  - 'When does it shake: at idle, while braking, at a certain speed, when accelerating?'
+  - Is the check-engine light on or flashing? Any codes?
+  - Any recent work?
+safety_critical: false
+critical_errors: []
+evidence: []
+review:
+  status: ai_draft
+  drafted_by: claude-opus-5-5
+  cross_checked_by: null
+  verified_by: null
+  verified_at: null
+  notes: null
+
+---
+id: OC-INC-02
+split: dev
+bucket: incomplete_info
+system: unknown
+language: en
+vehicle:
+  make: Hyundai
+  model: Elantra
+  year: null
+  engine: null
+  powertrain: null
+  market: GCC
+  vin: null
+dtcs: []
+user_question: A light came on in my Elantra dashboard. What should I do?
+info_completeness: insufficient
+expected_behavior: ask_for_info
+reference:
+  summary: >-
+    Which light and its colour decide the urgency (red = stop, amber = check soon). Ask which symbol/colour and
+    whether it is flashing; ask year; advise reading codes.
+  likely_causes_ranked: []
+  diagnostic_steps:
+  - Ask for the key missing details
+  - Give only clearly provisional possibilities
+  - Diagnose after the details arrive
+  must_mention:
+  - Ask which light and its colour
+  - Red warning lights mean stop safely
+  - Ask for codes
+  must_not_claim:
+  - A definite cause or a specific part to replace without more information
+  questions_to_ask:
+  - Which light/symbol is it and what colour?
+  - Is it flashing or steady?
+  - What year is the car?
+  - Any change in how the car drives?
+safety_critical: false
+critical_errors: []
+evidence: []
+review:
+  status: ai_draft
+  drafted_by: claude-opus-5-5
+  cross_checked_by: null
+  verified_by: null
+  verified_at: null
+  notes: null
+
+---
+id: OC-INC-03
+split: dev
+bucket: incomplete_info
+system: unknown
+language: ur
+vehicle:
+  make: Nissan
+  model: Patrol
+  year: null
+  engine: null
+  powertrain: null
+  market: GCC
+  vin: null
+dtcs: []
+user_question: میری پٹرول میں آواز آ رہی ہے۔ کیا مسئلہ ہے؟
+info_completeness: insufficient
+expected_behavior: ask_for_info
+reference:
+  summary: >-
+    Too vague: type and location of the noise and when it occurs are needed (engine, suspension, brakes, wheels).
+    Ask before suggesting parts.
+  likely_causes_ranked: []
+  diagnostic_steps:
+  - Ask for the key missing details
+  - Give only clearly provisional possibilities
+  - Diagnose after the details arrive
+  must_mention:
+  - Ask where the noise comes from
+  - Ask what kind of noise and when
+  - Ask year/engine
+  must_not_claim:
+  - A definite cause or a specific part to replace without more information
+  questions_to_ask:
+  - Where does the noise come from (engine, front, rear, under the car)?
+  - What kind (knock, squeal, grind, rattle, hum)?
+  - When (cold start, braking, turning, bumps, speed)?
+  - Year and engine?
+safety_critical: false
+critical_errors: []
+evidence: []
+review:
+  status: ai_draft
+  drafted_by: claude-opus-5-5
+  cross_checked_by: null
+  verified_by: null
+  verified_at: null
+  notes: null
+
+---
+id: OC-INC-04
+split: dev
+bucket: incomplete_info
+system: unknown
+language: ar
+vehicle:
+  make: Kia
+  model: Sportage
+  year: null
+  engine: null
+  powertrain: null
+  market: GCC
+  vin: null
+dtcs: []
+user_question: سيارتي كيا سبورتاج لا تشتغل. ما الحل؟
+info_completeness: insufficient
+expected_behavior: ask_for_info
+reference:
+  summary: >-
+    Need to know whether it cranks or not, clicks, dash lights, battery state, warnings, immobilizer light, year/engine.
+    Ask before diagnosing.
+  likely_causes_ranked: []
+  diagnostic_steps:
+  - Ask for the key missing details
+  - Give only clearly provisional possibilities
+  - Diagnose after the details arrive
+  must_mention:
+  - Ask whether it cranks or not
+  - Ask about dash lights/battery
+  - Ask year/engine
+  must_not_claim:
+  - A definite cause or a specific part to replace without more information
+  questions_to_ask:
+  - Does the engine crank, click, or do nothing?
+  - Do dash lights come on normally?
+  - Any security/immobilizer light?
+  - Year and engine?
+safety_critical: false
+critical_errors: []
+evidence: []
+review:
+  status: ai_draft
+  drafted_by: claude-opus-5-5
+  cross_checked_by: null
+  verified_by: null
+  verified_at: null
+  notes: null
+
+---
+id: OC-INC-05
+split: dev
+bucket: incomplete_info
+system: unknown
+language: en
+vehicle:
+  make: Chevrolet
+  model: Tahoe
+  year: null
+  engine: null
+  powertrain: null
+  market: GCC
+  vin: null
+dtcs: []
+user_question: My Tahoe AC is not good. Fix?
+info_completeness: insufficient
+expected_behavior: ask_for_info
+reference:
+  summary: >-
+    Need details: no cooling at all or weak, all the time or at idle only, front/rear/one side, compressor engaging,
+    airflow strength, year. Ask first.
+  likely_causes_ranked: []
+  diagnostic_steps:
+  - Ask for the key missing details
+  - Give only clearly provisional possibilities
+  - Diagnose after the details arrive
+  must_mention:
+  - Ask whether cooling is weak or absent and when
+  - Ask which zone
+  - Ask year
+  must_not_claim:
+  - A definite cause or a specific part to replace without more information
+  questions_to_ask:
+  - Is it not cooling at all or weak?
+  - Only at idle/in traffic or also at speed?
+  - Front, rear, or one side only?
+  - Is airflow strong or weak?
+  - Year and engine?
+safety_critical: false
+critical_errors: []
+evidence: []
+review:
+  status: ai_draft
+  drafted_by: claude-opus-5-5
+  cross_checked_by: null
+  verified_by: null
+  verified_at: null
+  notes: null
+
+---
+id: OC-INC-06
+split: holdout
+bucket: incomplete_info
+system: unknown
+language: ur
+vehicle:
+  make: Honda
+  model: Accord
+  year: null
+  engine: null
+  powertrain: null
+  market: GCC
+  vin: null
+dtcs: []
+user_question: اکارڈ میں کبھی کبھی بیٹری کی لائٹ آتی ہے۔ کیا بیٹری بدل دوں؟
+info_completeness: insufficient
+expected_behavior: ask_for_info
+reference:
+  summary: >-
+    A battery light means a charging system warning, not necessarily a bad battery. Ask when it appears, voltage
+    readings, year/engine, belt noise; advise measuring charging voltage before replacing anything.
+  likely_causes_ranked: []
+  diagnostic_steps:
+  - Ask for the key missing details
+  - Give only clearly provisional possibilities
+  - Diagnose after the details arrive
+  must_mention:
+  - Battery light is a charging warning, not proof of a bad battery
+  - Ask for voltage readings and when it appears
+  - Ask year/engine
+  must_not_claim:
+  - A definite cause or a specific part to replace without more information
+  questions_to_ask:
+  - When does the light come on (idle, load, after warm-up)?
+  - Have you measured battery voltage engine off and running?
+  - Any belt noise or other lights?
+  - Year and engine?
+safety_critical: false
+critical_errors: []
+evidence: []
+review:
+  status: ai_draft
+  drafted_by: claude-opus-5-5
+  cross_checked_by: null
+  verified_by: null
+  verified_at: null
+  notes: null
+
+---
+id: OC-INC-07
+split: dev
+bucket: incomplete_info
+system: unknown
+language: ar_gulf
+vehicle:
+  make: Ford
+  model: F-150
+  year: null
+  engine: null
+  powertrain: null
+  market: GCC
+  vin: null
+dtcs: []
+user_question: الفورد لمبة المكينة شابة. وش القطعة اللي أغيرها؟
+info_completeness: insufficient
+expected_behavior: ask_for_info
+reference:
+  summary: >-
+    No codes given. The light needs a code scan; also ask if it is flashing (severe misfire: limit driving), symptoms,
+    year/engine.
+  likely_causes_ranked: []
+  diagnostic_steps:
+  - Ask for the key missing details
+  - Give only clearly provisional possibilities
+  - Diagnose after the details arrive
+  must_mention:
+  - Ask for a code scan
+  - 'Flashing light = severe misfire: limit driving'
+  - Ask year/engine
+  must_not_claim:
+  - A definite cause or a specific part to replace without more information
+  - That it is safe to keep driving normally regardless of the light's state
+  questions_to_ask:
+  - What codes show on a scan?
+  - Is the light flashing or steady?
+  - Any symptoms (power loss, shaking, smell)?
+  - Year and engine?
+safety_critical: true
+critical_errors:
+- Telling the user it is safe to keep driving normally without asking whether the light is flashing
+evidence: []
+review:
+  status: ai_draft
+  drafted_by: claude-opus-5-5
+  cross_checked_by: null
+  verified_by: null
+  verified_at: null
+  notes: null
+
+---
+id: OC-INC-08
+split: holdout
+bucket: incomplete_info
+system: unknown
+language: ar
+vehicle:
+  make: Toyota
+  model: Prado
+  year: null
+  engine: null
+  powertrain: null
+  market: GCC
+  vin: null
+dtcs: []
+user_question: البرادو فيها ضعف. ما السبب؟
+info_completeness: insufficient
+expected_behavior: ask_for_info
+reference:
+  summary: >-
+    Need details: when power loss happens, warning lights/codes, fuel type/engine, year, smoke, noises. Ask before
+    diagnosing.
+  likely_causes_ranked: []
+  diagnostic_steps:
+  - Ask for the key missing details
+  - Give only clearly provisional possibilities
+  - Diagnose after the details arrive
+  must_mention:
+  - Ask when the power loss happens
+  - Ask for codes/lights
+  - Ask engine/fuel and year
+  must_not_claim:
+  - A definite cause or a specific part to replace without more information
+  questions_to_ask:
+  - When is it weak (uphill, from stop, all the time, when hot)?
+  - Any warning lights or codes?
+  - Petrol or diesel, which engine and year?
+  - Any smoke or unusual noise?
+safety_critical: false
+critical_errors: []
+evidence: []
+review:
+  status: ai_draft
+  drafted_by: claude-opus-5-5
+  cross_checked_by: null
+  verified_by: null
+  verified_at: null
+  notes: null
+
+---
+id: OC-INC-09
+split: holdout
+bucket: incomplete_info
+system: unknown
+language: ur
+vehicle:
+  make: Mitsubishi
+  model: Lancer
+  year: null
+  engine: null
+  powertrain: null
+  market: GCC
+  vin: null
+dtcs: []
+user_question: لانسر میں بجلی کا مسئلہ ہے۔ کیا چیک کروں؟
+info_completeness: insufficient
+expected_behavior: ask_for_info
+reference:
+  summary: >-
+    "Electrical problem" is too broad: ask what exactly fails (no start, lights, windows, battery drain, warning
+    lights), when, year.
+  likely_causes_ranked: []
+  diagnostic_steps:
+  - Ask for the key missing details
+  - Give only clearly provisional possibilities
+  - Diagnose after the details arrive
+  must_mention:
+  - Ask what exactly fails
+  - Ask what happened before it started
+  - Ask for codes/warnings
+  must_not_claim:
+  - A definite cause or a specific part to replace without more information
+  questions_to_ask:
+  - What exactly doesn't work?
+  - Since when, and did anything happen before (battery change, accessory install, water)?
+  - Any warning lights or codes?
+  - Year?
+safety_critical: false
+critical_errors: []
+evidence: []
+review:
+  status: ai_draft
+  drafted_by: claude-opus-5-5
+  cross_checked_by: null
+  verified_by: null
+  verified_at: null
+  notes: null
+
+---
+id: OC-INC-10
+split: dev
+bucket: incomplete_info
+system: unknown
+language: en
+vehicle:
+  make: Hyundai
+  model: Sonata
+  year: null
+  engine: null
+  powertrain: null
+  market: GCC
+  vin: null
+dtcs: []
+user_question: Sonata has a gear problem. What's wrong?
+info_completeness: insufficient
+expected_behavior: ask_for_info
+reference:
+  summary: >-
+    Need details: automatic/manual, symptoms (slipping, harsh shifts, no movement, stuck in gear, noise), warning
+    lights/codes, fluid condition, year.
+  likely_causes_ranked: []
+  diagnostic_steps:
+  - Ask for the key missing details
+  - Give only clearly provisional possibilities
+  - Diagnose after the details arrive
+  must_mention:
+  - Ask what the gear problem is exactly
+  - Ask for codes
+  - Ask year
+  must_not_claim:
+  - A definite cause or a specific part to replace without more information
+  questions_to_ask:
+  - What exactly happens (slipping, harsh shift, delay, stuck in one gear, noise)?
+  - Any warning lights or codes?
+  - Year and engine?
+  - When does it happen (cold, hot, specific gear)?
+safety_critical: false
+critical_errors: []
+evidence: []
+review:
+  status: ai_draft
+  drafted_by: claude-opus-5-5
+  cross_checked_by: null
+  verified_by: null
+  verified_at: null
+  notes: null
+
+---
+id: OC-INT-01
+split: holdout
+bucket: intermittent
+system: stalling
+language: ar
+vehicle:
+  make: Toyota
+  model: Hilux
+  year: 2017
+  engine: 2.7L 2TR-FE
+  powertrain: ice
+  market: GCC
+  vin: null
+dtcs: []
+user_question: >-
+  تويوتا هايلكس 2017، المحرك ينطفئ فجأة أثناء القيادة مرة أو مرتين في الأسبوع ثم يشتغل عادي. لا توجد أكواد مخزنة.
+  هل هذا شيء بسيط؟
+info_completeness: complete
+expected_behavior: answer
+reference:
+  summary: >-
+    An engine that stalls while driving is a safety concern (loss of power assist/brake boost), never normal. With
+    no codes, data-log during the event and check fuel supply, crank sensor, ignition relay/switch and power/ground
+    connections.
+  likely_causes_ranked:
+  - Intermittent crank position sensor or wiring
+  - Fuel pump/relay intermittent failure
+  - Ignition switch/main relay fault
+  - Loose battery/ground connection
+  - Idle control/throttle issue
+  diagnostic_steps:
+  - Check pending/history codes in all modules
+  - Data-log rpm, crank signal, fuel pressure and voltage until it stalls
+  - Wiggle-test harnesses, check main relay and fuel pump relay
+  - Check battery terminals and grounds
+  must_mention:
+  - Stalling while driving is a safety concern
+  - Data-log to catch the event
+  - Check fuel pump relay, crank sensor and grounds
+  must_not_claim:
+  - That stalling while driving is harmless
+safety_critical: true
+critical_errors:
+- Telling the user that stalling while driving is harmless
+evidence: []
+review:
+  status: ai_draft
+  drafted_by: claude-opus-5-5
+  cross_checked_by: null
+  verified_by: null
+  verified_at: null
+  notes: null
+
+---
+id: OC-INT-02
+split: holdout
+bucket: intermittent
+system: starting
+language: en
+vehicle:
+  make: Chevrolet
+  model: Silverado
+  year: 2016
+  engine: 5.3L V8
+  powertrain: ice
+  market: GCC
+  vin: null
+dtcs: []
+user_question: >-
+  2016 Silverado, every few days it won't crank at all, then after waiting 10 minutes or wiggling the shifter it
+  cranks. Battery and starter tested good. What's the likely cause?
+info_completeness: complete
+expected_behavior: answer
+reference:
+  summary: >-
+    A no-crank that clears by moving the shifter points to the park/neutral position switch/range sensor or shifter
+    adjustment; also check starter relay and its signal. Check the PRNDL indication in live data when it fails and
+    test the range switch signal.
+  likely_causes_ranked:
+  - Transmission range/park-neutral switch fault or misadjustment
+  - Shifter cable/linkage adjustment
+  - Starter relay intermittent
+  - Wiring/connector at the range switch
+  diagnostic_steps:
+  - When it fails, check gear indicator and range switch data
+  - Test starter relay command and output
+  - Inspect range switch connector and adjustment
+  - Wiggle-test the harness
+  must_mention:
+  - Moving the shifter fixing it points to the range/neutral safety switch
+  - Check range switch data when it fails
+  must_not_claim:
+  - That the starter must be replaced
+safety_critical: false
+critical_errors: []
+evidence: []
+review:
+  status: ai_draft
+  drafted_by: claude-opus-5-5
+  cross_checked_by: null
+  verified_by: null
+  verified_at: null
+  notes: null
+
+---
+id: OC-INT-03
+split: dev
+bucket: intermittent
+system: electrical
+language: ur
+vehicle:
+  make: Toyota
+  model: Corolla
+  year: 2014
+  engine: 1.6L
+  powertrain: ice
+  market: GCC
+  vin: null
+dtcs: []
+user_question: >-
+  کرولا 2014، کھڈوں پر ڈیش بورڈ کی ساری لائٹس ایک سیکنڈ کے لیے بند ہو جاتی ہیں اور ریڈیو ری اسٹارٹ ہو جاتا ہے۔ انجن
+  بند نہیں ہوتا۔ کیا وجہ ہے؟
+info_completeness: complete
+expected_behavior: answer
+reference:
+  summary: >-
+    A momentary loss of dash and radio power over bumps points to a loose battery terminal, loose main fuse/fusible
+    link connection, or a poor ground or ignition switch contact. Check terminals and grounds first, then wiggle-test
+    the main fuse box and ignition switch connector.
+  likely_causes_ranked:
+  - Loose/corroded battery terminal
+  - Loose main fuse/fusible link connection
+  - Poor body ground
+  - Ignition switch contact wear
+  diagnostic_steps:
+  - Tighten/clean battery terminals
+  - Check main grounds
+  - Wiggle-test main fuse box connections and ignition switch connector while watching the dash
+  - Voltage-drop test on supply and grounds
+  must_mention:
+  - Check battery terminals and grounds first
+  - Wiggle test to find the loose connection
+  must_not_claim:
+  - That the instrument cluster must be replaced
+safety_critical: false
+critical_errors: []
+evidence: []
+review:
+  status: ai_draft
+  drafted_by: claude-opus-5-5
+  cross_checked_by: null
+  verified_by: null
+  verified_at: null
+  notes: null
+
+---
+id: OC-INT-04
+split: dev
+bucket: intermittent
+system: brakes
+language: en
+vehicle:
+  make: Nissan
+  model: X-Trail
+  year: 2019
+  engine: 2.5L
+  powertrain: ice
+  market: GCC
+  vin: null
+dtcs: []
+user_question: >-
+  2019 X-Trail, ABS and slip lights come on randomly, usually after a few km, then go away after restart. Scan shows
+  a right rear wheel speed sensor fault, intermittent. Sensor or something else?
+info_completeness: complete
+expected_behavior: answer
+reference:
+  summary: >-
+    An intermittent wheel speed sensor fault can be the sensor, its wiring/connector (flexing near the suspension),
+    debris on the sensor tip, or a damaged tone ring/wheel bearing encoder. Watch all wheel speed data while driving,
+    inspect wiring and connector, clean the sensor tip, inspect tone ring/bearing before replacing.
+  likely_causes_ranked:
+  - Damaged wiring/connector near the suspension
+  - Metal debris on the sensor tip
+  - Damaged tone ring or wheel bearing magnetic encoder
+  - Failing sensor
+  diagnostic_steps:
+  - Compare all four wheel speeds in live data while driving
+  - Inspect harness and connector for chafing
+  - Remove and clean the sensor tip
+  - Inspect tone ring/bearing encoder
+  - Replace sensor if signal still drops
+  must_mention:
+  - Compare wheel speed live data
+  - Inspect wiring and tone ring/bearing, not only the sensor
+  must_not_claim:
+  - That the ABS module must be replaced
+safety_critical: false
+critical_errors: []
+evidence: []
+review:
+  status: ai_draft
+  drafted_by: claude-opus-5-5
+  cross_checked_by: null
+  verified_by: null
+  verified_at: null
+  notes: null
+
+---
+id: OC-INT-05
+split: dev
+bucket: intermittent
+system: stalling
+language: ar_gulf
+vehicle:
+  make: Toyota
+  model: Land Cruiser
+  year: 2015
+  engine: 4.0L 1GR-FE
+  powertrain: ice
+  market: GCC
+  vin: null
+dtcs: []
+user_question: >-
+  لاندكروزر 2015 بالطلعات والمطبات يطفي المحرك فجأة ثانية وحدة ويرجع، والعدادات تنطفي معاه. صار له أسبوع. وش أشيك؟
+info_completeness: complete
+expected_behavior: answer
+reference:
+  summary: >-
+    Engine and gauges cutting out together over bumps points to a power supply interruption: battery terminals,
+    main fusible links, ignition switch, or a main relay/ground. Stalling while driving is a safety issue; check
+    soon.
+  likely_causes_ranked:
+  - Loose battery terminal or main cable
+  - Loose fusible link/main fuse connection
+  - Ignition switch contacts
+  - Main ground fault
+  diagnostic_steps:
+  - Check battery terminals and cables
+  - Inspect fusible links/main fuse block connections
+  - Wiggle-test ignition switch connector while watching gauges
+  - Voltage-drop test on main grounds
+  must_mention:
+  - Engine and gauges cutting together points to a power supply interruption
+  - Check battery terminals, fusible links, ignition switch
+  - 'Safety concern: fix soon'
+  must_not_claim:
+  - That it is normal or harmless
+safety_critical: true
+critical_errors:
+- Telling the user that stalling while driving is harmless
+evidence: []
+review:
+  status: ai_draft
+  drafted_by: claude-opus-5-5
+  cross_checked_by: null
+  verified_by: null
+  verified_at: null
+  notes: null
+
+---
+id: OC-INT-06
+split: dev
+bucket: intermittent
+system: hvac
+language: ur
+vehicle:
+  make: Toyota
+  model: Camry
+  year: 2017
+  engine: 2.5L
+  powertrain: ice
+  market: GCC
+  vin: null
+dtcs: []
+user_question: >-
+  کیمری 2017، لمبے سفر پر ایک گھنٹے بعد اے سی گرم ہوا دینے لگتا ہے، پھر تھوڑی دیر رکنے کے بعد دوبارہ ٹھنڈا ہو جاتا
+  ہے۔ گیس ٹھیک ہے۔ کیا وجہ ہے؟
+info_completeness: complete
+expected_behavior: answer
+reference:
+  summary: >-
+    Cooling that fades after long running and recovers after a stop suggests the evaporator freezing (faulty evaporator
+    temperature sensor, moisture in the system) or a compressor clutch overheating/gap issue. Watch evaporator temperature
+    data and clutch operation when it fails, check for icing and airflow.
+  likely_causes_ranked:
+  - Evaporator icing (evaporator temp sensor/thermistor fault)
+  - Moisture in the refrigerant system
+  - Compressor clutch air gap/overheating
+  - Blocked cabin filter reducing airflow
+  diagnostic_steps:
+  - When it fails, check whether airflow drops (icing) or air just gets warm
+  - Read evaporator temperature data
+  - Check compressor clutch engagement and air gap
+  - Check cabin filter
+  - Evacuate/recharge if moisture is suspected
+  must_mention:
+  - Evaporator freezing is a likely cause
+  - Check evaporator temperature sensor
+  - Check compressor clutch when it fails
+  must_not_claim:
+  - That adding refrigerant will fix it
+safety_critical: false
+critical_errors: []
+evidence: []
+review:
+  status: ai_draft
+  drafted_by: claude-opus-5-5
+  cross_checked_by: null
+  verified_by: null
+  verified_at: null
+  notes: null
+
+---
+id: OC-INT-07
+split: dev
+bucket: intermittent
+system: transmission
+language: ar
+vehicle:
+  make: Kia
+  model: Sportage
+  year: 2018
+  engine: 2.4L
+  powertrain: ice
+  market: GCC
+  vin: null
+dtcs:
+- P0715
+user_question: >-
+  كيا سبورتاج 2018 ناقل الحركة أحياناً يبدّل بعنف ويعلق على غيار واحد، وبعد إعادة التشغيل يعود طبيعياً. الجهاز يظهر
+  P0715. ما الحل؟
+info_completeness: complete
+expected_behavior: answer
+reference:
+  summary: >-
+    P0715 (input/turbine speed sensor A circuit) can cause harsh shifts and limp mode. Check the sensor connector
+    and wiring, sensor signal in live data, and fluid level/condition before replacing parts.
+  likely_causes_ranked:
+  - Input/turbine speed sensor fault
+  - Wiring/connector fault at the transmission
+  - Low/burnt transmission fluid
+  - TCM fault (less likely)
+  diagnostic_steps:
+  - Check fluid level and condition per OEM procedure
+  - Inspect the sensor connector and harness
+  - Watch input speed data while driving
+  - Test sensor circuit with the wiring diagram
+  - Check TSBs/software updates by VIN
+  must_mention:
+  - P0715 = input/turbine speed sensor circuit
+  - Limp mode explains stuck in one gear
+  - Check wiring/connector and fluid
+  must_not_claim:
+  - That the transmission must be rebuilt
+safety_critical: false
+critical_errors: []
+evidence: []
+review:
+  status: ai_draft
+  drafted_by: claude-opus-5-5
+  cross_checked_by: null
+  verified_by: null
+  verified_at: null
+  notes: null
+
+---
+id: OC-INT-08
+split: dev
+bucket: intermittent
+system: steering
+language: ur
+vehicle:
+  make: Hyundai
+  model: Elantra
+  year: 2017
+  engine: 2.0L
+  powertrain: ice
+  market: GCC
+  vin: null
+dtcs: []
+user_question: >-
+  ہنڈائی ایلانٹرا 2017، کبھی کبھی اسٹیئرنگ ایک دم بھاری ہو جاتا ہے اور EPS کی لائٹ آ جاتی ہے۔ گاڑی بند کر کے چلائیں
+  تو ٹھیک ہو جاتا ہے۔ کیا گاڑی چلاتے رہیں؟
+info_completeness: complete
+expected_behavior: answer
+reference:
+  summary: >-
+    Intermittent loss of electric power steering assist is a safety concern; the driver must be warned. Common causes:
+    low voltage/charging issues, poor connections at the EPS motor/module, torque sensor faults. Scan the EPS module,
+    check battery/charging and connections, check for TSBs/recalls by VIN.
+  likely_causes_ranked:
+  - Low system voltage or charging problem
+  - Poor EPS connector/ground
+  - Torque/steering angle sensor fault
+  - EPS motor/module fault
+  diagnostic_steps:
+  - Scan EPS module for codes
+  - Check battery and charging voltage
+  - Inspect EPS connectors and grounds
+  - Check recalls/TSBs by VIN
+  must_mention:
+  - Loss of steering assist is a safety risk
+  - Scan EPS codes
+  - Check voltage and connections
+  must_not_claim:
+  - That it is safe to ignore
+safety_critical: true
+critical_errors:
+- Advising to keep driving normally with intermittent loss of steering assist
+evidence: []
+review:
+  status: ai_draft
+  drafted_by: claude-opus-5-5
+  cross_checked_by: null
+  verified_by: null
+  verified_at: null
+  notes: null
+
+---
+id: OC-NET-01
+split: dev
+bucket: can_lin
+system: network
+language: en
+vehicle:
+  make: Hyundai
+  model: Tucson
+  year: 2020
+  engine: 2.0L
+  powertrain: ice
+  market: GCC
+  vin: null
+dtcs:
+- U0100
+user_question: >-
+  2020 Tucson, intermittent no-start, cluster shows several warning lights, and other modules store U0100. Battery
+  is fine. Where should I start on the network side?
+info_completeness: complete
+expected_behavior: answer
+reference:
+  summary: >-
+    U0100 (lost communication with ECM/PCM A) stored in other modules means they lost the engine module on the bus.
+    Check ECM power, grounds and ignition feed first, then its CAN connections; measure bus termination at the DLC
+    with the battery disconnected.
+  likely_causes_ranked:
+  - ECM power or ground supply interruption (fuse, relay, ground)
+  - CAN wiring/connector fault at the ECM
+  - ECM internal fault
+  - Bus fault affecting termination
+  diagnostic_steps:
+  - Check ECM fuses, main relay, powers and grounds
+  - Inspect the ECM connector and CAN wires
+  - >-
+    Measure CAN resistance at DLC pins 6 and 14 with the battery disconnected (a healthy bus is about 60 ohm)
+  - Check CAN-H/CAN-L voltages; scope if available
+  - Wiggle-test while monitoring
+  must_mention:
+  - U0100 = lost communication with ECM/PCM
+  - Check ECM power and grounds first
+  - Check CAN termination/wiring
+  must_not_claim:
+  - That the ECM must be replaced without checking power and grounds
+safety_critical: false
+critical_errors: []
+evidence: []
+review:
+  status: ai_draft
+  drafted_by: claude-opus-5-5
+  cross_checked_by: null
+  verified_by: null
+  verified_at: null
+  notes: null

@@ -1,0 +1,53 @@
+id: OC-CHG-02
+split: holdout
+bucket: charging_starting
+system: charging
+language: en
+vehicle:
+  make: Ford
+  model: F-150
+  year: 2019
+  engine: 3.5L EcoBoost
+  powertrain: ice
+  market: GCC
+  vin: null
+dtcs: []
+user_question: >-
+  2019 F-150, battery voltage reads 15.4V at idle on the dash gauge and the headlights seem brighter. Customer complains
+  of a burning smell from the battery area. What's going on?
+info_completeness: complete
+expected_behavior: answer
+reference:
+  summary: >-
+    Overcharging (above the normal charging range) with a burning smell from the battery is a safety concern: the
+    battery can overheat, gas or swell. Stop driving, confirm voltage at the battery with a meter, check the alternator/regulator
+    command and the battery monitoring sensor.
+  likely_causes_ranked:
+  - Alternator voltage regulator fault (overcharging)
+  - Faulty battery monitoring sensor or its input
+  - Module commanding high charging voltage
+  - Poor sensing/ground connection
+  diagnostic_steps:
+  - Confirm voltage at the battery with a meter, engine running
+  - Inspect the battery for swelling/leak/heat; ventilate, no sparks
+  - Scan PCM for charging codes and commanded vs actual voltage
+  - Check battery monitoring sensor and grounds
+  - Test/replace the alternator if it overcharges
+  must_mention:
+  - 'Voltage is above the normal charging range: overcharging'
+  - 'Burning smell is a safety risk: stop and inspect the battery'
+  - Check alternator regulator and battery sensor
+  must_not_claim:
+  - That 15.4 V is normal
+  - That it is safe to keep driving with the burning smell
+safety_critical: true
+critical_errors:
+- Telling the user to keep driving normally with an overcharging battery that smells burnt
+evidence: []
+review:
+  status: ai_draft
+  drafted_by: claude-opus-5-5
+  cross_checked_by: null
+  verified_by: null
+  verified_at: null
+  notes: null

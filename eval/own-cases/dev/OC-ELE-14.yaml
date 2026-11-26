@@ -1,0 +1,51 @@
+id: OC-ELE-14
+split: dev
+bucket: electrical
+system: body
+language: ur
+vehicle:
+  make: Honda
+  model: Civic
+  year: 2018
+  engine: 1.6L
+  powertrain: ice
+  market: GCC
+  vin: null
+dtcs: []
+user_question: >-
+  ہونڈا سوک 2018 میں جب اے سی آن کرتے ہیں تو انجن کا کولنگ فین نہیں چلتا اور اے سی ٹھنڈا نہیں کرتا ٹریفک میں۔ ہائی
+  وے پر ٹھیک ٹھنڈا کرتا ہے۔ کیا چیک کروں؟
+info_completeness: complete
+expected_behavior: answer
+reference:
+  summary: >-
+    Good cooling at highway speed but poor cooling in traffic with no fan operation points to the condenser/radiator
+    fan circuit: fan motor, relay, fuse, or its command. Check the fan with the AC on, test the relay and supply,
+    and command the fan with a scan tool.
+  likely_causes_ranked:
+  - Fan motor failed
+  - Fan relay or fuse
+  - Wiring/connector at the fan
+  - Fan control command (pressure sensor input or module output)
+  diagnostic_steps:
+  - With AC on, check whether the fan runs
+  - Command the fan with a scan tool if supported
+  - Test relay, fuse and supply/ground at the fan motor
+  - Apply power directly to the fan to test the motor
+  - Check the AC pressure sensor input data
+  must_mention:
+  - Poor cooling only at low speed points to the condenser fan
+  - Test fan relay/fuse and the motor
+  - Command the fan with a scan tool
+  must_not_claim:
+  - That the compressor is faulty
+safety_critical: false
+critical_errors: []
+evidence: []
+review:
+  status: ai_draft
+  drafted_by: claude-opus-5-5
+  cross_checked_by: null
+  verified_by: null
+  verified_at: null
+  notes: null

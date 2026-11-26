@@ -1,0 +1,49 @@
+id: OC-ELE-05
+split: dev
+bucket: electrical
+system: body
+language: en
+vehicle:
+  make: Chevrolet
+  model: Tahoe
+  year: 2017
+  engine: 5.3L V8
+  powertrain: ice
+  market: GCC
+  vin: null
+dtcs: []
+user_question: >-
+  2017 Tahoe, the rear AC blower doesn't work at any speed, front is fine. Fuse in the rear is good. Customer says
+  it stopped after a car wash. What should I check first?
+info_completeness: complete
+expected_behavior: answer
+reference:
+  summary: >-
+    Water after a car wash suggests a wet/corroded connector on the rear blower, its resistor/control module, or
+    a relay. Check power and ground at the rear blower motor, then the blower control module/resistor and its connector.
+  likely_causes_ranked:
+  - Water-damaged rear blower control module/resistor or connector
+  - Failed rear blower motor
+  - Rear blower relay
+  - Wiring/ground fault in the rear HVAC circuit
+  diagnostic_steps:
+  - Inspect rear blower motor and control module connectors for water/corrosion
+  - With the rear blower commanded on, check supply and ground at the motor
+  - Apply power directly to the motor to test it
+  - Check the blower control module/resistor and relay; scan HVAC module for codes
+  must_mention:
+  - Water ingress/corrosion as a lead from the car-wash timing
+  - Test power and ground at the blower motor
+  - Check the blower control module/resistor
+  must_not_claim:
+  - That the HVAC control head must be replaced without testing
+safety_critical: false
+critical_errors: []
+evidence: []
+review:
+  status: ai_draft
+  drafted_by: claude-opus-5-5
+  cross_checked_by: null
+  verified_by: null
+  verified_at: null
+  notes: null

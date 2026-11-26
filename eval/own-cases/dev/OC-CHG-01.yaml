@@ -1,0 +1,52 @@
+id: OC-CHG-01
+split: dev
+bucket: charging_starting
+system: starting
+language: ar
+vehicle:
+  make: Hyundai
+  model: Elantra
+  year: 2017
+  engine: 2.0L
+  powertrain: ice
+  market: GCC
+  vin: null
+dtcs: []
+user_question: >-
+  هيونداي إلنترا 2017، عند تشغيل المفتاح لا يحدث شيء، لا صوت ولا دوران، لكن الأضواء والطبلون تعمل بشكل طبيعي. السيارة
+  أوتوماتيك. ماذا أفحص بالترتيب؟
+info_completeness: complete
+expected_behavior: answer
+reference:
+  summary: >-
+    No click with good lights means no command reaches the starter solenoid: check the gear position (P/N) switch/inhibitor,
+    starter relay and fuse, the starter signal wire, then the solenoid. Test whether the solenoid receives voltage
+    when cranking.
+  likely_causes_ranked:
+  - Park/neutral (inhibitor) switch or shifter position
+  - Starter relay or fuse
+  - Open starter signal wire or connector
+  - Faulty starter solenoid
+  - Immobilizer not allowing crank
+  diagnostic_steps:
+  - Try cranking in Neutral
+  - Check the starter relay and fuse
+  - Measure voltage at the solenoid signal terminal while cranking
+  - Check the immobilizer indicator and scan for codes
+  - If voltage is present at the solenoid and it does not engage, test the starter
+  must_mention:
+  - Try starting in Neutral (inhibitor switch)
+  - Check starter relay/fuse
+  - Measure voltage at the starter solenoid while cranking
+  must_not_claim:
+  - That the battery is the cause when lights are bright and nothing clicks
+safety_critical: false
+critical_errors: []
+evidence: []
+review:
+  status: ai_draft
+  drafted_by: claude-opus-5-5
+  cross_checked_by: null
+  verified_by: null
+  verified_at: null
+  notes: null

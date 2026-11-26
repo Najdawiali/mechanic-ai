@@ -1,0 +1,48 @@
+id: OC-ELE-12
+split: holdout
+bucket: electrical
+system: body
+language: ar_gulf
+vehicle:
+  make: GMC
+  model: Yukon
+  year: 2019
+  engine: 5.3L V8
+  powertrain: ice
+  market: GCC
+  vin: null
+dtcs: []
+user_question: يوكن 2019 المكيف يطلع هوا حار من جهة السواق وبارد من جهة الراكب. الغاز معبي ومشيك عليه. وش السبب؟
+info_completeness: complete
+expected_behavior: answer
+reference:
+  summary: >-
+    Different temperatures side to side with a correct refrigerant charge points to the driver-side temperature
+    blend door actuator or door, or its calibration. Scan the HVAC module, run actuator recalibration and check
+    the actuator for clicking/stuck position.
+  likely_causes_ranked:
+  - Driver side temperature blend door actuator failed
+  - Broken blend door or stripped gear
+  - Actuator calibration lost
+  - HVAC control module fault
+  diagnostic_steps:
+  - Scan HVAC module for codes and read actuator positions
+  - Command the driver blend door and listen for movement or clicking
+  - Run the HVAC actuator recalibration procedure
+  - Inspect/replace the actuator if it does not move
+  must_mention:
+  - Dual-zone temperature difference points to the blend door actuator
+  - Scan HVAC module and recalibrate actuators
+  - Refrigerant charge is not the cause
+  must_not_claim:
+  - That the compressor or refrigerant charge is the cause
+safety_critical: false
+critical_errors: []
+evidence: []
+review:
+  status: ai_draft
+  drafted_by: claude-opus-5-5
+  cross_checked_by: null
+  verified_by: null
+  verified_at: null
+  notes: null

@@ -1,0 +1,47 @@
+id: OC-INC-04
+split: dev
+bucket: incomplete_info
+system: unknown
+language: ar
+vehicle:
+  make: Kia
+  model: Sportage
+  year: null
+  engine: null
+  powertrain: null
+  market: GCC
+  vin: null
+dtcs: []
+user_question: سيارتي كيا سبورتاج لا تشتغل. ما الحل؟
+info_completeness: insufficient
+expected_behavior: ask_for_info
+reference:
+  summary: >-
+    Need to know whether it cranks or not, clicks, dash lights, battery state, warnings, immobilizer light, year/engine.
+    Ask before diagnosing.
+  likely_causes_ranked: []
+  diagnostic_steps:
+  - Ask for the key missing details
+  - Give only clearly provisional possibilities
+  - Diagnose after the details arrive
+  must_mention:
+  - Ask whether it cranks or not
+  - Ask about dash lights/battery
+  - Ask year/engine
+  must_not_claim:
+  - A definite cause or a specific part to replace without more information
+  questions_to_ask:
+  - Does the engine crank, click, or do nothing?
+  - Do dash lights come on normally?
+  - Any security/immobilizer light?
+  - Year and engine?
+safety_critical: false
+critical_errors: []
+evidence: []
+review:
+  status: ai_draft
+  drafted_by: claude-opus-5-5
+  cross_checked_by: null
+  verified_by: null
+  verified_at: null
+  notes: null

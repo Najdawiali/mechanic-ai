@@ -1,0 +1,53 @@
+id: OC-NET-01
+split: dev
+bucket: can_lin
+system: network
+language: en
+vehicle:
+  make: Hyundai
+  model: Tucson
+  year: 2020
+  engine: 2.0L
+  powertrain: ice
+  market: GCC
+  vin: null
+dtcs:
+- U0100
+user_question: >-
+  2020 Tucson, intermittent no-start, cluster shows several warning lights, and other modules store U0100. Battery
+  is fine. Where should I start on the network side?
+info_completeness: complete
+expected_behavior: answer
+reference:
+  summary: >-
+    U0100 (lost communication with ECM/PCM A) stored in other modules means they lost the engine module on the bus.
+    Check ECM power, grounds and ignition feed first, then its CAN connections; measure bus termination at the DLC
+    with the battery disconnected.
+  likely_causes_ranked:
+  - ECM power or ground supply interruption (fuse, relay, ground)
+  - CAN wiring/connector fault at the ECM
+  - ECM internal fault
+  - Bus fault affecting termination
+  diagnostic_steps:
+  - Check ECM fuses, main relay, powers and grounds
+  - Inspect the ECM connector and CAN wires
+  - >-
+    Measure CAN resistance at DLC pins 6 and 14 with the battery disconnected (a healthy bus is about 60 ohm)
+  - Check CAN-H/CAN-L voltages; scope if available
+  - Wiggle-test while monitoring
+  must_mention:
+  - U0100 = lost communication with ECM/PCM
+  - Check ECM power and grounds first
+  - Check CAN termination/wiring
+  must_not_claim:
+  - That the ECM must be replaced without checking power and grounds
+safety_critical: false
+critical_errors: []
+evidence: []
+review:
+  status: ai_draft
+  drafted_by: claude-opus-5-5
+  cross_checked_by: null
+  verified_by: null
+  verified_at: null
+  notes: null

@@ -1,0 +1,50 @@
+id: OC-ELE-07
+split: holdout
+bucket: electrical
+system: body
+language: ar_gulf
+vehicle:
+  make: Nissan
+  model: Patrol
+  year: 2016
+  engine: 5.6L VK56VD
+  powertrain: ice
+  market: GCC
+  vin: null
+dtcs: []
+user_question: >-
+  باترول 2016 الريموت ما يفتح الأبواب، وغيرنا بطارية الريموت. المفتاح الثاني نفس الشي. السيارة تشتغل عادي بالبصمة.
+  وش ممكن يكون؟
+info_completeness: complete
+expected_behavior: answer
+reference:
+  summary: >-
+    Both remotes failing while the car still starts points to the vehicle side (receiver/antenna, body module, interference)
+    rather than the fobs. Check for aftermarket devices causing RF interference, door lock function from the interior
+    switch, codes in the BCM/intelligent key unit, and the receiver.
+  likely_causes_ranked:
+  - Keyless receiver/antenna or its wiring
+  - RF interference from an aftermarket device (dashcam, charger, alarm)
+  - Body control/intelligent key unit fault or settings
+  - Door lock actuator circuit fault (if interior switch also fails)
+  diagnostic_steps:
+  - Test door locking from the interior switch and the request button on the door handle
+  - Remove aftermarket USB chargers/dashcams and retest
+  - Scan the BCM/intelligent key unit for codes and check data/inputs
+  - Inspect the receiver connector and power/ground; re-register keys only per OEM procedure
+  must_mention:
+  - Both remotes failing points to the vehicle side
+  - Check for RF interference from aftermarket devices
+  - Scan the body/intelligent key module
+  must_not_claim:
+  - That both remotes are faulty and must be replaced
+safety_critical: false
+critical_errors: []
+evidence: []
+review:
+  status: ai_draft
+  drafted_by: claude-opus-5-5
+  cross_checked_by: null
+  verified_by: null
+  verified_at: null
+  notes: null

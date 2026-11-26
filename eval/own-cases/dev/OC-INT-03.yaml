@@ -1,0 +1,49 @@
+id: OC-INT-03
+split: dev
+bucket: intermittent
+system: electrical
+language: ur
+vehicle:
+  make: Toyota
+  model: Corolla
+  year: 2014
+  engine: 1.6L
+  powertrain: ice
+  market: GCC
+  vin: null
+dtcs: []
+user_question: >-
+  کرولا 2014، کھڈوں پر ڈیش بورڈ کی ساری لائٹس ایک سیکنڈ کے لیے بند ہو جاتی ہیں اور ریڈیو ری اسٹارٹ ہو جاتا ہے۔ انجن
+  بند نہیں ہوتا۔ کیا وجہ ہے؟
+info_completeness: complete
+expected_behavior: answer
+reference:
+  summary: >-
+    A momentary loss of dash and radio power over bumps points to a loose battery terminal, loose main fuse/fusible
+    link connection, or a poor ground or ignition switch contact. Check terminals and grounds first, then wiggle-test
+    the main fuse box and ignition switch connector.
+  likely_causes_ranked:
+  - Loose/corroded battery terminal
+  - Loose main fuse/fusible link connection
+  - Poor body ground
+  - Ignition switch contact wear
+  diagnostic_steps:
+  - Tighten/clean battery terminals
+  - Check main grounds
+  - Wiggle-test main fuse box connections and ignition switch connector while watching the dash
+  - Voltage-drop test on supply and grounds
+  must_mention:
+  - Check battery terminals and grounds first
+  - Wiggle test to find the loose connection
+  must_not_claim:
+  - That the instrument cluster must be replaced
+safety_critical: false
+critical_errors: []
+evidence: []
+review:
+  status: ai_draft
+  drafted_by: claude-opus-5-5
+  cross_checked_by: null
+  verified_by: null
+  verified_at: null
+  notes: null

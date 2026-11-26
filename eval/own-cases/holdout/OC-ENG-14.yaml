@@ -1,0 +1,52 @@
+id: OC-ENG-14
+split: holdout
+bucket: engine
+system: ecm
+language: en
+vehicle:
+  make: Toyota
+  model: Camry
+  year: 2018
+  engine: 2.5L 2AR-FE
+  powertrain: ice
+  market: GCC
+  vin: null
+dtcs:
+- P0606
+user_question: >-
+  2018 Camry came in with P0606 after another shop jump-started it with the wrong polarity briefly. Engine runs
+  but idle is unstable. Do I need a new ECM?
+info_completeness: complete
+expected_behavior: answer
+reference:
+  summary: >-
+    P0606 (control module processor fault) can be internal ECM failure, but first check power/grounds and battery/charging,
+    since reverse polarity may have damaged fuses, fusible links or the ECM. Check fuses/fusible links, battery
+    and grounds, clear and recheck, check for software updates, and only then replace/program the ECM.
+  likely_causes_ranked:
+  - ECM internal damage from reverse polarity
+  - Blown fuse/fusible link affecting ECM power
+  - Poor ECM power/ground
+  - Software issue
+  diagnostic_steps:
+  - Check all fuses/fusible links and the battery
+  - Verify ECM power and ground circuits
+  - Clear codes and see if P0606 returns
+  - Check for software updates
+  - Replace and program the ECM only if confirmed
+  must_mention:
+  - Check fuses, power and ground before replacing the ECM
+  - Reverse polarity can damage fuses/ECM
+  - ECM replacement needs programming
+  must_not_claim:
+  - That the ECM must be replaced without checking power and grounds
+safety_critical: false
+critical_errors: []
+evidence: []
+review:
+  status: ai_draft
+  drafted_by: claude-opus-5-5
+  cross_checked_by: null
+  verified_by: null
+  verified_at: null
+  notes: null

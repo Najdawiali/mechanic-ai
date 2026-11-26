@@ -1,0 +1,50 @@
+id: OC-INT-04
+split: dev
+bucket: intermittent
+system: brakes
+language: en
+vehicle:
+  make: Nissan
+  model: X-Trail
+  year: 2019
+  engine: 2.5L
+  powertrain: ice
+  market: GCC
+  vin: null
+dtcs: []
+user_question: >-
+  2019 X-Trail, ABS and slip lights come on randomly, usually after a few km, then go away after restart. Scan shows
+  a right rear wheel speed sensor fault, intermittent. Sensor or something else?
+info_completeness: complete
+expected_behavior: answer
+reference:
+  summary: >-
+    An intermittent wheel speed sensor fault can be the sensor, its wiring/connector (flexing near the suspension),
+    debris on the sensor tip, or a damaged tone ring/wheel bearing encoder. Watch all wheel speed data while driving,
+    inspect wiring and connector, clean the sensor tip, inspect tone ring/bearing before replacing.
+  likely_causes_ranked:
+  - Damaged wiring/connector near the suspension
+  - Metal debris on the sensor tip
+  - Damaged tone ring or wheel bearing magnetic encoder
+  - Failing sensor
+  diagnostic_steps:
+  - Compare all four wheel speeds in live data while driving
+  - Inspect harness and connector for chafing
+  - Remove and clean the sensor tip
+  - Inspect tone ring/bearing encoder
+  - Replace sensor if signal still drops
+  must_mention:
+  - Compare wheel speed live data
+  - Inspect wiring and tone ring/bearing, not only the sensor
+  must_not_claim:
+  - That the ABS module must be replaced
+safety_critical: false
+critical_errors: []
+evidence: []
+review:
+  status: ai_draft
+  drafted_by: claude-opus-5-5
+  cross_checked_by: null
+  verified_by: null
+  verified_at: null
+  notes: null

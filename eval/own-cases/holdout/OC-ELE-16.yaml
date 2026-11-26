@@ -1,0 +1,50 @@
+id: OC-ELE-16
+split: holdout
+bucket: electrical
+system: body
+language: ar_gulf
+vehicle:
+  make: Toyota
+  model: Land Cruiser
+  year: 2022
+  engine: 3.5L V35A twin turbo
+  powertrain: ice
+  market: GCC
+  vin: null
+dtcs: []
+user_question: >-
+  لاندكروزر 2022 الكاميرا الخلفية تطلع شاشة سوداء أحياناً وأحياناً تشتغل. خصوصاً بعد ما تكون السيارة بالشمس. وش
+  أفحص؟
+info_completeness: complete
+expected_behavior: answer
+reference:
+  summary: >-
+    An intermittent black reverse-camera image, worse with heat, points to the camera itself, its connector at the
+    tailgate, or the harness through the tailgate hinge. Check connector and harness flex points, check for codes
+    in the camera/multimedia module, and test with the tailgate moved.
+  likely_causes_ranked:
+  - Camera unit failing with heat
+  - Loose/corroded connector at the camera
+  - Broken wires in the tailgate harness
+  - Multimedia/camera module fault or software
+  diagnostic_steps:
+  - Scan the camera/multimedia module for codes
+  - Wiggle-test the tailgate harness while viewing the image
+  - Inspect the camera connector for water/corrosion
+  - Check for software updates/TSBs by VIN
+  must_mention:
+  - Heat-related intermittent fault points to the camera or its connector
+  - Inspect the tailgate harness
+  - Check for codes/updates
+  must_not_claim:
+  - That the head unit must be replaced
+safety_critical: false
+critical_errors: []
+evidence: []
+review:
+  status: ai_draft
+  drafted_by: claude-opus-5-5
+  cross_checked_by: null
+  verified_by: null
+  verified_at: null
+  notes: null
