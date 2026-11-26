@@ -914,3 +914,44 @@ def test_symptom_search_runs_with_no_code_only_when_switched_on(kb):
     off = FakeWeb([CAM])
     Engine(kb, Script().model, external=off).turn(session(), "the engine stalls when hot")
     assert off.asked == []  # off by default: no code, no search
+
+
+def test_summarise_reads_all_conversation_messages_and_summarises_issue():
+    from app.engine.summary import summarise
+
+    captured = {}
+
+    def fake_summary(system, user, schema):
+        captured["system"] = system
+        captured["facts"] = json.loads(user)
+        return {"message": "2025 Acura Integra has a knocking noise at 1200 RPM and rough idle."}
+
+    model = ScriptedModel({"summary": fake_summary})
+    state = session()
+    state.remember("mechanic", "Knocking noise from front left at 1200 RPM", "Knocking noise from front left at 1200 RPM")
+    state.remember("assistant", "Check the CV joint and strut mount.")
+    for i in range(7):
+        state.remember("mechanic", f"Follow-up {i}", f"Follow-up {i}")
+        state.remember("assistant", f"Reply {i}")
+
+    out = summarise(model, state, "s-issue")
+    convo = captured["facts"]["conversation"]
+    assert len(state.history) == state.HISTORY_KEPT  # engine history stays capped
+    assert len(convo) == 16  # summary sees the full conversation, including the opening issue
+    assert convo[0] == {"mechanic": "Knocking noise from front left at 1200 RPM"}
+    assert convo[1] == {"assistant": "Check the CV joint and strut mount."}
+    assert "car's issue" in captured["system"]
+    assert "1200 RPM" in out["summary"]
+
+
+def test_summarise_fallback_includes_reported_issue_without_codes():
+    from app.engine.summary import summarise
+
+    model = ScriptedModel({"summary": lambda *_: {"message": ""}, "translate": lambda s, u, sc: {"message": u}})
+    state = session(language="en")
+    state.remember("mechanic", "Battery drains overnight", "Battery drains overnight")
+    state.remember("assistant", "Measure parasitic draw with the car asleep.")
+
+    out = summarise(model, state, "s-fallback")
+    assert "2025 Acura Integra" in out["summary"]
+    assert "Battery drains overnight" in out["summary"]
