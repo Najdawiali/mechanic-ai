@@ -1,0 +1,54 @@
+id: OC-ELE-02
+split: dev
+bucket: electrical
+system: starting
+language: en
+vehicle:
+  make: Nissan
+  model: Sunny
+  year: 2020
+  engine: 1.5L HR15DE
+  powertrain: ice
+  market: GCC
+  vin: null
+dtcs: []
+user_question: >-
+  2020 Sunny, customer says it clicks once and won't crank in the morning, but after a jump it starts fine all day.
+  Battery is 2 years old, I measured 12.1V this morning before the jump. Is it the starter?
+info_completeness: complete
+expected_behavior: answer
+reference:
+  summary: >-
+    12.1 V at rest is a low state of charge, so the single click is most likely a weak battery or a parasitic drain
+    overnight, not the starter. Load-test the battery, check terminals, then measure parasitic draw after the modules
+    sleep; confirm charging output.
+  likely_causes_ranked:
+  - Weak/sulphated battery (12.1 V at rest is low)
+  - Parasitic drain discharging the battery overnight
+  - Corroded/loose battery terminals
+  - Undercharging alternator
+  - Starter/solenoid (less likely if it cranks fine after a jump)
+  diagnostic_steps:
+  - Charge and load-test the battery (or conductance test)
+  - Clean and tighten terminals and check the main ground
+  - Measure parasitic draw with an ammeter after the modules go to sleep
+  - Check charging voltage with engine running
+  - Only test the starter (voltage drop while cranking) if the battery and cables pass
+  must_mention:
+  - 12.1 V at rest is low/discharged
+  - Battery load test before blaming the starter
+  - Parasitic draw test
+  - Check charging system output
+  must_not_claim:
+  - That the starter must be replaced
+  - That 12.1 V is a fully charged battery
+safety_critical: false
+critical_errors: []
+evidence: []
+review:
+  status: ai_draft
+  drafted_by: claude-opus-5-5
+  cross_checked_by: null
+  verified_by: null
+  verified_at: null
+  notes: null

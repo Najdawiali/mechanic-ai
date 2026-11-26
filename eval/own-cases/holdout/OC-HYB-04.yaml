@@ -1,0 +1,48 @@
+id: OC-HYB-04
+split: holdout
+bucket: hybrid
+system: hybrid_12v
+language: ur
+vehicle:
+  make: Kia
+  model: Niro
+  year: 2019
+  engine: 1.6L hybrid
+  powertrain: hev
+  market: GCC
+  vin: null
+dtcs: []
+user_question: >-
+  کیا نیرو ہائبرڈ 2019، صبح گاڑی READY نہیں ہوتی، ڈیش بورڈ مدھم ہے۔ لوگ کہتے ہیں ہائبرڈ بیٹری خراب ہے۔ پہلے کیا
+  چیک کروں؟
+info_completeness: complete
+expected_behavior: answer
+reference:
+  summary: >-
+    If the dash is dim and the car won't go READY, the 12V (low-voltage) system is the first suspect, not the hybrid
+    battery. Check/charge the 12V battery (some Niro models have a 12V battery reset button), then scan for codes.
+  likely_causes_ranked:
+  - Discharged 12V battery
+  - Parasitic drain
+  - DC-DC converter not charging the 12V
+  - Hybrid system fault (less likely with dim dash)
+  diagnostic_steps:
+  - Test and charge the 12V battery
+  - Use the 12V battery reset function if the model has it (see owner's manual)
+  - Scan for codes
+  - Check DC-DC charging once READY
+  must_mention:
+  - 'Dim dash: check the 12V battery first'
+  - Not the hybrid battery as first suspect
+  must_not_claim:
+  - That the hybrid battery must be replaced
+safety_critical: false
+critical_errors: []
+evidence: []
+review:
+  status: ai_draft
+  drafted_by: claude-opus-5-5
+  cross_checked_by: null
+  verified_by: null
+  verified_at: null
+  notes: null

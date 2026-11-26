@@ -22,6 +22,8 @@ REPO = Path(__file__).resolve().parents[1]
     ("I'm getting fifteen ohms", "en"),
     ("VW ID.4 2021. Codes P0C4400, P0CE300 and B148754.", "en"),
     ("0.4", None), ("٧٫٥", None),
+    ("7.5 ohm", None), ("0.3 Ohms", None), ("12.4 V", None), ("OL", None), ("ok", None),  # units and yes/no: keep the session's
+    ("12.4 volts on the fuse", "en"),
 ])
 def test_language_is_read_from_the_letters(text, language):
     assert detect(text) == language

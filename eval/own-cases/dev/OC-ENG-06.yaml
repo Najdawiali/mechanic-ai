@@ -1,0 +1,54 @@
+id: OC-ENG-06
+split: dev
+bucket: engine
+system: fuel
+language: ur
+vehicle:
+  make: Toyota
+  model: Hilux
+  year: 2020
+  engine: 2.8L diesel 1GD-FTV
+  powertrain: ice
+  market: GCC
+  vin: null
+dtcs:
+- P0087
+user_question: >-
+  ہائی لکس ڈیزل 2020، چڑھائی پر پاور کم ہو جاتی ہے اور P0087 کوڈ آتا ہے۔ ڈیزل فلٹر دو مہینے پہلے بدلا تھا۔ آگے کیا
+  چیک کروں؟
+info_completeness: complete
+expected_behavior: answer
+reference:
+  summary: >-
+    P0087 (fuel rail/system pressure too low) under load points to fuel supply restriction (filter, water in fuel,
+    air leak), a weak supply/high-pressure pump, a faulty pressure control/suction valve, or the rail pressure sensor.
+    Compare desired vs actual rail pressure in live data under load, check for air/water, then the pump and control
+    valve.
+  likely_causes_ranked:
+  - Restricted fuel filter or wrong filter/air in the filter housing
+  - Water/contaminated diesel
+  - Suction control valve fault
+  - Weak high-pressure pump
+  - Rail pressure sensor fault
+  diagnostic_steps:
+  - Read desired vs actual rail pressure under load
+  - Check for water in fuel and drain the separator
+  - Check for air leaks in the supply lines
+  - Check the suction control valve and its connector
+  - Test pump supply before replacing parts
+  must_mention:
+  - P0087 means fuel rail pressure too low
+  - Compare desired vs actual rail pressure
+  - Check water/air in fuel supply
+  must_not_claim:
+  - That injectors must be replaced first
+safety_critical: false
+critical_errors: []
+evidence: []
+review:
+  status: ai_draft
+  drafted_by: claude-opus-5-5
+  cross_checked_by: null
+  verified_by: null
+  verified_at: null
+  notes: null

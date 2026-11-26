@@ -1,0 +1,50 @@
+id: OC-CHG-04
+split: dev
+bucket: charging_starting
+system: charging
+language: ar_gulf
+vehicle:
+  make: Kia
+  model: K5
+  year: 2021
+  engine: 2.5L
+  powertrain: ice
+  market: GCC
+  vin: null
+dtcs: []
+user_question: >-
+  كيا K5 2021 تطلع لي رسالة بالشاشة عن نظام الشحن وأحياناً يطفي المسجل وأنا ماشي. القراءة بالجهاز تتغير بين 12.5
+  و 14.5 فولت. هذا طبيعي؟
+info_completeness: complete
+expected_behavior: answer
+reference:
+  summary: >-
+    Many modern cars use smart charging, so voltage varying with load can be normal; but a charging warning message
+    and the radio cutting out are not. Scan for charging codes, check the battery sensor and grounds, and test the
+    alternator under load.
+  likely_causes_ranked:
+  - Battery sensor/smart charging fault
+  - Failing alternator under load
+  - Loose battery terminals or ground
+  - Battery near end of life
+  diagnostic_steps:
+  - Scan for codes in the engine and body modules
+  - Check battery terminals, grounds and battery sensor connector
+  - Test the battery
+  - Test alternator output under load and watch for drops when the message appears
+  must_mention:
+  - Smart charging can vary voltage, but the warning is not normal
+  - Scan for codes and check the battery sensor
+  - Check terminals/grounds
+  must_not_claim:
+  - That everything is normal and no check is needed
+safety_critical: false
+critical_errors: []
+evidence: []
+review:
+  status: ai_draft
+  drafted_by: claude-opus-5-5
+  cross_checked_by: null
+  verified_by: null
+  verified_at: null
+  notes: null

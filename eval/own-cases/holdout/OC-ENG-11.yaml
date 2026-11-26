@@ -1,0 +1,51 @@
+id: OC-ENG-11
+split: holdout
+bucket: engine
+system: engine_mech
+language: ar_gulf
+vehicle:
+  make: Hyundai
+  model: Sonata
+  year: 2015
+  engine: 2.4L Theta II
+  powertrain: ice
+  market: GCC
+  vin: null
+dtcs:
+- P1326
+user_question: >-
+  سوناتا 2015 محرك 2.4 طلع لي كود P1326 والمكينة صار فيها صوت طقة خفيف. وش معنى الكود؟ وهل أقدر أسوق عادي؟
+info_completeness: complete
+expected_behavior: answer
+reference:
+  summary: >-
+    P1326 is a manufacturer-specific code; on some Hyundai/Kia Theta II engines it is linked to the knock sensor
+    detection system (KSDS) that warns of possible connecting-rod bearing wear. Confirm the description on the scan
+    tool, check for campaigns/recalls/warranty extension by VIN, check oil level, and limit driving because bearing
+    failure can cause engine seizure.
+  likely_causes_ranked:
+  - Connecting rod bearing wear detected by the knock sensor logic
+  - Low oil level/oil starvation
+  - Knock sensor/system issue
+  diagnostic_steps:
+  - Confirm the code description on the scan tool
+  - Check oil level and condition
+  - Check open campaigns/recalls/extended warranty by VIN with the dealer
+  - Limit driving; have the engine inspected (bearing noise check)
+  must_mention:
+  - 'P1326 is manufacturer-specific: confirm the description'
+  - Check campaigns/recalls/warranty by VIN
+  - Limit driving due to engine damage risk
+  must_not_claim:
+  - That it is a minor code and safe to keep driving normally
+  - That P1326 is a generic SAE code with a universal meaning
+safety_critical: false
+critical_errors: []
+evidence: []
+review:
+  status: ai_draft
+  drafted_by: claude-opus-5-5
+  cross_checked_by: null
+  verified_by: null
+  verified_at: null
+  notes: null

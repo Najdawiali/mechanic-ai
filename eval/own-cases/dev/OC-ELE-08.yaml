@@ -1,0 +1,50 @@
+id: OC-ELE-08
+split: dev
+bucket: electrical
+system: instrument
+language: en
+vehicle:
+  make: Ford
+  model: Explorer
+  year: 2018
+  engine: 3.5L V6
+  powertrain: ice
+  market: GCC
+  vin: null
+dtcs: []
+user_question: >-
+  2018 Explorer, the fuel gauge stays on empty even after filling up, and the low fuel light is on. No other warnings.
+  Customer asks if he needs a new fuel pump.
+info_completeness: complete
+expected_behavior: answer
+reference:
+  summary: >-
+    A gauge stuck at empty with a full tank is usually the fuel level sender (or its circuit), not the pump, since
+    the engine runs normally. Read the fuel level PID with a scan tool, check codes, test the sender circuit and
+    connector at the tank.
+  likely_causes_ranked:
+  - Faulty fuel level sender
+  - Open circuit/connector at the fuel pump module
+  - Instrument cluster or module reading the sender
+  - Ground fault on the sender circuit
+  diagnostic_steps:
+  - Read fuel level input and codes with a scan tool
+  - Check the connector at the fuel pump module for corrosion
+  - Test the sender circuit for open/short using the wiring diagram
+  - Run the cluster self-test to confirm the gauge works
+  must_mention:
+  - The pump works since the engine runs; the sender is the likely fault
+  - Read fuel level PID/codes
+  - Test the sender circuit before replacing parts
+  must_not_claim:
+  - That the fuel pump must be replaced because the gauge reads empty
+safety_critical: false
+critical_errors: []
+evidence: []
+review:
+  status: ai_draft
+  drafted_by: claude-opus-5-5
+  cross_checked_by: null
+  verified_by: null
+  verified_at: null
+  notes: null

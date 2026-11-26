@@ -81,9 +81,12 @@ def service(authorization: str | None = Header(default=None)) -> None:
 
 def _engine(conn: psycopg.Connection, model: ModelClient) -> Engine:
     settings = get_settings()
+    from app.public.source import from_settings as public_records
+
+    public = public_records(settings, conn, _gateway()) if settings.public_records != "off" else None
     return Engine(KnowledgeStore(conn), model, statuses=APPROVED_AND_DRAFT if settings.kb_serve_drafts else APPROVED,
-                  external=from_settings(settings.external_source), emergency_number=settings.emergency_number,
-                  roles=Roles.from_settings(settings))
+                  external=from_settings(settings), emergency_number=settings.emergency_number,
+                  roles=Roles.from_settings(settings), public=public)
 
 
 # -- request bodies ------------------------------------------------------------------------------------

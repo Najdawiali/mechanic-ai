@@ -1,0 +1,47 @@
+id: OC-INC-02
+split: dev
+bucket: incomplete_info
+system: unknown
+language: en
+vehicle:
+  make: Hyundai
+  model: Elantra
+  year: null
+  engine: null
+  powertrain: null
+  market: GCC
+  vin: null
+dtcs: []
+user_question: A light came on in my Elantra dashboard. What should I do?
+info_completeness: insufficient
+expected_behavior: ask_for_info
+reference:
+  summary: >-
+    Which light and its colour decide the urgency (red = stop, amber = check soon). Ask which symbol/colour and
+    whether it is flashing; ask year; advise reading codes.
+  likely_causes_ranked: []
+  diagnostic_steps:
+  - Ask for the key missing details
+  - Give only clearly provisional possibilities
+  - Diagnose after the details arrive
+  must_mention:
+  - Ask which light and its colour
+  - Red warning lights mean stop safely
+  - Ask for codes
+  must_not_claim:
+  - A definite cause or a specific part to replace without more information
+  questions_to_ask:
+  - Which light/symbol is it and what colour?
+  - Is it flashing or steady?
+  - What year is the car?
+  - Any change in how the car drives?
+safety_critical: false
+critical_errors: []
+evidence: []
+review:
+  status: ai_draft
+  drafted_by: claude-opus-5-5
+  cross_checked_by: null
+  verified_by: null
+  verified_at: null
+  notes: null

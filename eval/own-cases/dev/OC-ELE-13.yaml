@@ -1,0 +1,49 @@
+id: OC-ELE-13
+split: dev
+bucket: electrical
+system: body
+language: ar
+vehicle:
+  make: Hyundai
+  model: Tucson
+  year: 2022
+  engine: 2.0L
+  powertrain: ice
+  market: GCC
+  vin: null
+dtcs: []
+user_question: >-
+  هيونداي توسان 2022، شاشة الوسائط تعيد التشغيل كل بضع دقائق وتنطفئ وتعود. البطارية سليمة. هل هي مشكلة برمجية؟
+info_completeness: complete
+expected_behavior: answer
+reference:
+  summary: >-
+    Head units that reboot repeatedly are often software-related (update available) but can also be power/ground
+    interruptions or a faulty unit. Check for a software update/campaign by VIN, check power and ground at the unit,
+    and remove USB devices/phones that may trigger crashes.
+  likely_causes_ranked:
+  - Infotainment software issue (update available)
+  - Faulty USB device/phone causing crashes
+  - Intermittent power/ground to the head unit
+  - Internal head unit fault
+  diagnostic_steps:
+  - Check for software updates/campaigns by VIN
+  - Disconnect USB devices and phone pairing and retest
+  - Check power/ground at the unit during a reboot
+  - Scan for codes in the multimedia module
+  must_mention:
+  - Check for software update by VIN
+  - Test without USB/phone connected
+  - Check power and ground to the unit
+  must_not_claim:
+  - That the unit must be replaced immediately
+safety_critical: false
+critical_errors: []
+evidence: []
+review:
+  status: ai_draft
+  drafted_by: claude-opus-5-5
+  cross_checked_by: null
+  verified_by: null
+  verified_at: null
+  notes: null

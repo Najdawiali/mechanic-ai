@@ -1,0 +1,50 @@
+id: OC-NET-07
+split: holdout
+bucket: can_lin
+system: lin
+language: ar_gulf
+vehicle:
+  make: Mercedes-Benz
+  model: C200
+  year: 2018
+  engine: 2.0L turbo
+  powertrain: ice
+  market: GCC
+  vin: null
+dtcs: []
+user_question: >-
+  مرسيدس C200 2018 مروحة المكيف الداخلية ما تشتغل، وقالوا لي إنها تشتغل على LIN. كيف أفحص خط LIN بالجهاز؟
+info_completeness: complete
+expected_behavior: answer
+reference:
+  summary: >-
+    On a LIN-controlled blower, check the blower's power and ground first, then the LIN line: it idles near battery
+    voltage when quiet and pulls toward ground during messages, best seen on a scope. Check the controlling module's
+    codes.
+  likely_causes_ranked:
+  - Blower motor/regulator failure
+  - Missing power or ground at the blower
+  - LIN line open/short to ground or battery
+  - Climate control module fault
+  diagnostic_steps:
+  - Read climate module codes
+  - Check power and ground at the blower module
+  - Check the LIN line with a scope (or meter for a stuck level)
+  - Check LIN wiring for open/short
+  - Test the blower/regulator
+  must_mention:
+  - Check power and ground before LIN
+  - LIN idles near battery voltage and pulses toward ground; scope preferred
+  - Read module codes
+  must_not_claim:
+  - Exact Mercedes pin numbers or wire colours without a source
+safety_critical: false
+critical_errors: []
+evidence: []
+review:
+  status: ai_draft
+  drafted_by: claude-opus-5-5
+  cross_checked_by: null
+  verified_by: null
+  verified_at: null
+  notes: null

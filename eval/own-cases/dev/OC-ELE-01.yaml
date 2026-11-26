@@ -1,0 +1,53 @@
+id: OC-ELE-01
+split: dev
+bucket: electrical
+system: charging
+language: ar_gulf
+vehicle:
+  make: Toyota
+  model: Hilux
+  year: 2018
+  engine: 2.7L 2TR-FE
+  powertrain: ice
+  market: GCC
+  vin: null
+dtcs: []
+user_question: >-
+  هايلكس 2018 بنزين، لمبة البطارية تولع وأنا ماشي بعد ما يحمى الجو، وقست على البطارية والمكينة شغالة طلع 12.3 فولت.
+  السير جديد. وش السبب وأقدر أكمل مشواري للدمام؟
+info_completeness: complete
+expected_behavior: answer
+reference:
+  summary: >-
+    With the engine running, 12.3 V at the battery means the alternator is not charging; the battery light confirms
+    it. A new belt removes the obvious cause; next are the alternator/regulator, its wiring (B+ cable, fuses, connector)
+    and grounds. Heat-related onset points to a failing regulator or a poor connection. A long trip is not advised:
+    the car runs on the battery until it dies.
+  likely_causes_ranked:
+  - Failing alternator or internal voltage regulator (heat-related)
+  - Poor alternator B+ cable/fusible link or connector
+  - Bad engine/body ground
+  - Belt tension or pulley slip despite new belt
+  diagnostic_steps:
+  - Measure battery voltage engine off then running; compare with the general 13.5–14.7 V charging range
+  - Voltage-drop test on the alternator B+ cable and on the ground path while loaded
+  - Check the alternator connector, fusible link/fuse and the belt tension
+  - Bench or on-car load test of the alternator before replacing it
+  must_mention:
+  - 12.3 V with engine running means not charging
+  - Check alternator output and charging wiring/grounds before replacing parts
+  - 'Do not start a long trip: the battery will drain and the car can stop'
+  must_not_claim:
+  - That 12.3 V running is normal
+  - That the battery is definitely the fault
+  - That it is fine to drive to Dammam
+safety_critical: false
+critical_errors: []
+evidence: []
+review:
+  status: ai_draft
+  drafted_by: claude-opus-5-5
+  cross_checked_by: null
+  verified_by: null
+  verified_at: null
+  notes: null

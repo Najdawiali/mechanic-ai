@@ -1,0 +1,49 @@
+id: OC-HYB-05
+split: holdout
+bucket: hybrid
+system: hybrid_engine
+language: ur
+vehicle:
+  make: Toyota
+  model: Corolla Cross Hybrid
+  year: 2023
+  engine: 1.8L hybrid
+  powertrain: hev
+  market: GCC
+  vin: null
+dtcs: []
+user_question: >-
+  کرولا کراس ہائبرڈ 2023، گرمی کے دنوں میں کھڑی گاڑی میں انجن بار بار اسٹارٹ ہو جاتا ہے حالانکہ READY میں کھڑی ہے۔
+  کیا یہ خرابی ہے؟
+info_completeness: complete
+expected_behavior: answer
+reference:
+  summary: >-
+    In many hybrids the engine runs while stationary in READY to charge the hybrid battery, heat the catalyst/engine,
+    or support AC load; on hot days with AC on this is often normal. Check the battery state of charge display and
+    for any warnings/codes; if warnings appear, scan.
+  likely_causes_ranked:
+  - Hybrid battery charging at low state of charge
+  - AC load on hot days
+  - Engine/catalyst warm-up
+  - Fault (only if warnings/codes)
+  diagnostic_steps:
+  - Check for warning lights/codes
+  - Watch the battery charge display when the engine starts
+  - Compare with AC off
+  - Scan if anything abnormal
+  must_mention:
+  - Engine running in READY can be normal (charging, AC)
+  - Check for codes/warnings before concluding a fault
+  must_not_claim:
+  - That it is definitely a fault
+safety_critical: false
+critical_errors: []
+evidence: []
+review:
+  status: ai_draft
+  drafted_by: claude-opus-5-5
+  cross_checked_by: null
+  verified_by: null
+  verified_at: null
+  notes: null

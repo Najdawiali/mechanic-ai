@@ -1,0 +1,50 @@
+id: OC-ENG-13
+split: dev
+bucket: engine
+system: engine_mech
+language: ar
+vehicle:
+  make: Mitsubishi
+  model: Pajero
+  year: 2017
+  engine: 3.8L V6
+  powertrain: ice
+  market: GCC
+  vin: null
+dtcs: []
+user_question: >-
+  ميتسوبيشي باجيرو 2017، المحرك يستهلك زيتاً كثيراً، حوالي لتر كل ألف كيلو، ويخرج دخان أزرق عند التشغيل صباحاً.
+  لا يوجد تسريب ظاهر. كيف أشخص؟
+info_completeness: complete
+expected_behavior: answer
+reference:
+  summary: >-
+    Blue smoke at cold start with oil consumption suggests valve stem seals/guides; constant blue smoke under load
+    points to piston rings. A clogged PCV system can also raise consumption. Check PCV, do compression and leak-down
+    tests, and an oil consumption test.
+  likely_causes_ranked:
+  - Worn valve stem seals/guides (smoke at start)
+  - Worn/stuck piston rings
+  - PCV system fault
+  - Turbo seals (not applicable if NA engine)
+  diagnostic_steps:
+  - Check PCV valve and hoses
+  - Perform compression test then leak-down test
+  - Do a controlled oil consumption test
+  - Inspect spark plugs for oil fouling
+  must_mention:
+  - Blue smoke at cold start points to valve stem seals
+  - Compression and leak-down tests
+  - Check PCV
+  must_not_claim:
+  - That an engine replacement is required without tests
+safety_critical: false
+critical_errors: []
+evidence: []
+review:
+  status: ai_draft
+  drafted_by: claude-opus-5-5
+  cross_checked_by: null
+  verified_by: null
+  verified_at: null
+  notes: null

@@ -1,0 +1,49 @@
+id: OC-INT-02
+split: holdout
+bucket: intermittent
+system: starting
+language: en
+vehicle:
+  make: Chevrolet
+  model: Silverado
+  year: 2016
+  engine: 5.3L V8
+  powertrain: ice
+  market: GCC
+  vin: null
+dtcs: []
+user_question: >-
+  2016 Silverado, every few days it won't crank at all, then after waiting 10 minutes or wiggling the shifter it
+  cranks. Battery and starter tested good. What's the likely cause?
+info_completeness: complete
+expected_behavior: answer
+reference:
+  summary: >-
+    A no-crank that clears by moving the shifter points to the park/neutral position switch/range sensor or shifter
+    adjustment; also check starter relay and its signal. Check the PRNDL indication in live data when it fails and
+    test the range switch signal.
+  likely_causes_ranked:
+  - Transmission range/park-neutral switch fault or misadjustment
+  - Shifter cable/linkage adjustment
+  - Starter relay intermittent
+  - Wiring/connector at the range switch
+  diagnostic_steps:
+  - When it fails, check gear indicator and range switch data
+  - Test starter relay command and output
+  - Inspect range switch connector and adjustment
+  - Wiggle-test the harness
+  must_mention:
+  - Moving the shifter fixing it points to the range/neutral safety switch
+  - Check range switch data when it fails
+  must_not_claim:
+  - That the starter must be replaced
+safety_critical: false
+critical_errors: []
+evidence: []
+review:
+  status: ai_draft
+  drafted_by: claude-opus-5-5
+  cross_checked_by: null
+  verified_by: null
+  verified_at: null
+  notes: null

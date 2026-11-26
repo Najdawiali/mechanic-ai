@@ -1,0 +1,45 @@
+id: OC-EV-07
+split: holdout
+bucket: ev
+system: ev_12v
+language: ur
+vehicle:
+  make: Tesla
+  model: Model 3
+  year: 2020
+  engine: null
+  powertrain: bev
+  market: GCC
+  vin: null
+dtcs: []
+user_question: >-
+  ٹیسلا ماڈل 3 2020 میں سکرین پر 12V بیٹری بدلنے کی وارننگ آ رہی ہے۔ گاڑی ٹھیک چل رہی ہے۔ کیا ابھی بدلنا ضروری ہے
+  یا بعد میں؟
+info_completeness: complete
+expected_behavior: answer
+reference:
+  summary: >-
+    A 12V battery replacement warning on an EV should be addressed soon: if the low-voltage battery fails, the car
+    may not power on, unlock or stay operable. Schedule replacement with the correct battery type and follow the
+    OEM procedure (HV is not involved for a 12V swap, but follow the power-down steps).
+  likely_causes_ranked:
+  - 12V/low-voltage battery near end of life
+  diagnostic_steps:
+  - Plan replacement soon
+  - Use the correct low-voltage battery type for this model
+  - Follow the OEM power-down/replacement procedure
+  must_mention:
+  - 'Replace soon: a failed 12V battery can leave the car unusable'
+  - Use the correct battery and OEM procedure
+  must_not_claim:
+  - That the warning can be ignored indefinitely
+safety_critical: false
+critical_errors: []
+evidence: []
+review:
+  status: ai_draft
+  drafted_by: claude-opus-5-5
+  cross_checked_by: null
+  verified_by: null
+  verified_at: null
+  notes: null

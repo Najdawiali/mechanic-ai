@@ -1,0 +1,47 @@
+id: OC-INC-06
+split: holdout
+bucket: incomplete_info
+system: unknown
+language: ur
+vehicle:
+  make: Honda
+  model: Accord
+  year: null
+  engine: null
+  powertrain: null
+  market: GCC
+  vin: null
+dtcs: []
+user_question: اکارڈ میں کبھی کبھی بیٹری کی لائٹ آتی ہے۔ کیا بیٹری بدل دوں؟
+info_completeness: insufficient
+expected_behavior: ask_for_info
+reference:
+  summary: >-
+    A battery light means a charging system warning, not necessarily a bad battery. Ask when it appears, voltage
+    readings, year/engine, belt noise; advise measuring charging voltage before replacing anything.
+  likely_causes_ranked: []
+  diagnostic_steps:
+  - Ask for the key missing details
+  - Give only clearly provisional possibilities
+  - Diagnose after the details arrive
+  must_mention:
+  - Battery light is a charging warning, not proof of a bad battery
+  - Ask for voltage readings and when it appears
+  - Ask year/engine
+  must_not_claim:
+  - A definite cause or a specific part to replace without more information
+  questions_to_ask:
+  - When does the light come on (idle, load, after warm-up)?
+  - Have you measured battery voltage engine off and running?
+  - Any belt noise or other lights?
+  - Year and engine?
+safety_critical: false
+critical_errors: []
+evidence: []
+review:
+  status: ai_draft
+  drafted_by: claude-opus-5-5
+  cross_checked_by: null
+  verified_by: null
+  verified_at: null
+  notes: null

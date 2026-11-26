@@ -1,0 +1,53 @@
+id: OC-ENG-01
+split: holdout
+bucket: engine
+system: fuel
+language: ar
+vehicle:
+  make: Hyundai
+  model: Accent
+  year: 2018
+  engine: 1.6L Gamma
+  powertrain: ice
+  market: GCC
+  vin: null
+dtcs:
+- P0171
+user_question: >-
+  هيونداي أكسنت 2018 فيها كود P0171، والسيارة ترجف قليلاً على الوقوف خصوصاً مع تشغيل المكيف، وعلى الطريق السريع
+  عادية. نظفت حساس الهواء. ما الخطوة التالية؟
+info_completeness: complete
+expected_behavior: answer
+reference:
+  summary: >-
+    P0171 (system too lean, bank 1) with rough idle that improves at speed strongly suggests an unmetered air (vacuum)
+    leak, which matters most at idle. Check fuel trims at idle vs 2500 rpm, smoke-test the intake/PCV/brake booster
+    hoses, then check fuel pressure/delivery and the upstream O2 sensor.
+  likely_causes_ranked:
+  - Vacuum/intake leak after the MAF (PCV hose, intake gasket, brake booster hose)
+  - MAF reading low (contaminated or failing)
+  - Low fuel pressure/weak pump or clogged filter
+  - Exhaust leak before the upstream O2 sensor
+  diagnostic_steps:
+  - Read short- and long-term fuel trims at idle and at higher rpm
+  - Smoke-test the intake for leaks
+  - Check PCV valve and hoses
+  - Check fuel pressure/delivery
+  - Check upstream O2 sensor response
+  must_mention:
+  - P0171 means lean condition bank 1
+  - Trims high at idle and better at speed point to a vacuum leak
+  - Smoke test for intake leaks
+  must_not_claim:
+  - That the O2 sensor must be replaced first
+  - That P0171 means a rich condition
+safety_critical: false
+critical_errors: []
+evidence: []
+review:
+  status: ai_draft
+  drafted_by: claude-opus-5-5
+  cross_checked_by: null
+  verified_by: null
+  verified_at: null
+  notes: null

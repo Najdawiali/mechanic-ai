@@ -1,0 +1,48 @@
+id: OC-NET-04
+split: dev
+bucket: can_lin
+system: network
+language: ar_gulf
+vehicle:
+  make: Nissan
+  model: Altima
+  year: 2019
+  engine: 2.5L
+  powertrain: ice
+  market: GCC
+  vin: null
+dtcs:
+- U0155
+user_question: >-
+  ألتيما 2019 الطبلون كله يطفي مرات وهي ماشية والإبر تنزل صفر، والجهاز يطلع U0155. السيارة تمشي عادي. وش المشكلة؟
+info_completeness: complete
+expected_behavior: answer
+reference:
+  summary: >-
+    U0155 (lost communication with instrument panel cluster) with the cluster going dark points to the cluster's
+    power, ground or connector, or its CAN connection; the cluster itself can fail.
+  likely_causes_ranked:
+  - Cluster power/ground or fuse
+  - Loose cluster connector
+  - CAN wiring to the cluster
+  - Cluster internal fault
+  diagnostic_steps:
+  - Check cluster fuses, powers and grounds
+  - Inspect and reseat the cluster connector
+  - Check CAN wiring at the cluster
+  - Replace/program the cluster only if confirmed
+  must_mention:
+  - U0155 = lost communication with the instrument cluster
+  - Check cluster power, ground and connector
+  must_not_claim:
+  - That the ECM is the cause
+safety_critical: false
+critical_errors: []
+evidence: []
+review:
+  status: ai_draft
+  drafted_by: claude-opus-5-5
+  cross_checked_by: null
+  verified_by: null
+  verified_at: null
+  notes: null

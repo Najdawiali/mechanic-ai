@@ -1,0 +1,52 @@
+id: OC-ENG-04
+split: dev
+bucket: engine
+system: cooling
+language: ur
+vehicle:
+  make: Nissan
+  model: Sunny
+  year: 2019
+  engine: 1.5L HR15DE
+  powertrain: ice
+  market: GCC
+  vin: null
+dtcs:
+- P0128
+user_question: >-
+  نسان سنی 2019 میں P0128 کوڈ آ رہا ہے۔ ٹمپریچر گیج نارمل سے نیچے رہتا ہے اور ہیٹر کم گرم ہوتا ہے۔ کولنٹ پورا ہے۔
+  تھرموسٹیٹ ہی ہے؟
+info_completeness: complete
+expected_behavior: answer
+reference:
+  summary: >-
+    P0128 (coolant temperature below thermostat regulating temperature) with a low gauge and weak heater most likely
+    means a thermostat stuck open; the coolant temperature sensor or its circuit can also cause it. Compare ECT
+    live data with a real temperature reading and watch warm-up time.
+  likely_causes_ranked:
+  - Thermostat stuck open
+  - Faulty engine coolant temperature sensor
+  - Sensor wiring/connector fault
+  - Cooling fan running constantly
+  diagnostic_steps:
+  - Watch ECT live data during warm-up
+  - Compare with an infrared thermometer at the thermostat housing/hoses
+  - Check whether the radiator hose gets hot too early
+  - Check the fan is not running all the time
+  - Replace the thermostat if confirmed stuck open
+  must_mention:
+  - Thermostat stuck open is the most likely cause
+  - Compare ECT data with actual temperature
+  - Check fan operation
+  must_not_claim:
+  - That the water pump is the cause
+safety_critical: false
+critical_errors: []
+evidence: []
+review:
+  status: ai_draft
+  drafted_by: claude-opus-5-5
+  cross_checked_by: null
+  verified_by: null
+  verified_at: null
+  notes: null

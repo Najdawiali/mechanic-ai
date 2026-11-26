@@ -41,16 +41,22 @@
       "attachments": [],
       "expect": {
         "standard": {
-          "label": "none",
+          "label_any_of": [
+            "general",
+            "none"
+          ],
           "evidence_must_not_include": [
             "procedure",
             "diagram",
             "case",
             "expert_note"
+          ],
+          "message_must_contain": [
+            "لا أستطيع إعطاء رقم بن"
           ]
         }
       },
-      "note": "A pin is asked for and there is no source: the only correct answer is that it is not available."
+      "note": "A pin is asked for and there is no source: the refusal comes first and no pin is given. Since 2026-11-24 (comparison with venorexai) the general method may follow the refusal, so 'general' is accepted too."
     }
   ],
   "related_case_id": null,

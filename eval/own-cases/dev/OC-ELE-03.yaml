@@ -1,0 +1,50 @@
+id: OC-ELE-03
+split: dev
+bucket: electrical
+system: lighting
+language: ur
+vehicle:
+  make: Hyundai
+  model: Accent
+  year: 2019
+  engine: 1.6L Gamma
+  powertrain: ice
+  market: GCC
+  vin: null
+dtcs: []
+user_question: >-
+  ہنڈائی ایکسنٹ 2019 میں رائٹ سائیڈ کا ہیڈلائٹ لو بیم کام نہیں کر رہا، بلب نیا لگایا اور فیوز بھی ٹھیک ہے۔ ہائی
+  بیم چلتا ہے۔ اب کیا چیک کروں؟
+info_completeness: complete
+expected_behavior: answer
+reference:
+  summary: >-
+    With a new bulb and a good fuse, the fault is in the low-beam supply or ground path for that side: connector/socket,
+    wiring, ground, or the relay/IPM output that feeds the low beam. Measure for supply and ground at the bulb connector
+    with the low beam on.
+  likely_causes_ranked:
+  - Burnt or corroded bulb socket/connector
+  - Open wire or bad ground on the right low-beam circuit
+  - Relay or body/IPM module output for low beam
+  - Faulty new bulb or wrong bulb seating
+  diagnostic_steps:
+  - Inspect the connector for heat damage or corrosion
+  - With low beam on, test for supply and ground at the connector (test light or meter)
+  - If supply is missing, trace back toward the fuse/relay or module output using the wiring diagram
+  - If ground is missing, check the ground point
+  must_mention:
+  - Check supply and ground at the bulb connector
+  - Inspect connector/socket for burning or corrosion
+  - Low beam and high beam can have separate feeds
+  must_not_claim:
+  - That the headlamp assembly must be replaced without testing
+safety_critical: false
+critical_errors: []
+evidence: []
+review:
+  status: ai_draft
+  drafted_by: claude-opus-5-5
+  cross_checked_by: null
+  verified_by: null
+  verified_at: null
+  notes: null

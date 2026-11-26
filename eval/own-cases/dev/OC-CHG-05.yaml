@@ -1,0 +1,51 @@
+id: OC-CHG-05
+split: dev
+bucket: charging_starting
+system: starting
+language: en
+vehicle:
+  make: Mazda
+  model: CX-5
+  year: 2019
+  engine: 2.5L
+  powertrain: ice
+  market: GCC
+  vin: null
+dtcs: []
+user_question: >-
+  2019 CX-5, engine cranks normally but won't start. Customer says it happened right after he replaced the key battery.
+  The security light on the dash is flashing fast. What does that mean?
+info_completeness: complete
+expected_behavior: answer
+reference:
+  summary: >-
+    A fast-flashing security light while cranking with no start points to an immobilizer/key recognition problem,
+    not a mechanical fault. Try the spare key, check the key battery orientation and the key itself, scan the immobilizer
+    for codes; re-programming only via the proper tool/procedure.
+  likely_causes_ranked:
+  - Key not recognized (damaged key/transponder after battery change)
+  - Immobilizer antenna/coil or module fault
+  - Key battery installed wrong (for keyless functions)
+  - Immobilizer system fault codes
+  diagnostic_steps:
+  - Try the spare key
+  - Check the key battery and key housing
+  - Scan the immobilizer/PCM for codes
+  - Check immobilizer antenna connector; key programming only with the proper tool
+  must_mention:
+  - Flashing security light means the immobilizer is not recognizing the key
+  - Try the spare key
+  - Scan for immobilizer codes
+  must_not_claim:
+  - That the fuel pump or starter is the cause
+  - Instructions to bypass the immobilizer
+safety_critical: false
+critical_errors: []
+evidence: []
+review:
+  status: ai_draft
+  drafted_by: claude-opus-5-5
+  cross_checked_by: null
+  verified_by: null
+  verified_at: null
+  notes: null

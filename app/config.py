@@ -31,7 +31,7 @@ class Settings(BaseSettings):
     # Measured 2026-11-16 (case scenarios, 24 runs): the fast model writes hints in 2.5-7 s against 15-25 s,
     # with the same content on every case-in-KB run read; off-topic cases are kept out in code, not by the model.
     llm_role_advise: str = "fast"
-    llm_role_general: str = "fast"
+    llm_role_general: str = "reasoning"  # 31B: +6 quality, half the critical failures on the venorexai benchmark (2026-11-25)
     llm_role_summary: str = "reasoning"
     llm_role_translate: str = "fast"
     llm_role_translate_ur: str = "fast"
@@ -59,9 +59,52 @@ class Settings(BaseSettings):
     kb_serve_drafts: bool = False
     # The emergency number in the safety texts (Jordan: 911, the unified number).
     emergency_number: str = "911"
-    # An outside source of diagnostic data (app/engine/external.py). "off" until a provider is licensed.
+    # An outside source of diagnostic data (app/engine/external.py): "off", or "web" (app/web, project doc
+    # web-search-design.md). Web results go to mechanics only after the provider's written OK (design 2.12).
     external_source: str = "off"
+    # Web search: Exa first, Tavily only if Exa fails. Time limits in seconds; the budget covers the whole lookup.
+    exa_api_key: SecretStr | None = None
+    tavily_api_key: SecretStr | None = None
+    web_search_type: str = "auto"  # Exa's search type; "auto" until scripts/web_verify.py compares it with "fast"
+    web_timeout_s: float = 6.0
+    web_fallback_timeout_s: float = 5.0
+    web_budget_s: float = 8.0
+    web_max_results: int = 5
+    web_searches_per_session: int = 6
+    # Also search when no fault code was given, with the car and the mechanic's symptom (in English, cleaned: no VIN,
+    # phone number or email). Off by default: providers keep what they are sent (design 2.5, 2.12). For tests.
+    web_symptom_search: bool = False
+    # Sites never used as a source, comma-separated: they republish manuals without showing any right to them.
+    # "name.*" blocks the name on any domain ending (it moves); the known endings are listed too, because the
+    # providers' exclude lists take plain domains only.
+    web_blocked_domains: str = "lemon-manuals.*,lemon-manuals.la,lemon-manuals.org.ua,lemon-manuals.gy,charm.li,17vin.com"
     db_pool_max: int = 10
+
+    # Public records (schema pub, app/public): NHTSA recalls, investigations and owner complaints, imported from
+    # the venorexai snapshot. "off" or "nhtsa". Used when there is no verified data, and as a short note of known
+    # records beside a verified answer. US-market data, never shown as verified.
+    public_records: str = "off"
+    # Which record types are used, comma-separated (complaints are owners' unchecked reports).
+    public_record_types: str = "official_recall,official_investigation,unverified_report"
+    # The model that made the pieces' vectors; a query is embedded with the same one. Empty = llm_embedding_model.
+    # Set "Qwen/Qwen3-Embedding-8B" only when the import kept the snapshot's own vectors (--keep-vectors).
+    public_embedding_model: str = ""
+    # A piece less similar to the question than this is not used. Provisional, like search_min_similarity.
+    public_min_similarity: float = 0.5
+    public_max_items: int = 4  # records given to the model when there is no verified data
+    public_known_max: int = 3  # records listed in the note beside a verified answer
+
+    @property
+    def public_types(self) -> tuple[str, ...]:
+        return tuple(t.strip() for t in self.public_record_types.split(",") if t.strip())
+
+    @property
+    def public_model(self) -> str:
+        return self.public_embedding_model.strip() or self.llm_embedding_model
+
+    @property
+    def web_blocked(self) -> tuple[str, ...]:
+        return tuple(d.strip().lower() for d in self.web_blocked_domains.split(",") if d.strip())
 
 
 @lru_cache

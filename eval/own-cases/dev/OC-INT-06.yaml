@@ -1,0 +1,51 @@
+id: OC-INT-06
+split: dev
+bucket: intermittent
+system: hvac
+language: ur
+vehicle:
+  make: Toyota
+  model: Camry
+  year: 2017
+  engine: 2.5L
+  powertrain: ice
+  market: GCC
+  vin: null
+dtcs: []
+user_question: >-
+  کیمری 2017، لمبے سفر پر ایک گھنٹے بعد اے سی گرم ہوا دینے لگتا ہے، پھر تھوڑی دیر رکنے کے بعد دوبارہ ٹھنڈا ہو جاتا
+  ہے۔ گیس ٹھیک ہے۔ کیا وجہ ہے؟
+info_completeness: complete
+expected_behavior: answer
+reference:
+  summary: >-
+    Cooling that fades after long running and recovers after a stop suggests the evaporator freezing (faulty evaporator
+    temperature sensor, moisture in the system) or a compressor clutch overheating/gap issue. Watch evaporator temperature
+    data and clutch operation when it fails, check for icing and airflow.
+  likely_causes_ranked:
+  - Evaporator icing (evaporator temp sensor/thermistor fault)
+  - Moisture in the refrigerant system
+  - Compressor clutch air gap/overheating
+  - Blocked cabin filter reducing airflow
+  diagnostic_steps:
+  - When it fails, check whether airflow drops (icing) or air just gets warm
+  - Read evaporator temperature data
+  - Check compressor clutch engagement and air gap
+  - Check cabin filter
+  - Evacuate/recharge if moisture is suspected
+  must_mention:
+  - Evaporator freezing is a likely cause
+  - Check evaporator temperature sensor
+  - Check compressor clutch when it fails
+  must_not_claim:
+  - That adding refrigerant will fix it
+safety_critical: false
+critical_errors: []
+evidence: []
+review:
+  status: ai_draft
+  drafted_by: claude-opus-5-5
+  cross_checked_by: null
+  verified_by: null
+  verified_at: null
+  notes: null

@@ -28,6 +28,8 @@ _EASTERN_DIGIT = re.compile("[٠-٩۰-۹]")
 _NUMBER = re.compile(r"^\d+(?:\.\d+)?$")
 # words that carry a digit but say nothing specific about the car
 _HARMLESS = {"1st", "2nd", "3rd", "4th", "12v", "12-volt", "24/7"}
+# a value with its unit glued on, as tokens() gives it: 12V, 0.5MV, 40A, 120OHM, 2.5KPA, 30PSI, 25NM, 50HZ, 10MS, 5K, 20%
+_VALUE_WITH_UNIT = re.compile(r"^\d+(?:\.\d+)?(?:V|MV|KV|A|MA|OHMS?|KOHMS?|Ω|KΩ|KPA|PA|BAR|PSI|NM|HZ|KHZ|MS|S|K|KW|W|C|F|°C|°F|RPM|MM|CM|L|%)$")
 
 
 def _clean(token: str) -> str:
@@ -69,6 +71,14 @@ class Allowed:
             if _NUMBER.match(token):
                 self.numbers.add(float(token))
 
+    def add_identifiers(self, text: str | None) -> None:
+        """Only the names in an untrusted text (a web page): fault codes, bulletin numbers, engine codes, model
+        names like ID.4. Never its values: "7.14", "12V", "40A", "2.5kPa" from the web are not allowed (design 2.7)."""
+        for token in tokens(text or ""):
+            if re.search(r"[A-Z]", token) and not _VALUE_WITH_UNIT.match(token):
+                self.words.add(token)
+                self.words.add(re.sub(r"[.\-]", "", token))
+
     def has(self, token: str) -> bool:
         if token in self.words or re.sub(r"[.\-]", "", token) in self.words or token.lower() in _HARMLESS:
             return True
@@ -78,8 +88,16 @@ class Allowed:
         return len(parts) > 1 and all(self.has(p) for p in parts)
 
 
+# Positions named by generic code meanings ("Bank 1 Sensor 2", "B1S2"): labels, not values. Without this the checker
+# refused correct generic meanings of P0017, P0008, P0420 ... and the answer fell back to a fixed text
+# (comparison run 2026-11-25, ENG-016).
+_POSITION = re.compile(r"\b(?:bank|sensor)\s*[1-3]\b|\bB[12]\s*S[1-3]\b|(?:ال)?بنك\s*(?:رقم\s*)?[12](?!\d)|"
+                       r"(?:ال)?حساس\s*رقم\s*[1-3](?!\d)", re.I)
+
+
 def problems(message: str, allowed: Allowed) -> list[str]:
     """The tokens in `message` that have no source. Empty = the message passes."""
+    message = _POSITION.sub(" ", message)
     found = []
     if _EASTERN_DIGIT.search(message):
         found.append("Arabic-Indic digits: numbers must be written with Latin digits")

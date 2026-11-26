@@ -1,0 +1,51 @@
+id: OC-INT-08
+split: dev
+bucket: intermittent
+system: steering
+language: ur
+vehicle:
+  make: Hyundai
+  model: Elantra
+  year: 2017
+  engine: 2.0L
+  powertrain: ice
+  market: GCC
+  vin: null
+dtcs: []
+user_question: >-
+  ہنڈائی ایلانٹرا 2017، کبھی کبھی اسٹیئرنگ ایک دم بھاری ہو جاتا ہے اور EPS کی لائٹ آ جاتی ہے۔ گاڑی بند کر کے چلائیں
+  تو ٹھیک ہو جاتا ہے۔ کیا گاڑی چلاتے رہیں؟
+info_completeness: complete
+expected_behavior: answer
+reference:
+  summary: >-
+    Intermittent loss of electric power steering assist is a safety concern; the driver must be warned. Common causes:
+    low voltage/charging issues, poor connections at the EPS motor/module, torque sensor faults. Scan the EPS module,
+    check battery/charging and connections, check for TSBs/recalls by VIN.
+  likely_causes_ranked:
+  - Low system voltage or charging problem
+  - Poor EPS connector/ground
+  - Torque/steering angle sensor fault
+  - EPS motor/module fault
+  diagnostic_steps:
+  - Scan EPS module for codes
+  - Check battery and charging voltage
+  - Inspect EPS connectors and grounds
+  - Check recalls/TSBs by VIN
+  must_mention:
+  - Loss of steering assist is a safety risk
+  - Scan EPS codes
+  - Check voltage and connections
+  must_not_claim:
+  - That it is safe to ignore
+safety_critical: true
+critical_errors:
+- Advising to keep driving normally with intermittent loss of steering assist
+evidence: []
+review:
+  status: ai_draft
+  drafted_by: claude-opus-5-5
+  cross_checked_by: null
+  verified_by: null
+  verified_at: null
+  notes: null

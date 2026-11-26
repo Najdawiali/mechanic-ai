@@ -1,0 +1,47 @@
+id: OC-NET-06
+split: dev
+bucket: can_lin
+system: network
+language: ur
+vehicle:
+  make: Toyota
+  model: Hilux
+  year: 2021
+  engine: 2.8L diesel
+  powertrain: ice
+  market: GCC
+  vin: null
+dtcs: []
+user_question: >-
+  ہائی لکس 2021 میں کمپنی نے OBD پورٹ میں GPS ٹریکر لگایا، اس کے بعد سے بہت سارے U کوڈ آ رہے ہیں اور کبھی گاڑی اسٹارٹ
+  نہیں ہوتی۔ کیا کروں؟
+info_completeness: complete
+expected_behavior: answer
+reference:
+  summary: >-
+    Problems that started after an OBD-port tracker was installed point to the device disturbing the CAN bus or
+    draining power. Remove the device and retest; check DLC pins and wiring.
+  likely_causes_ranked:
+  - Aftermarket OBD device disturbing CAN communication
+  - Device draining the battery
+  - Damaged DLC pins/wiring during install
+  diagnostic_steps:
+  - Remove the tracker and clear codes
+  - Retest starting and communication
+  - Inspect DLC pins and wiring
+  - Check battery state of charge and parasitic draw with the device fitted
+  must_mention:
+  - Remove the OBD tracker first
+  - Aftermarket OBD devices can disturb CAN and drain the battery
+  must_not_claim:
+  - That vehicle modules are faulty without removing the device
+safety_critical: false
+critical_errors: []
+evidence: []
+review:
+  status: ai_draft
+  drafted_by: claude-opus-5-5
+  cross_checked_by: null
+  verified_by: null
+  verified_at: null
+  notes: null

@@ -1,0 +1,51 @@
+id: OC-ENG-08
+split: dev
+bucket: engine
+system: timing
+language: ar
+vehicle:
+  make: Chevrolet
+  model: Cruze
+  year: 2016
+  engine: 1.4L turbo
+  powertrain: ice
+  market: GCC
+  vin: null
+dtcs:
+- P0016
+user_question: >-
+  شيفروليه كروز 2016 محرك 1.4 تيربو، يظهر كود P0016 مع صوت طقطقة عند التشغيل البارد لثوانٍ. هل المشكلة في السلسلة؟
+info_completeness: complete
+expected_behavior: answer
+reference:
+  summary: >-
+    P0016 (crankshaft/camshaft position correlation, bank 1 sensor A) with a cold-start rattle suggests timing chain
+    stretch or a tensioner/guide issue, or a cam phaser problem; low/dirty oil and sensor faults are also possible.
+    Check oil level/condition first, then cam/crank correlation data, then inspect timing components.
+  likely_causes_ranked:
+  - Timing chain stretched or tensioner/guide worn
+  - Cam phaser (actuator) or its oil control solenoid
+  - Low or wrong/dirty engine oil
+  - Cam or crank sensor/reluctor fault
+  diagnostic_steps:
+  - Check oil level and condition; correct oil grade
+  - Read cam/crank correlation values with a scan tool
+  - Check the oil control solenoid
+  - Inspect timing chain components if correlation is out
+  - Check TSBs by VIN
+  must_mention:
+  - P0016 is crank/cam correlation
+  - Cold-start rattle suggests timing chain/tensioner
+  - Check oil level/condition first
+  must_not_claim:
+  - That replacing the cam sensor will fix it without checks
+safety_critical: false
+critical_errors: []
+evidence: []
+review:
+  status: ai_draft
+  drafted_by: claude-opus-5-5
+  cross_checked_by: null
+  verified_by: null
+  verified_at: null
+  notes: null

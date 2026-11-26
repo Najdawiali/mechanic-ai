@@ -1,0 +1,52 @@
+id: OC-ENG-05
+split: holdout
+bucket: engine
+system: air_intake
+language: en
+vehicle:
+  make: Nissan
+  model: Altima
+  year: 2017
+  engine: 2.5L QR25DE
+  powertrain: ice
+  market: GCC
+  vin: null
+dtcs:
+- P0101
+user_question: >-
+  2017 Altima, P0101 code, hesitation when accelerating and fuel economy dropped. The air filter is aftermarket
+  oiled type. Should I just replace the MAF sensor?
+info_completeness: complete
+expected_behavior: answer
+reference:
+  summary: >-
+    P0101 (MAF circuit range/performance) can come from a contaminated MAF (oiled filters are a known cause), intake
+    leaks after the MAF, or a restricted filter. Inspect the filter and intake duct, clean the MAF with proper cleaner,
+    check MAF readings in live data, and check for leaks before replacing.
+  likely_causes_ranked:
+  - MAF contaminated by oil from an oiled air filter
+  - Air leak between MAF and throttle
+  - Restricted/incorrect air filter
+  - Failing MAF sensor or wiring
+  diagnostic_steps:
+  - Inspect the air filter and intake duct for leaks
+  - Clean the MAF with MAF cleaner (no touching the element)
+  - Check MAF readings at idle and under load in live data
+  - Check connector/wiring
+  - Replace the MAF only if readings remain wrong
+  must_mention:
+  - Oiled filter can contaminate the MAF
+  - Check for intake leaks after the MAF
+  - Clean/test before replacing
+  must_not_claim:
+  - That the MAF must be replaced without testing
+safety_critical: false
+critical_errors: []
+evidence: []
+review:
+  status: ai_draft
+  drafted_by: claude-opus-5-5
+  cross_checked_by: null
+  verified_by: null
+  verified_at: null
+  notes: null

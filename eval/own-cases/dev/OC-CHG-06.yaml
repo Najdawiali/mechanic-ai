@@ -1,0 +1,50 @@
+id: OC-CHG-06
+split: dev
+bucket: charging_starting
+system: starting
+language: ur
+vehicle:
+  make: Isuzu
+  model: D-Max
+  year: 2020
+  engine: 3.0L diesel
+  powertrain: ice
+  market: GCC
+  vin: null
+dtcs: []
+user_question: >-
+  ایسوزو ڈی میکس ڈیزل 2020، صبح ٹھنڈ میں اسٹارٹ ہونے میں بہت ٹائم لگتا ہے اور سفید دھواں نکلتا ہے، بعد میں ٹھیک
+  چلتی ہے۔ کیا گلو پلگ ہیں؟
+info_completeness: complete
+expected_behavior: answer
+reference:
+  summary: >-
+    Hard cold starts with white smoke that clear when warm are classic for weak glow plugs or glow plug control,
+    though injectors or low compression can also cause it. Check the glow plug indicator time, test each glow plug
+    and the controller/relay, and scan for glow codes.
+  likely_causes_ranked:
+  - One or more failed glow plugs
+  - Glow plug relay/controller fault
+  - Leaking or poor-spraying injectors
+  - Low compression on a cylinder
+  diagnostic_steps:
+  - Scan for glow plug system codes
+  - Check the glow plug indicator and the relay/controller operation
+  - Test each glow plug resistance/current
+  - If glow system is fine, check injector leak-back and compression
+  must_mention:
+  - Glow plugs and their controller are the first suspect
+  - Test each glow plug
+  - Scan for codes
+  must_not_claim:
+  - That the engine needs an overhaul
+safety_critical: false
+critical_errors: []
+evidence: []
+review:
+  status: ai_draft
+  drafted_by: claude-opus-5-5
+  cross_checked_by: null
+  verified_by: null
+  verified_at: null
+  notes: null

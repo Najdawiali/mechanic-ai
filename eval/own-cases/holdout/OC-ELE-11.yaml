@@ -1,0 +1,50 @@
+id: OC-ELE-11
+split: holdout
+bucket: electrical
+system: body
+language: en
+vehicle:
+  make: Lexus
+  model: LX570
+  year: 2017
+  engine: 5.7L 3UR-FE
+  powertrain: ice
+  market: GCC
+  vin: null
+dtcs: []
+user_question: >-
+  2017 LX570, after the customer installed a new aftermarket head unit, the steering wheel buttons and reverse camera
+  stopped working. The car otherwise drives fine. Where do I start?
+info_completeness: complete
+expected_behavior: answer
+reference:
+  summary: >-
+    Functions lost right after a head unit install point to the install: missing/incorrect steering-wheel-control
+    interface, unconnected camera feed or reverse trigger, or a module/adapter setting. Check the integration harness/interface
+    and its configuration before suspecting the car.
+  likely_causes_ranked:
+  - Steering wheel control interface not installed, wired wrongly or not configured
+  - Reverse camera video/trigger wires not connected or need an adapter
+  - CAN interface adapter incompatible
+  - Damaged connector during installation
+  diagnostic_steps:
+  - Inspect the installation harness and SWC/CAN interface
+  - Check the interface configuration for this vehicle
+  - Verify camera power, video and reverse signal wiring
+  - Reconnect the original unit to confirm the vehicle side works
+  must_mention:
+  - Problem started with the aftermarket install
+  - Check the steering wheel control/CAN interface adapter
+  - Test with the original head unit to isolate
+  must_not_claim:
+  - That the steering wheel clock spring or vehicle modules are faulty without testing
+safety_critical: false
+critical_errors: []
+evidence: []
+review:
+  status: ai_draft
+  drafted_by: claude-opus-5-5
+  cross_checked_by: null
+  verified_by: null
+  verified_at: null
+  notes: null

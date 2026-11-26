@@ -1,0 +1,48 @@
+id: OC-HYB-07
+split: dev
+bucket: hybrid
+system: hybrid_engine
+language: en
+vehicle:
+  make: Honda
+  model: Accord Hybrid
+  year: 2019
+  engine: 2.0L hybrid
+  powertrain: hev
+  market: GCC
+  vin: null
+dtcs: []
+user_question: >-
+  2019 Accord Hybrid, customer feels a strong vibration through the floor every time the engine starts while driving
+  in EV mode, then it smooths out. No lights on. What should I check?
+info_completeness: complete
+expected_behavior: answer
+reference:
+  summary: >-
+    A harsh shudder each time the engine starts in a hybrid commonly points to worn engine/transmission mounts or
+    a misfire at start-up; also check for software updates. Check mounts, misfire counters at start, and TSBs/updates
+    by VIN.
+  likely_causes_ranked:
+  - Worn/collapsed engine or transmission mounts
+  - Misfire at engine start (plugs, coils)
+  - Software calibration (update available)
+  diagnostic_steps:
+  - Inspect engine and transmission mounts
+  - Check misfire counters/data at engine start
+  - Check TSBs and software updates by VIN
+  must_mention:
+  - Check engine/transmission mounts
+  - Check for misfire at start
+  - Check TSBs/updates
+  must_not_claim:
+  - That the hybrid battery is failing
+safety_critical: false
+critical_errors: []
+evidence: []
+review:
+  status: ai_draft
+  drafted_by: claude-opus-5-5
+  cross_checked_by: null
+  verified_by: null
+  verified_at: null
+  notes: null

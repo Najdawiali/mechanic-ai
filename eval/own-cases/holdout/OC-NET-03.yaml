@@ -1,0 +1,49 @@
+id: OC-NET-03
+split: holdout
+bucket: can_lin
+system: network
+language: ur
+vehicle:
+  make: Chevrolet
+  model: Malibu
+  year: 2018
+  engine: 1.5L turbo
+  powertrain: ice
+  market: GCC
+  vin: null
+dtcs:
+- U0140
+user_question: >-
+  شیورلیٹ مالیبو 2018، کبھی کبھی ڈور لاک، لائٹس اور وائپر کام نہیں کرتے اور اسکین میں U0140 آتا ہے۔ BCM خراب ہے؟
+info_completeness: complete
+expected_behavior: answer
+reference:
+  summary: >-
+    U0140 (lost communication with body control module) with intermittent body functions points to BCM power/ground
+    or connector issues, or CAN wiring to the BCM, before condemning the BCM.
+  likely_causes_ranked:
+  - BCM power/ground or fuse issue
+  - Loose/corroded BCM connector
+  - CAN wiring fault to the BCM
+  - BCM internal fault or software
+  diagnostic_steps:
+  - Check BCM fuses, powers and grounds
+  - Inspect BCM connectors for corrosion/water
+  - Check CAN wiring to the BCM
+  - Check for software updates/TSBs
+  - Replace/program BCM only if confirmed
+  must_mention:
+  - U0140 = lost communication with BCM
+  - Check BCM power/ground and connectors first
+  must_not_claim:
+  - That the BCM must be replaced immediately
+safety_critical: false
+critical_errors: []
+evidence: []
+review:
+  status: ai_draft
+  drafted_by: claude-opus-5-5
+  cross_checked_by: null
+  verified_by: null
+  verified_at: null
+  notes: null

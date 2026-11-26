@@ -1,0 +1,51 @@
+id: OC-ELE-04
+split: dev
+bucket: electrical
+system: body
+language: ar
+vehicle:
+  make: Kia
+  model: Sportage
+  year: 2021
+  engine: 2.0L
+  powertrain: ice
+  market: GCC
+  vin: null
+dtcs: []
+user_question: >-
+  كيا سبورتاج 2021، زجاج الباب الأمامي للسائق لا ينزل من مفتاح السائق ولا من مفتاح الراكب، ولكن نسمع صوت ريليه عند
+  الضغط. باقي الشبابيك تعمل. ما الخطوات؟
+info_completeness: complete
+expected_behavior: answer
+reference:
+  summary: >-
+    The click means the switch/module is commanding; the driver window motor or its wiring through the door hinge,
+    or the motor/regulator itself is the likely fault. Check power and ground at the motor connector while pressing
+    the switch, inspect the door harness boot for broken wires, then judge motor vs regulator.
+  likely_causes_ranked:
+  - Failed window motor
+  - Broken wires in the door hinge harness
+  - Jammed or broken window regulator
+  - Faulty switch/door module output
+  diagnostic_steps:
+  - Measure voltage at the motor connector while pressing up/down
+  - Inspect the door hinge harness for broken wires
+  - >-
+    If voltage is present and the motor does not run, test the motor directly; check the regulator for binding
+  - If no voltage, check the switch/module output with the wiring diagram
+  must_mention:
+  - Test for voltage at the motor while operating the switch
+  - Inspect the door hinge harness
+  - Distinguish motor from regulator before replacing
+  must_not_claim:
+  - That the BCM must be replaced
+safety_critical: false
+critical_errors: []
+evidence: []
+review:
+  status: ai_draft
+  drafted_by: claude-opus-5-5
+  cross_checked_by: null
+  verified_by: null
+  verified_at: null
+  notes: null

@@ -26,7 +26,8 @@ class Line:
     pin: PinHit
     route: dict
     versions: tuple[str, ...]  # the meanings ("1.5L TURBO CVT INTEGRA"), not the marker digits
-    text: str
+    text: str  # the full route in English: the evidence excerpt (Sources)
+    role: str = "to"  # feed | ground | to: what the short line says about the far end
 
 
 @dataclass
@@ -102,7 +103,7 @@ def power_and_ground(pins: list[PinHit]) -> Answer:
                 what = f"power from {plan.goes_to}" if plan.role == "feed" else f"to {plan.goes_to}"
                 lines.append(Line(pin, route, versions,
                                   f"{pin.component} pin {pin.pin} ({pin.wire_colour or 'colour not printed'}): {what}. "
-                                  f"Route: {_text(pin, route, versions)}"))
+                                  f"Route: {_text(pin, route, versions)}", role=plan.role))
     return _collect(lines)
 
 
@@ -133,4 +134,78 @@ def text(answer: Answer, heading: str) -> str:
     if common:
         out.append("On every version:")
         out += [f"- {line.text}" for line in common]
+    return "\n".join(out)
+
+
+# -- the reply the mechanic reads: one short line per pin, labels written here in his language -------------
+_PAGE = re.compile(r"^(\d+) of (\d+)$")
+_FUSE = re.compile(r"\bFUSE\b", re.IGNORECASE)
+
+
+def _end(hop: dict, language: str) -> str:
+    from app.engine.wording import fixed
+
+    kind, name, pin, detail = hop.get("kind"), hop.get("name"), hop.get("pin"), hop.get("detail")
+    if kind == "ground":
+        return name or "?"
+    if kind == "system":
+        return name or "?"
+    if kind == "pin" and pin:
+        return f"{detail} ({name} pin {pin})" if detail and _FUSE.search(detail) else f"{name} pin {pin}"
+    if kind == "pin":
+        return name or "?"
+    return fixed("wire_no_end", language)
+
+
+def short_line(line: Line, language: str) -> str:
+    """'Pin 9 (BLU): power from FUSE 28 10A (UNDER-DASH FUSE/RELAY BOX pin A24), through J/C C007 pin 11, pin 12.'"""
+    from app.engine.wording import fixed
+
+    hops = line.route["hops"]
+    colours = list(dict.fromkeys(h["name"] for h in hops if h.get("kind") == "wire" and h.get("name"))) \
+        or [line.pin.wire_colour or fixed("wire_colour_unknown", language)]
+    last = hops[-1] if hops else {}
+    role = line.role
+    if role == "to" and last.get("kind") == "ground":
+        role = "ground"
+    elif role == "to" and last.get("kind") == "pin" and last.get("detail") and _FUSE.search(last["detail"]):
+        role = "feed"
+    end = _end(last, language)
+    what = fixed({"feed": "wire_power", "ground": "wire_ground"}.get(role, "wire_to_system" if last.get("kind") == "system"
+                                                                       else "wire_to"), language, end=end)
+    via = [f"{h['name']} pin {h['pin']}" if h.get("pin") else h["name"]
+           for h in hops[1:-1] if h.get("kind") in ("connector", "junction_connector") and h.get("name")]
+    text = f"• {fixed('wire_pin', language, pin=line.pin.pin)} ({fixed('wire_then', language).join(colours)}): {what}"
+    if via:
+        text += f"، {fixed('wire_through', language, via='، '.join(via))}" if language != "en" else \
+            f", {fixed('wire_through', language, via=', '.join(via))}"
+    page = _PAGE.match(line.pin.page or "")
+    shown = fixed("wire_page_of", language, n=page[1], of=page[2]) if page else (line.pin.page or "?")
+    text += f" ({fixed('wire_page', language, page=shown)})" + ("۔" if language == "ur" else ".")
+    if line.versions:
+        text += " " + fixed("wire_drawn_for", language, versions="; ".join(line.versions))
+    if not line.route.get("complete"):
+        text += " " + fixed("wire_unfinished", language)
+    for hop in hops:
+        marked = _MARKED.match(hop.get("name") or "") if hop.get("kind") in ("connector", "junction_connector") else None
+        if marked and line.versions and meaning(marked["marker"]) not in line.versions:
+            text += " " + fixed("wire_marked", language, name=marked["name"], marker=marked["marker"])
+    return text
+
+
+def message(answer: Answer, heading: str, language: str) -> str:
+    """The wiring answer as the mechanic reads it. The full routes stay in the evidence (`text`)."""
+    from app.engine.wording import fixed
+
+    out = [heading]
+    if not answer.versions or not answer.needs_version:
+        out += [short_line(line, language) for line in answer.lines]
+    else:
+        for version in answer.versions:
+            out.append(fixed("wire_if_version", language, version=version))
+            out += [short_line(line, language) for line in answer.lines if version in line.versions]
+        common = [line for line in answer.lines if not line.versions]
+        if common:
+            out.append(fixed("wire_every_version", language))
+            out += [short_line(line, language) for line in common]
     return "\n".join(out)

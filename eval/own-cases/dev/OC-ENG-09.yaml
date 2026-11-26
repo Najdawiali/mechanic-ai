@@ -1,0 +1,51 @@
+id: OC-ENG-09
+split: dev
+bucket: engine
+system: emissions
+language: en
+vehicle:
+  make: Chevrolet
+  model: Tahoe
+  year: 2018
+  engine: 5.3L V8
+  powertrain: ice
+  market: GCC
+  vin: null
+dtcs:
+- P0442
+user_question: >-
+  2018 Tahoe with P0442. No drivability problems. Customer refuelled at a new station the day before the light came
+  on. What do I check before smoke testing?
+info_completeness: complete
+expected_behavior: answer
+reference:
+  summary: >-
+    P0442 (EVAP small leak) often comes from the fuel cap not sealing or a damaged cap/filler neck, especially right
+    after refuelling. Check the cap/capless filler seal, clear and re-run the monitor; if it returns, smoke-test
+    EVAP lines, purge/vent valves and the canister.
+  likely_causes_ranked:
+  - Fuel cap/capless filler not sealing
+  - Cracked EVAP hose or loose connection
+  - Leaking purge or vent valve
+  - Leaking charcoal canister
+  diagnostic_steps:
+  - Inspect cap/filler neck seal
+  - Clear codes and let the EVAP monitor run
+  - If it returns, smoke-test the EVAP system
+  - Test purge and vent valve operation with a scan tool
+  must_mention:
+  - Check the fuel cap/filler first
+  - P0442 is a small EVAP leak
+  - Smoke test if it returns
+  must_not_claim:
+  - That the fuel pump is faulty
+safety_critical: false
+critical_errors: []
+evidence: []
+review:
+  status: ai_draft
+  drafted_by: claude-opus-5-5
+  cross_checked_by: null
+  verified_by: null
+  verified_at: null
+  notes: null

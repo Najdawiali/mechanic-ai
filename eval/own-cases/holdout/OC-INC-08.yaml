@@ -1,0 +1,47 @@
+id: OC-INC-08
+split: holdout
+bucket: incomplete_info
+system: unknown
+language: ar
+vehicle:
+  make: Toyota
+  model: Prado
+  year: null
+  engine: null
+  powertrain: null
+  market: GCC
+  vin: null
+dtcs: []
+user_question: البرادو فيها ضعف. ما السبب؟
+info_completeness: insufficient
+expected_behavior: ask_for_info
+reference:
+  summary: >-
+    Need details: when power loss happens, warning lights/codes, fuel type/engine, year, smoke, noises. Ask before
+    diagnosing.
+  likely_causes_ranked: []
+  diagnostic_steps:
+  - Ask for the key missing details
+  - Give only clearly provisional possibilities
+  - Diagnose after the details arrive
+  must_mention:
+  - Ask when the power loss happens
+  - Ask for codes/lights
+  - Ask engine/fuel and year
+  must_not_claim:
+  - A definite cause or a specific part to replace without more information
+  questions_to_ask:
+  - When is it weak (uphill, from stop, all the time, when hot)?
+  - Any warning lights or codes?
+  - Petrol or diesel, which engine and year?
+  - Any smoke or unusual noise?
+safety_critical: false
+critical_errors: []
+evidence: []
+review:
+  status: ai_draft
+  drafted_by: claude-opus-5-5
+  cross_checked_by: null
+  verified_by: null
+  verified_at: null
+  notes: null

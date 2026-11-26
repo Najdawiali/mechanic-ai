@@ -26,7 +26,7 @@ from app.kb.schemas import NormalRange, Review, Source, Vehicle
 Condition = Literal["standard", "case_in_kb", "case_held_out"]
 Group = Literal["procedure", "language", "case", "diagram", "report", "no_data", "emergency"]
 ReplyType = Literal["question", "step", "conclusion", "escalation", "emergency"]
-Label = Literal["verified", "general", "none"]
+Label = Literal["verified", "web", "general", "none"]
 EvidenceType = Literal["procedure", "diagram", "case", "expert_note"]
 
 
