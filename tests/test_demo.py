@@ -26,6 +26,7 @@ def test_the_page_opens_without_sign_in_but_only_on_this_computer(client, monkey
     monkeypatch.setattr(demo_router, "LOCAL", demo_router.LOCAL | {"testclient"})
     page = client.get("/demo")
     assert page.status_code == 200 and "Mechanic AI · demo" in page.text
+    assert "End conversation" in page.text
 
 
 def test_the_page_talks_to_the_ai_api_with_the_key_kept_on_the_server(demo):
@@ -52,3 +53,16 @@ def test_the_evaluation_scenarios_are_offered_as_demo_conversations(demo):
     assert len(scenarios) == 30 and all(s["turns"] and s["vehicle"]["make"] for s in scenarios)
     photo = next(t["attachments"][0] for s in scenarios for t in s["turns"] if t["attachments"])
     assert demo.get("/demo/asset", params={"path": photo}).status_code == 200
+
+
+def test_demo_page_has_end_conversation_button_offline(monkeypatch):
+    from types import SimpleNamespace
+
+    monkeypatch.setenv("DEMO_ENABLED", "true")
+    monkeypatch.setattr(demo_router, "LOCAL", demo_router.LOCAL | {"testclient"})
+    demo_router.viewer(SimpleNamespace(client=SimpleNamespace(host="testclient")))
+    page = demo_router.page()
+    html = page.body.decode("utf-8")
+    assert page.status_code == 200
+    assert 'id="close" disabled>End conversation</button>' in html
+    assert "sessions/${session}/close" in html
