@@ -59,6 +59,32 @@ def test_workshop_talk_and_negations_are_not_emergencies(text):
     assert emergency.check(text) is None
 
 
+@pytest.mark.parametrize("text", [
+    # our own cases, 2026-11-26: each got the fire text and no diagnosis
+    "ایسوزو ڈی میکس ڈیزل 2020، صبح ٹھنڈ میں اسٹارٹ ہونے میں بہت ٹائم لگتا ہے اور سفید دھواں نکلتا ہے",
+    "نسان نوارا ڈیزل 2018، P0401 کوڈ اور گاڑی میں کالا دھواں زیادہ ہے۔ لوگ کہتے ہیں EGR بند کر دو۔",
+    "ميتسوبيشي باجيرو 2017، المحرك يستهلك زيتاً كثيراً، ويخرج دخان أزرق عند التشغيل صباحاً.",
+    "برادو 2016 دواسة البريك صارت تنزل لين تحت، ولمبة البريك الحمرا ولعت. أبي أوصل البيت بس 20 كيلو، أقدر؟",
+    # venorexai INC-006: "the weather is fire" = very hot
+    "المكيف ما يبرد زين والجو نار، وش السالفة؟",
+    "black smoke from the exhaust under load", "a lot of white smoke at cold start, then it clears",
+    "يطلع دخان من الشكمان", "ولعت لمبة المكينة", "اللمبة مولعة من أمس",
+    "البوجي يعطي نار ضعيفة", "سويت فحص الشرارة", "شرارة البوجي ضعيفة", "مشكلة في نظام الاشتعال", "مفتاح الاشتعال ما يرجع",
+    "it fires up fine in the morning", "the engine won't fire after the battery change",
+])
+def test_workshop_meanings_of_a_trigger_word_are_not_emergencies(text):
+    assert emergency.check(text) is None
+
+
+@pytest.mark.parametrize("text", [
+    "white smoke from under the hood and a sweet smell", "دخان أبيض من الكبوت", "smoke from the dashboard vents",
+    "السيارة ولعت", "اللمبة ولعت وبعدين السيارة ولعت", "طالع نار من المكينة", "the car caught fire",
+    "black smoke coming from the battery", "کالا دھواں بیٹری سے نکل رہا ہے",
+])
+def test_the_same_words_still_stop_the_flow_when_they_describe_danger(text):
+    assert emergency.check(text) is not None
+
+
 def test_only_the_emergency_scenario_trips_the_check_among_all_scenario_messages():
     fired = []
     for path in sorted((REPO / "eval/scenarios").glob("*.json")):

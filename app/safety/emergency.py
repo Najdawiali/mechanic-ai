@@ -12,6 +12,15 @@ A trigger preceded by a negation ("no smoke", "ما في دخان", "دھواں 
 workshop phrases that contain a trigger word are not emergencies ("spark plug", "smoke test",
 "محرك الاحتراق الداخلي" = internal combustion engine: "احتراق" counts only as "a smell of burning").
 
+Workshop meanings of a trigger word (`_workshop_meaning`; our own test cases, 2026-11-26: 4 of the 6 critical
+failures were these false alarms, each answered with the fire text and no diagnosis):
+  * exhaust smoke told by its colour or by the exhaust ("سفید دھواں" at a cold start, "دخان أزرق", "black smoke from
+    the exhaust") is a symptom to diagnose, unless the same words place it at the hood, the dashboard, the wiring,
+    the battery or a charger: those stay emergencies;
+  * "ولعت" / "مولعة" right next to a light means the light came on ("ولمبة البريك الحمرا ولعت");
+  * "الجو نار" is very hot weather; "البوجي يعطي نار" and "شرارة البوجي" are the ignition spark; "نظام الاشتعال",
+    "مفتاح الاشتعال" are the ignition system and switch; "fire it up", "won't fire" are starting the engine.
+
 THE SAFETY TEXTS ARE DRAFTS. The client's expert must approve them (handoff, section 7.1). Until he
 does, `TEXTS_APPROVED` is False and every emergency reply says so in its warnings.
 """
@@ -75,6 +84,71 @@ _NEGATION_BEFORE = re.compile(
 _NEGATION_AFTER = re.compile(r"^\s*(?:\S+\s+)?(?:نہیں|نہ)(?!\w)")
 
 
+# -- workshop meanings of trigger words (see the module docstring) ------------------------------------------
+_W = "(?:و|ف|ب|ل|ك)?(?:ال)?"  # common Arabic prefixes
+_SMOKE_WORD = re.compile(r"smok|دخان|دخن|دخّان|دھواں|دھوئیں|دھویں", re.I)
+_COLOUR = re.compile(
+    r"\b(?:white|blue|black|gr[ae]y|bluish|blackish|whitish)\b|"
+    r"(?<!\w)(?:أبيض|ابيض|بيضاء|بيضا|أزرق|ازرق|زرقاء|زرقا|أسود|اسود|سوداء|سودا|رمادي|رصاصي)(?!\w)|"
+    r"(?<!\w)(?:سفید|نیلا|نیلے|نیلی|کالا|کالے|کالی|سیاہ|سرمئی)(?!\w)", re.I)
+_EXHAUST = re.compile(
+    r"\bexhaust\b|tail\s*pipe|muffler|silencer|"
+    f"(?<!\\w){_W}(?:شكمان|إشكمان|اشكمان|اكزوز|إكزوز|عادم)(?!\\w)|"
+    r"(?<!\w)(?:ایگزاسٹ|اگزاسٹ|سائلنسر|سلنسر)(?!\w)", re.I)
+_DANGER_PLACE = re.compile(
+    r"\b(?:hood|bonnet|engine\s+bay|dash\w*|cabin|interior|vents?|wir\w*|harness|batter\w*|fuse\s*box|charg\w*|"
+    r"under\s+the\s+(?:car|seat|dash\w*))\b|"
+    f"(?<!\\w){_W}(?:كبوت|كبّوت|بونيت|طبلون|تابلوه|مقصورة|فتحات|سلك|اسلاك|أسلاك|ضفيرة|شريط|شرايط|بطارية|بطاريه|"
+    f"فيوز|فيوزات|شاحن|مكيف|كمبيوتر)(?!\\w)|"
+    r"(?<!\w)(?:بونٹ|ڈیش|تار|تاریں|وائرنگ|بیٹری|فیوز|چارجر|کیبن)(?!\w)", re.I)
+_LIT_WORD = re.compile(r"ولعت|ولّعت|بتولع|مولعة|مولعه|اشتعلت")
+_LIGHT = re.compile(f"^{_W}(?:لمبة|لمبه|لمبات|ضوء|أضواء|اضواء|إشارة|اشارة|مؤشر|علامة|رسالة|شاشة|عداد)$")
+_VEHICLE_NOUN = re.compile(f"^{_W}(?:سيارة|سياره|سيارتي|كبوت|مكينة|مكينه|محرك|ماكينة|ماكينه|بطارية|بطاريه|سلك|"
+                           f"شريط|أسلاك|اسلاك|ضفيرة|كيبل|كابل|فيوز)$")
+_FIRE_WORD = re.compile(r"نار$")
+_HOT_WEATHER = re.compile(f"^{_W}(?:جو|حر|طقس|دنيا|شمس|حرارة|حراره|صيف)$")
+_GIVES = re.compile(r"^(?:يعطي|تعطي|يعطيني|تعطيني|يجيب|تجيب|يولد|تولد)$")
+_IGNITION_PART = re.compile(f"(?<!\\w){_W}(?:بوجي|بواجي|بوجيه|كويل|كويلات|بلاتين|شمعات|شمعة|موزع)(?!\\w)")
+_IGNITION_WORD = re.compile(r"اشتعال")
+_IGNITION_BEFORE = re.compile(f"^{_W}(?:نظام|توقيت|ملف|ملفات|كويل|كويلات|دائرة|مفتاح|سويتش|شمعات|شمعة|ضعف|تقديم|"
+                              f"تأخير|زاوية|بوبينة)$")
+_SPARK_AR = re.compile(r"شرار|شرر")
+_SPARK_TEST = re.compile(f"^{_W}(?:فحص|اختبار|قوة|ضعف|جهاز)$")
+_FIRE_EN = re.compile(r"^fire$", re.I)
+
+
+def _words(text: str) -> list[str]:
+    return re.findall(r"[^\s.,،؛;:!?؟()]+", text)
+
+
+def _workshop_meaning(text: str, match: re.Match[str]) -> bool:
+    """True when the trigger word, in its words around it, is ordinary workshop talk and not danger."""
+    word, start, end = match.group(0), match.start(), match.end()
+    near = text[max(0, start - 60): end + 60]
+    before, after = _words(text[:start])[-3:], _words(text[end:])[:2]
+    if _SMOKE_WORD.search(word):
+        coloured = _COLOUR.search(text[max(0, start - 25): end + 25])
+        return bool(coloured or _EXHAUST.search(near)) and not _DANGER_PLACE.search(near)
+    if _LIT_WORD.search(word):
+        for i, w in enumerate(before):  # the light, then the verb, with no car part named in between
+            if _LIGHT.match(w) and not any(_VEHICLE_NOUN.match(x) for x in before[i + 1:]):
+                return True
+        return bool(after) and bool(_LIGHT.match(after[0]) or (len(after) > 1 and _LIGHT.match(after[1])
+                                                                 and not _VEHICLE_NOUN.match(after[0])))
+    if _FIRE_WORD.search(word):
+        if before and _HOT_WEATHER.match(before[-1]):
+            return True
+        return bool(before) and bool(_GIVES.match(before[-1])) and bool(_IGNITION_PART.search(near))
+    if _IGNITION_WORD.search(word):
+        return bool(before) and bool(_IGNITION_BEFORE.match(before[-1]))
+    if _SPARK_AR.search(word):
+        return bool(after and _IGNITION_PART.match(after[0])) or bool(before and _SPARK_TEST.match(before[-1]))
+    if _FIRE_EN.match(word):
+        return bool(re.match(r"\s*(?:it\s+|her\s+)?up\b", text[end:end + 12], re.I)) or \
+            bool(re.search(r"(?:won'?t|wont|doesn'?t|didn'?t|does\s+not|did\s+not|will\s+not|can'?t)\s+$", text[max(0, start - 15):start], re.I))
+    return False
+
+
 @dataclass(frozen=True)
 class Emergency:
     kind: Kind
@@ -87,6 +161,8 @@ def check(text: str) -> Emergency | None:
         for match in pattern.finditer(text):
             before, after = text[:match.start()], text[match.end():]
             if _NEGATION_BEFORE.search(before[-40:]) or _NEGATION_AFTER.match(after[:30]):
+                continue
+            if _workshop_meaning(text, match):
                 continue
             return Emergency(kind, match.group(0))
     return None
