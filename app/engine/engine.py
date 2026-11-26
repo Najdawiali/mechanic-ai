@@ -216,22 +216,31 @@ class Engine:
             state.language = detect(ALERT.sub(" ", DTC.sub(" ", text))) or state.language
         gaps: list[Gap] = []
 
-        found = emergency.check(text)
+        components = self.kb.components(state.vehicle, statuses=self.statuses)
+        found, caution, preread = emergency.check(text), None, None
         if found:
-            state.remember("mechanic", text)
-            return self._done(state, self._emergency(state, found, text), gaps)
+            # The word list fired: the intake model says whether danger is happening now. Yes, or no answer: stop.
+            # No: warn, then answer (Ali's decision, 2026-11-26; module docstring of app/safety/emergency.py).
+            try:
+                preread = read_message(self.model, state, text, components=components)
+            except ModelError:
+                preread = None
+            if preread is None or preread.danger != "none":
+                state.remember("mechanic", text)
+                return self._done(state, self._emergency(state, found, text), gaps)
+            caution = found
 
         report = report_reader.read(self.model, list(attachments)) if attachments else None
         if state.walk and not attachments:
             reading = parse_reading(text)
             if reading is not None:
                 state.remember("mechanic", text)
-                return self._done(state, self._walk_reading(state, reading, from_words=False), gaps)
+                return self._done(state, self._walk_reading(state, reading, from_words=False), gaps, caution=caution)
 
-        components = self.kb.components(state.vehicle, statuses=self.statuses)
         report_text = None if report is None else "; ".join(f"{m}: {', '.join(c)}" for m, c in report.modules)
         try:
             intake = (Intake(intent="answer", english=text, answer=chosen) if chosen is not None and report is None
+                      else preread if preread is not None and report is None
                       else read_message(self.model, state, text, components=components, report_text=report_text))
         except ModelError:
             intake = Intake(intent="other", english=text, codes=codes_in(text), reading=parse_reading(text))
@@ -245,7 +254,7 @@ class Engine:
         reply = self._route(state, intake, new_codes, gaps)
         if report is not None:
             reply = self._with_report(state, report, reply)
-        return self._done(state, reply, gaps)
+        return self._done(state, reply, gaps, caution=caution)
 
     def _route(self, state: SessionState, intake: Intake, new_codes: list[str], gaps: list[Gap]) -> Reply:
         if state.pending:
@@ -340,10 +349,15 @@ class Engine:
         return fixed(found[0], state.language, value=found[1]) if found else None
 
     # -- small helpers ----------------------------------------------------------------------------------
-    def _done(self, state: SessionState, reply: Reply, gaps: list[Gap]) -> TurnResult:
+    def _done(self, state: SessionState, reply: Reply, gaps: list[Gap], *, caution: emergency.Emergency | None = None) -> TurnResult:
         if reply.type != "emergency":
             reply = self._with_safety(state, reply)
-        if reply.type != "emergency" and not any(t.role == "assistant" for t in state.history):
+        if caution is not None and reply.type != "emergency":
+            # warn, then answer: the warning goes first, in place of the greeting (Ali's decision, 2026-11-26)
+            warnings = [*reply.warnings, *([] if emergency.TEXTS_APPROVED else [emergency.NOT_APPROVED_WARNING])]
+            text = emergency.caution_text(caution.kind, state.language, number=self.emergency_number)
+            reply = reply.model_copy(update={"message": f"{text}\n{reply.message}", "warnings": list(dict.fromkeys(warnings))})
+        elif reply.type != "emergency" and not any(t.role == "assistant" for t in state.history):
             # the first reply of a session greets the mechanic, once; an emergency goes straight to what to do
             reply = reply.model_copy(update={"message": f"{fixed('greeting', state.language)}\n{reply.message}"})
         state.remember("assistant", reply.message)

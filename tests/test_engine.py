@@ -217,12 +217,32 @@ def test_general_and_none_replies_are_logged_as_gaps(kb):
 
 
 # -- safety ------------------------------------------------------------------------------------------------
-def test_an_emergency_stops_the_flow_before_any_lookup_or_model(kb):
-    script = Script()
+SMOKE_NOW = "بعد حادث عليها P2B5313، وهسا في دخان وريحة شياط طالعة من جهة بطارية الهاي فولتج"
+
+
+def test_an_emergency_stops_the_flow_with_only_the_intake_asked(kb):
+    script = Script(intakes={SMOKE_NOW: {"danger_now": "vehicle"}})
     engine, state = Engine(kb, script.model), session(BYD, "ar")
-    reply = engine.turn(state, "بعد حادث عليها P2B5313، وهسا في دخان وريحة شياط طالعة من جهة بطارية الهاي فولتج").reply
-    assert reply.type == "emergency" and reply.evidence == [] and "911" in reply.message and script.model.trace == []
+    reply = engine.turn(state, SMOKE_NOW).reply
+    assert reply.type == "emergency" and reply.evidence == [] and "911" in reply.message
+    assert [t.purpose for t in script.model.trace] == ["intake"]  # the word list fired; the model confirmed; nothing else
     assert "الهاي فولتج" in reply.message and reply.warnings  # high-voltage text; marked as a draft text
+
+
+def test_with_the_model_down_a_word_list_alarm_still_stops_the_flow(kb):
+    from app.engine.model import ScriptedModel
+    reply = Engine(kb, ScriptedModel({})).turn(session(BYD, "ar"), SMOKE_NOW).reply  # no intake answer: a model error
+    assert reply.type == "emergency" and "911" in reply.message
+
+
+def test_a_word_list_alarm_the_model_judges_harmless_warns_then_answers(kb):
+    """Ali's decision, 2026-11-26: the warning first, then the normal answer, never a hidden warning."""
+    text = "There is smoke coming out of the EVAP vent from the smoke machine, where is the leak?"
+    script = Script(intakes={text: {"danger_now": "none"}})
+    reply = Engine(kb, script.model).turn(session(), text).reply
+    assert reply.type != "emergency" and reply.message.startswith("Safety first: if there is fire, smoke from the car")
+    assert "Start with the battery, the fuses and the grounds." in reply.message and "Hello" not in reply.message
+    assert reply.warnings and [t.purpose for t in script.model.trace].count("intake") == 1  # read once, not twice
 
 
 def test_danger_the_word_list_misses_is_caught_by_the_intake_and_gets_the_same_fixed_text(kb):
@@ -587,7 +607,8 @@ def test_the_first_reply_greets_once_and_an_emergency_does_not(kb):
     first = engine.turn(state, "2025 Acura Integra 1.5L turbo, fault code P0010.").reply
     second = engine.turn(state, "7.5 ohm").reply
     assert first.message.startswith("Hello, I'm glad to help.") and "Hello" not in second.message
-    alarm = Engine(kb, Script().model).turn(session(), "There is smoke coming from the battery").reply
+    alarm_text = "There is smoke coming from the battery"
+    alarm = Engine(kb, Script(intakes={alarm_text: {"danger_now": "vehicle"}}).model).turn(session(), alarm_text).reply
     assert alarm.type == "emergency" and "Hello" not in alarm.message
 
 

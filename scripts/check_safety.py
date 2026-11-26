@@ -4,8 +4,8 @@
     python scripts/check_safety.py sentences.jsonl --model    # also the intake model (the second layer), as in the app
 
 Each line: {"text": "...", "language": "en|ar|ar_gulf|ur", "danger": true|false}. Write the sentences without looking
-at the rules (another person or another AI), or the check grades itself. A safety check must miss no danger: the exit
-code is 1 when one is missed.
+at the rules (another person or another AI), or the check grades itself. With --model it shows what the app does with
+each one: stop, warn then answer, or answer. A danger must never get a plain answer: the exit code is then 1.
 """
 
 from __future__ import annotations
@@ -45,6 +45,14 @@ def intake_danger(rows: list[dict], workers: int) -> list[str]:
         return list(pool.map(one, rows))
 
 
+def app_outcome(word_list_fired: bool, model: str | None) -> str:
+    """What the app does (app/engine/engine.py, turn): "stop", "warn" (the warning, then the answer) or "answer"."""
+    danger = model in ("vehicle", "person")
+    if word_list_fired:
+        return "warn" if model == "none" else "stop"  # no model answer (None or an error): stop, to be safe
+    return "stop" if danger else "answer"
+
+
 def main(argv: list[str] | None = None) -> int:
     p = argparse.ArgumentParser(description=__doc__.splitlines()[0])
     p.add_argument("sentences", type=Path)
@@ -54,21 +62,32 @@ def main(argv: list[str] | None = None) -> int:
     rows = read(args.sentences)
     words = [emergency.check(r["text"]) is not None for r in rows]
     model = intake_danger(rows, args.workers) if args.model else [None] * len(rows)
-    both = [w or (m in ("vehicle", "person")) for w, m in zip(words, model, strict=True)]
     dangers = sum(bool(r["danger"]) for r in rows)
-    layers = [("word list", words)] + ([("intake model", [m in ("vehicle", "person") for m in model]), ("both (the app)", both)]
-                                       if args.model else [])
-    for name, caught in layers:
-        missed = sum(bool(r["danger"]) and not c for r, c in zip(rows, caught, strict=True))
-        false = sum(not r["danger"] and c for r, c in zip(rows, caught, strict=True))
-        print(f"{name:<15} dangers caught {dangers - missed}/{dangers}   false alarms {false}/{len(rows) - dangers}")
-    final = both if args.model else words
-    for i, (r, c, m) in enumerate(zip(rows, final, model, strict=True), 1):
-        if bool(r["danger"]) != c:
-            kind = "MISSED" if r["danger"] else "FALSE "
-            note = f"  (model: {m})" if args.model else ""
-            print(f"  {kind} #{i} [{r.get('language', '?')}] {r['text']}{note}")
-    return 1 if any(bool(r["danger"]) and not c for r, c in zip(rows, final, strict=True)) else 0
+    harmless = len(rows) - dangers
+
+    def count(flags: list[bool], danger: bool) -> int:
+        return sum(f for r, f in zip(rows, flags, strict=True) if bool(r["danger"]) == danger)
+
+    print(f"word list       dangers caught {count(words, True)}/{dangers}   false alarms {count(words, False)}/{harmless}")
+    if not args.model:
+        final = words
+        problems = [(i, r, "MISSED" if r["danger"] else "FALSE ", "") for i, (r, w) in enumerate(zip(rows, words, strict=True), 1)
+                    if bool(r["danger"]) != w]
+    else:
+        flagged = [m in ("vehicle", "person") for m in model]
+        print(f"intake model    dangers caught {count(flagged, True)}/{dangers}   false alarms {count(flagged, False)}/{harmless}")
+        outcome = [app_outcome(w, m) for w, m in zip(words, model, strict=True)]
+        stop = [o == "stop" for o in outcome]
+        warned = [o != "answer" for o in outcome]
+        print(f"the app         dangers stopped {count(stop, True)}/{dangers}, warned at least {count(warned, True)}/{dangers}   "
+              f"harmless stopped {count(stop, False)}/{harmless}, warned then answered {count(warned, False) - count(stop, False)}/{harmless}")
+        final = warned
+        problems = [(i, r, {"answer": "MISSED", "warn": "WARNED", "stop": "STOPPED"}[o], f"  (model: {m})")
+                    for i, (r, o, m) in enumerate(zip(rows, outcome, model, strict=True), 1)
+                    if (r["danger"] and o != "stop") or (not r["danger"] and o == "stop")]
+    for i, r, kind, note in problems:
+        print(f"  {kind} #{i} [{r.get('language', '?')}] {'danger' if r['danger'] else 'harmless'}: {r['text']}{note}")
+    return 1 if any(bool(r["danger"]) and not f for r, f in zip(rows, final, strict=True)) else 0
 
 
 if __name__ == "__main__":

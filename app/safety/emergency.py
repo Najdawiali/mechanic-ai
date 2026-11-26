@@ -21,6 +21,11 @@ failures were these false alarms, each answered with the fire text and no diagno
   * "الجو نار" is very hot weather; "البوجي يعطي نار" and "شرارة البوجي" are the ignition spark; "نظام الاشتعال",
     "مفتاح الاشتعال" are the ignition system and switch; "fire it up", "won't fire" are starting the engine.
 
+When the word list fires, the intake model is asked first (Ali's decision, 2026-11-26): if it says danger is
+happening now, or it cannot answer, the flow stops with the fixed text; if it says nothing dangerous is happening
+now, the answer goes on with `caution_text` above it, so the warning is never hidden. On a second independent set of
+80 sentences, the word list alone stopped 8 of 40 harmless messages that the model judged correctly.
+
 A SECOND LAYER catches what the word list misses: the intake model, which reads every message anyway, also answers
 "is something dangerous happening now?" (`Intake.danger`, app/engine/intake.py); a yes gets the same fixed text.
 An independent set of 80 sentences written by another AI (2026-11-26) showed why: the word list alone missed 20 of
@@ -221,6 +226,28 @@ def text(kind: Kind, language: Language, *, high_voltage: bool, number: str) -> 
                "لا تكمل التشخيص إلا بعد أن تصبح السيارة آمنة ويُعرف سبب الدخان أو الرائحة أو الشرر."),
         "ur": (f"ابھی کام روک دیں اور سب کو گاڑی سے دور کر دیں۔ اگر آگ یا دھواں ہے تو {number} پر کال کریں۔ "
                "تشخیص تب ہی جاری رکھیں جب گاڑی محفوظ ہو اور دھوئیں، بو یا چنگاریوں کی وجہ معلوم ہو۔"),
+    }[language]
+
+
+def caution_text(kind: Kind, language: Language, *, number: str) -> str:
+    """The warning shown above a normal answer when the word list fired but the intake model judged that nothing
+    dangerous is happening now (Ali's decision, 2026-11-26: warn, then answer). DRAFT, like the texts above."""
+    if kind == "person":
+        return {
+            "en": (f"Safety first: if someone got an electric shock, keep everyone away from the cable or part and call {number} "
+                   "now; a shock needs a medical check even when the person feels fine. If not, here is the answer."),
+            "ar": (f"السلامة أولاً: إذا تعرّض أحد لصعقة كهربائية فأبعد الجميع عن الكابل أو القطعة واتصل على {number} فوراً؛ "
+                   "الصعقة تحتاج فحصاً طبياً حتى لو شعر الشخص أنه بخير. إن لم يكن كذلك فهذا هو الجواب."),
+            "ur": (f"سب سے پہلے حفاظت: اگر کسی کو کرنٹ لگا ہے تو سب کو اس تار یا پرزے سے دور رکھیں اور ابھی {number} پر کال کریں؛ "
+                   "کرنٹ لگنے کے بعد طبی معائنہ ضروری ہے چاہے وہ شخص ٹھیک محسوس کرے۔ اگر ایسا نہیں تو جواب یہ ہے۔"),
+        }[language]
+    return {
+        "en": (f"Safety first: if there is fire, smoke from the car, sparks, a burning smell, melting wires or a swelling or "
+               f"leaking battery right now, stop work, move everyone away from the vehicle and call {number}. If not, here is the answer."),
+        "ar": (f"السلامة أولاً: إذا كان هناك الآن نار أو دخان من السيارة أو شرر أو رائحة احتراق أو أسلاك تذوب أو بطارية منتفخة أو "
+               f"تسرّب، فأوقف العمل وأبعد الجميع عن السيارة واتصل على {number}. إن لم يكن كذلك فهذا هو الجواب."),
+        "ur": (f"سب سے پہلے حفاظت: اگر ابھی آگ، گاڑی سے دھواں، چنگاریاں، جلنے کی بو، پگھلتی تاریں یا پھولی ہوئی یا رستی بیٹری ہے "
+               f"تو کام روک دیں، سب کو گاڑی سے دور کریں اور {number} پر کال کریں۔ اگر ایسا نہیں تو جواب یہ ہے۔"),
     }[language]
 
 

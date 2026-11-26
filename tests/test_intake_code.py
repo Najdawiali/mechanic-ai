@@ -138,3 +138,10 @@ def test_the_safety_check_script_reports_misses_and_false_alarms_without_a_model
     assert main([str(path)]) == 1  # a missed danger fails the check
     out = capsys.readouterr().out
     assert "dangers caught 1/2" in out and "false alarms 0/1" in out and "MISSED #3" in out
+
+
+def test_the_script_counts_what_the_app_does_with_each_layer():
+    """Ali's decision, 2026-11-26: a word-list alarm the model judges harmless warns, then answers; no model answer stops."""
+    from scripts.check_safety import app_outcome
+    assert [app_outcome(True, "none"), app_outcome(True, "vehicle"), app_outcome(True, None), app_outcome(True, "error: X"),
+            app_outcome(False, "person"), app_outcome(False, "none")] == ["warn", "stop", "stop", "stop", "stop", "answer"]

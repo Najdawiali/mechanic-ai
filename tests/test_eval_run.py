@@ -19,7 +19,10 @@ def kb(conn) -> KnowledgeStore:
     return store
 
 
-WORDS = {"I'm getting fifteen ohms": {"intent": "reading", "reading": {"value": 15, "unit": "ohm", "over_limit": False}}}
+WORDS = {"I'm getting fifteen ohms": {"intent": "reading", "reading": {"value": 15, "unit": "ohm", "over_limit": False}},
+         # the word list fires on it, and a model that reads correctly confirms the danger is happening now
+         "هيونداي سوناتا هايبرد 2020 بعد حادث عليها P199000، وهسا في دخان وريحة شياط طالعة من جهة بطارية الهاي فولتج":
+             {"danger_now": "vehicle"}}
 
 
 @pytest.mark.parametrize("only", ["p0010:", "emergency:", "no-data:acura-integra-2025:p0341"])
