@@ -141,3 +141,15 @@ def test_recall_number_forms():
     from app.engine.engine import _campaign_forms
     assert "24V-481" in _campaign_forms("24V481000").split()
     assert _campaign_forms("11119409") == ""
+
+
+def test_a_light_that_does_not_flash_is_not_a_flashing_light():
+    """Judge 2026-11-26, ENG-010: "steady and not flashing" got the flashing-light warning."""
+    from app.safety.hazards import check
+    assert not check("The check engine light is steady and not flashing").flashing
+    assert not check("ظهرت لمبة فحص المحرك ثابتة وغير وامضة").flashing
+    assert check("The check engine light is flashing, not steady").flashing
+    assert check("باترول لمبة المكينة تفلش وأنا ماشي").flashing
+    assert check("عندما تومض لمبة المكينة أوقف السيارة").flashing  # "ما" inside a word is not a negation
+    assert not check("لمبة المكينة ولا تومض أبداً").flashing
+
