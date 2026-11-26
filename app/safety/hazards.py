@@ -7,6 +7,8 @@ wiring question, and described probing airbag circuits with a multimeter. These 
 and put a fixed text first; the model is also told, so it never writes a hands-on step for these parts.
 
   hv          hands-on work on high-voltage parts (orange cables, HV battery, inverter, service plug)
+  damaged     a damaged high-voltage cable or part: do not drive, charge, touch or tape it; tow it
+              (our own cases, 2026-11-26, OC-EV-04: a torn orange cable got inspection steps and no "tow it")
   isolation   an isolation (insulation) fault warning on a high-voltage car: do not charge or drive it
   srs         airbags, pretensioners, clock spring: never probe, disconnect the battery and wait first
   hid         xenon / HID headlamp ballasts: very high voltage at start-up
@@ -41,14 +43,19 @@ _HV_OBJECT = re.compile(
     + _ar("برتقالي", "برتقالية", "برتقاليه") + "|"
     + _AR + r"(?:جهد|فولت)\s+(?:ال)?عالي" + "|هاي ?فولت|"
     + _ar("انفرتر", "إنفرتر", "إنفيرتر", "انفيرتر", "عزل") + "|"
-    + r"ہائی ?وولٹ|نارنجی|انورٹر", re.I)
+    + r"ہائی ?وولٹ|نارنجی|(?<!\w)اورنج(?!\w)|انورٹر", re.I)
 _HANDS_ON = re.compile(
     r"\b(?:probe|probing|measure|measuring|test(?:ing)?|multi-?meter|disconnect|unplug|remove|open(?:ing)?|"
-    r"clean(?:ing)?|dry(?:ing)?|spray|touch|cut|myself|diy)\b|"
+    r"clean(?:ing)?|dry(?:ing)?|spray|touch|cut|tape|taping|wrap|myself|diy)\b|"
     + _ar("أفحص", "افحص", "فحص", "أقيس", "اقيس", "قياس", "ملتيميتر", "ملتي ميتر", "أفك", "افك", "فك", "أفكه", "افكه",
           "أنظف", "انظف", "نظف", "أنظفه", "انظفه", "تنظيف", "بخاخ", "أفتح", "افتح", "فتح", "أجفف", "اجفف", "تجفيف",
-          "ألمس", "المس", "بنفسي")
-    + r"|ملٹی ?میٹر|کھول|صاف|اتار|خود", re.I)
+          "ألمس", "المس", "بنفسي", "ألزق", "الزق", "لزق", "ألصق", "الصق", "لاصق")
+    + r"|ملٹی ?میٹر|کھول|صاف|اتار|خود|ٹیپ", re.I)
+_DAMAGE = re.compile(
+    r"\b(?:damaged|cut|torn|crushed|exposed|frayed|ripped|split|broken|chafed|hit)\b|"
+    + _ar("مقطوع", "مقطوعة", "مقطوعه", "مقشور", "مقشورة", "مقشوره", "مشقوق", "مشقوقة", "تالف", "تالفة", "متضرر", "متضررة",
+          "انقطع", "انقطعت", "مكشوف", "مكشوفة", "مضروب", "مضروبة", "انضرب", "مخدوش", "انشق", "انقشر")
+    + r"|پھٹا|پھٹی|پھٹ|کٹا|کٹی|کٹ گیا|ننگی|ننگا|ٹوٹا|ٹوٹی|ٹوٹ|چھل", re.I)
 _ISOLATION = re.compile(r"isolation|insulation\s+(?:fault|resistance)|" + _ar("عزل") + r"|آئسولیشن|انسولیشن", re.I)
 # P0AA6 = hybrid/EV battery voltage isolation fault (SAE J2012 generic code)
 ISOLATION_CODES = frozenset({"P0AA6"})
@@ -79,6 +86,7 @@ _FLASHING = re.compile(_FLASH + r".{0,60}" + _ENGINE_LIGHT + "|" + _ENGINE_LIGHT
 @dataclass(frozen=True)
 class Hazards:
     hv: bool = False  # hands-on high-voltage work is asked about
+    damaged: bool = False  # a damaged high-voltage cable or part
     isolation: bool = False
     srs: bool = False
     hid: bool = False
@@ -88,15 +96,16 @@ class Hazards:
 
     @property
     def any(self) -> bool:
-        return self.hv or self.isolation or self.srs or self.hid or self.flashing or self.ready or self.security
+        return (self.hv or self.damaged or self.isolation or self.srs or self.hid or self.flashing or self.ready
+                or self.security)
 
     @property
     def hands_on(self) -> bool:
         """A question about doing dangerous work: answered with safety first, never sent to the wiring path."""
-        return self.hv or self.srs or self.hid
+        return self.hv or self.damaged or self.srs or self.hid
 
     def keys(self) -> list[str]:
-        return [k for k in ("hv", "isolation", "srs", "hid", "flashing", "ready", "security") if getattr(self, k)]
+        return [k for k in ("hv", "damaged", "isolation", "srs", "hid", "flashing", "ready", "security") if getattr(self, k)]
 
 
 def check(text: str, *, high_voltage_car: bool = False, codes: list[str] | tuple[str, ...] = ()) -> Hazards:
@@ -104,6 +113,7 @@ def check(text: str, *, high_voltage_car: bool = False, codes: list[str] | tuple
     isolation = (bool(_ISOLATION.search(text)) and (high_voltage_car or hv_object)) or \
         bool(ISOLATION_CODES & {c.upper() for c in codes})
     return Hazards(hv=hv_object and (bool(_HANDS_ON.search(text)) or isolation), isolation=isolation,
+                   damaged=hv_object and bool(_DAMAGE.search(text)),
                    srs=bool(_SRS.search(text)), hid=bool(_HID.search(text)),
                    flashing=bool(_FLASHING.search(_NOT_FLASHING.sub(" ", text))),
                    ready=high_voltage_car and bool(_READY_WORK.search(text)), security=bool(_SECURITY.search(text)))

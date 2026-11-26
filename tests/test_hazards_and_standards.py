@@ -17,6 +17,10 @@ from app.safety.hazards import check
     ("الزينون صار يرمش، أبي أفحص الـ ballast بالملتيميتر", False, ["hid"]),
     ("Codes P0300 and P0302, once the light was flashing, can I drive?", False, ["flashing"]),
     ("السيارة ترجف ولمبة المكينة تولع وتطفي (تومض)", False, ["flashing"]),
+    # our own cases, 2026-11-26 (OC-EV-04): a torn orange cable got inspection steps and no "tow it"
+    ("BYD اٹو 3، نیچے سے پتھر لگا اور اب نیچے والی اورنج تار کا کور پھٹا ہوا ہے۔ کیا میں ٹیپ لگا کر ٹھیک کر دوں؟", True,
+     ["hv", "damaged"]),
+    ("A rock hit the underside and the orange cable is damaged. It still drives.", True, ["damaged"]),
 ])
 def test_hazards_are_found_in_three_languages(text, hv_car, expected):
     assert check(text, high_voltage_car=hv_car).keys() == expected
@@ -153,3 +157,12 @@ def test_a_light_that_does_not_flash_is_not_a_flashing_light():
     assert check("عندما تومض لمبة المكينة أوقف السيارة").flashing  # "ما" inside a word is not a negation
     assert not check("لمبة المكينة ولا تومض أبداً").flashing
 
+
+def test_every_hazard_has_a_fixed_text_in_every_language_and_a_topic_for_the_model():
+    from app.engine.engine import HAZARD_TOPIC
+    from app.engine.wording import FIXED
+    from app.safety.hazards import Hazards
+    keys = Hazards(**{f: True for f in Hazards.__dataclass_fields__}).keys()
+    assert set(keys) == set(Hazards.__dataclass_fields__) and set(keys) == set(HAZARD_TOPIC)
+    for k in keys:
+        assert all(FIXED[f"hazard_{k}"][lang].strip() for lang in ("en", "ar", "ur")), k
