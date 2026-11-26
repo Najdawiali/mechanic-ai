@@ -257,7 +257,8 @@ def report(summary: dict, meta: dict, systems: list[str]) -> str:
              (f"> **Preliminary.** Judge `{meta['judge']}` (another family than Gemma), his rubric, blind. His 100 cases "
               "and their references are AI drafts, not expert-verified; the expert's review is final. Our assistant "
               "answers one turn of a conversation."), "",
-             (f"Cases judged for every system: **{summary['common_cases']}** · our answers from `{meta['ours_file']}` "
+             (f"Cases: {meta.get('cases', 'venorexai')} ({meta.get('split', 'all')}) · "
+              f"judged for every system: **{summary['common_cases']}** · our answers from `{meta['ours_file']}` "
               f"(web search {meta.get('external_source')}, public records {meta.get('public_records', 'off')}) · judge cost ${meta['judge_cost']:.3f}"), "",
              ("| System | Quality, mean [95% CI] | Critical failures | Behaviour OK | Fabricated specs | "
               "Must-not-claim broken | Must-mention missing |"), "|---|---|---|---|---|---|---|"]
@@ -330,6 +331,8 @@ def main(argv: list[str] | None = None) -> int:
     p.add_argument("--his-modes", default=",".join(HIS_MODES))
     p.add_argument("--pair-modes", default="hybrid")
     p.add_argument("--split", choices=("all", "dev", "holdout"), default="all")
+    p.add_argument("--cases", type=Path, help="another case set in his format, e.g. eval/own-cases; use with "
+                   "--his-modes '' --pair-modes '' when he has no answers for it")
     p.add_argument("--limit", type=int)
     p.add_argument("--workers", type=int, default=4)
     args = p.parse_args(argv)
@@ -344,7 +347,7 @@ def main(argv: list[str] | None = None) -> int:
         print(f"FAIL  unknown modes {bad}; use {', '.join(HIS_MODES)}")
         return 1
     saved = json.loads(args.ours.read_text(encoding="utf-8"))
-    cases = load_cases(args.venorex, args.split)[: args.limit]
+    cases = load_cases(args.venorex, args.split, cases_dir=args.cases)[: args.limit]
     his = load_his_answers(args.venorex)
 
     from app.llm.gateway import LLMGateway
@@ -353,6 +356,7 @@ def main(argv: list[str] | None = None) -> int:
     detail, summary = run(cases, saved["ours"], his, judge, modes, pair_modes, args.workers)
     stamp = f"{dt.datetime.now(dt.UTC):%Y%m%d-%H%M%S}"
     meta = {"run_at": stamp, "judge": args.judge, "ours_file": args.ours.name, "judge_cost": judge.cost,
+            "cases": str(args.cases or "venorexai"), "split": args.split,
             "external_source": saved.get("meta", {}).get("external_source"),
             "public_records": saved.get("meta", {}).get("public_records", "off")}
     RESULTS.mkdir(exist_ok=True)

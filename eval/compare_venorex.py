@@ -36,11 +36,14 @@ _NOT_ENGINE = re.compile(r"^(?:[VIWH]\d{1,2}|\d+(?:\.\d+)?L|\d+V)$")
 
 
 # -- his side ------------------------------------------------------------------------------------------------
-def load_cases(root: Path, split: str = "all", only: str | None = None) -> list[dict]:
+def load_cases(root: Path, split: str = "all", only: str | None = None, cases_dir: Path | None = None) -> list[dict]:
+    """His cases (<root>/eval/cases/<split>/*.yaml), or another set in the same format (`cases_dir`/<split>/*.yaml,
+    e.g. eval/own-cases)."""
     splits = ("dev", "holdout") if split == "all" else (split,)
+    base = cases_dir if cases_dir is not None else root / "eval/cases"
     cases = []
     for s in splits:
-        for path in sorted((root / "eval/cases" / s).glob("*.yaml")):
+        for path in sorted((base / s).glob("*.yaml")):
             case = yaml.safe_load(path.read_text(encoding="utf-8"))
             if not only or only.lower() in case["id"].lower():
                 cases.append(case)
@@ -210,6 +213,7 @@ def main(argv: list[str] | None = None) -> int:
     parser = argparse.ArgumentParser(description=__doc__.splitlines()[0])
     parser.add_argument("--venorex", required=True, type=Path, help="the venorexai folder (with eval/cases and eval/reports)")
     parser.add_argument("--split", choices=("all", "dev", "holdout"), default="all")
+    parser.add_argument("--cases", type=Path, help="another case set in his format, e.g. eval/own-cases (default: his cases)")
     parser.add_argument("--only", help="cases whose id contains this text")
     parser.add_argument("--limit", type=int, help="run only the first N cases")
     parser.add_argument("--approved-only", action="store_true", help="serve approved records only, as in production")
@@ -218,9 +222,9 @@ def main(argv: list[str] | None = None) -> int:
     parser.add_argument("--render", type=Path, help="re-draw the page from a saved JSON, without running anything")
     args = parser.parse_args(argv)
 
-    cases = load_cases(args.venorex, args.split, args.only)[: args.limit]
+    cases = load_cases(args.venorex, args.split, args.only, args.cases)[: args.limit]
     if not cases:
-        print(f"FAIL  no cases found under {args.venorex / 'eval/cases'}")
+        print(f"FAIL  no cases found under {args.cases or args.venorex / 'eval/cases'}")
         return 1
     his = load_his_answers(args.venorex)
     stamp = f"{dt.datetime.now(dt.UTC):%Y%m%d-%H%M%S}"
@@ -240,7 +244,7 @@ def main(argv: list[str] | None = None) -> int:
         roles = Roles.from_settings(settings)
         external = from_settings(settings)
         statuses = APPROVED if args.approved_only else APPROVED_AND_DRAFT
-        meta = {"run_at": stamp, "roles": str(roles), "external_source": settings.external_source,
+        meta = {"run_at": stamp, "cases": str(args.cases or "venorexai"), "roles": str(roles), "external_source": settings.external_source,
                 "public_records": settings.public_records,
                 "records": "approved only" if args.approved_only else "approved and draft"}
         ours = {}

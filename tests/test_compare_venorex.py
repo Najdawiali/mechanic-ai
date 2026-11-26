@@ -57,3 +57,21 @@ def test_both_sides_load_from_his_folder_and_the_page_shows_text_never_markup(tm
 def test_the_engine_code_is_taken_from_his_engine_text():
     assert cv.engine_code("4.6L 1UR-FE V8") == "1UR-FE" and cv.engine_code("5.6L VK56VD V8") == "VK56VD"
     assert cv.engine_code("2.5L 4-cylinder") is None and cv.engine_code("1.5L turbo") is None and cv.engine_code(None) is None
+
+
+def test_another_case_set_in_his_format_is_loaded_from_its_own_folder(tmp_path):
+    (tmp_path / "mine/dev").mkdir(parents=True)
+    (tmp_path / "mine/dev/OC-900.yaml").write_text(yaml.safe_dump({**CASE, "id": "OC-900"}), encoding="utf-8")
+    assert [c["id"] for c in cv.load_cases(tmp_path / "nothing-here", cases_dir=tmp_path / "mine")] == ["OC-900"]
+
+
+def test_our_own_cases_load_and_every_one_can_open_a_session():
+    """eval/own-cases: 100 cases, 70 dev / 30 holdout, each with a make and model and a powertrain we map."""
+    root = cv.REPO / "eval/own-cases"
+    dev, hold = cv.load_cases(root, "dev", cases_dir=root), cv.load_cases(root, "holdout", cases_dir=root)
+    assert (len(dev), len(hold)) == (70, 30)
+    assert len({c["id"] for c in dev + hold}) == 100
+    for c in dev + hold:
+        v = cv.vehicle_of(c)
+        assert v is not None, c["id"]
+        assert c["vehicle"]["powertrain"] is None or v["powertrain"] is not None, c["id"]

@@ -8,7 +8,7 @@ vehicle:
   model: Camry Hybrid
   year: 2016
   engine: 2.5L hybrid
-  powertrain: hev
+  powertrain: hybrid
   market: GCC
   vin: null
 dtcs: []

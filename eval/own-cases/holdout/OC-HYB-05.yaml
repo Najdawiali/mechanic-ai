@@ -8,7 +8,7 @@ vehicle:
   model: Corolla Cross Hybrid
   year: 2023
   engine: 1.8L hybrid
-  powertrain: hev
+  powertrain: hybrid
   market: GCC
   vin: null
 dtcs: []

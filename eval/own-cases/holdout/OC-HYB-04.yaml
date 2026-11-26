@@ -8,7 +8,7 @@ vehicle:
   model: Niro
   year: 2019
   engine: 1.6L hybrid
-  powertrain: hev
+  powertrain: hybrid
   market: GCC
   vin: null
 dtcs: []

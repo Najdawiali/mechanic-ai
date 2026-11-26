@@ -8,7 +8,7 @@ vehicle:
   model: RX450h
   year: 2017
   engine: 3.5L hybrid
-  powertrain: hev
+  powertrain: hybrid
   market: GCC
   vin: null
 dtcs:
