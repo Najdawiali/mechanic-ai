@@ -122,9 +122,10 @@ def test_compose_accepts_an_answer_that_cites_page_ids():
     from app.engine.wording import compose
 
     class Model:
-        trace: list = []
         def __init__(self):
             self.calls = 0
+            self.trace = []
+
         def json(self, *a, **k):
             self.calls += 1
             return {"message": "Likely the alternator (web:FD4822EE507E). Is the belt intact?", "use": ["web:FD4822EE507E"]}

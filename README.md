@@ -8,15 +8,21 @@ service over REST.
 
 ```
 app/
-  api/       FastAPI routes (only /health so far)
-  engine/    state machine, step logic, numeric checks      (Milestone 3)
+  api/       FastAPI routes: /health, /ai (the backend's entry), /review
+  engine/    state machine, intake, validator, wording, standard values   (Milestone 3)
   llm/       gateway.py = model routing behind roles
   kb/        DB models, exact + hybrid search               (Milestone 2)
   ingest/    PDF / vision extraction, validation            (Milestone 2)
   lang/      language detection, query rewrite, glossary    (Milestone 3)
-  safety/    emergency triggers, answer-policy validator    (Milestone 3)
+  safety/    emergency triggers, hazard safety texts        (Milestone 3)
+  web/       web search (Exa, then Tavily), applicability marks
+  public/    NHTSA public records: import, embedding, search (schema pub)
+  demo/      local demo page, off unless DEMO_ENABLED=true
 eval/
-  smoke/     day 1-2 model smoke tests
+  smoke/        day 1-2 model smoke tests
+  scenarios/    conversation scenarios (python -m eval.run)
+  own-cases/    our 100 test cases (en/ur/ar/ar_gulf), 70 dev / 30 holdout
+  compare_venorex.py, judge_venorex.py   the scored comparison with venorexai
 tests/       offline tests (no key, no cost)
 db/init/     SQL that runs when the database is first created
 data/        local sample files, git-ignored
@@ -237,6 +243,40 @@ Rules the store enforces, each covered by tests:
 - **Search finds a small piece and returns the whole record** (one symptom, one finding or one
   claim leads to the full case or expert note). Text the chat assistant added and the expert has
   not confirmed is not searched.
+
+## Production setup
+
+The settings in `.env.example` are the configuration measured on 2026-11-26 (venorexai benchmark: quality 75.2,
+4 critical failures, median 31 s and about $0.008 per request). Copy it to `.env` and fill in the keys.
+
+```bash
+pip install -e .
+alembic upgrade head                                  # includes 0007: schema pub for NHTSA records
+python -m app.public.importer --source "$VENOREX_URL" # NHTSA records from a database holding the venorexai dump
+python -m app.public.embed                            # re-embeds with our model (about 33 min, about $0.81)
+python scripts/search_public.py --status              # counts per record type; every piece embedded
+uvicorn app.api.main:app --host 0.0.0.0 --port 8000
+```
+
+Before going live:
+
+- `REVIEW_PASSWORD` and `AI_SERVICE_KEY`: long random values.
+- `DEMO_ENABLED=false`.
+- **Waiting for Nasoh's written approval:** the 7 safety texts (`hazard_*` in `app/engine/wording.py`, then
+  `TEXTS_APPROVED = True` in `app/safety/hazards.py`) and the 6 standard values in `app/engine/standards.py`
+  (`approved=True`). Until then the safety texts carry a "draft" warning, and the standard values are used only
+  with `KB_SERVE_DRAFTS=true`.
+- **Blocked sites:** `WEB_BLOCKED_DOMAINS` keeps sites that copy licensed manuals out. The measurement ran with the
+  list empty; whether production does the same is the client's decision.
+
+Checks:
+
+```bash
+pytest -q                                             # offline
+python -m eval.run --public                           # conversation scenarios
+PYTHONPATH=. python -m eval.compare_venorex --venorex <venorexai folder> --workers 6
+PYTHONPATH=. python -m eval.judge_venorex --venorex <venorexai folder> --ours eval/results/compare-venorex-<time>.json --workers 8
+```
 
 ## Rules
 

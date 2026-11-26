@@ -1,6 +1,6 @@
 # Prompt for ChatGPT: review one batch of test cases
 
-Use a model with web search on. Attach one file at a time (`review/batch-1.yaml` … `batch-4.yaml`) and paste the prompt below.
+Use a model with web search on. Attach one batch file at a time (`batch-1.yaml` … `batch-4.yaml`, see README) and paste the prompt below.
 
 ---
 

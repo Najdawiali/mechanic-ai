@@ -18,7 +18,8 @@ the same judge (`eval/judge_venorex.py`) can score them.
 
 ## Review before use
 
-1. **ChatGPT reviews each batch**, with web search on: `review/batch-1.yaml` … `batch-4.yaml`, using `REVIEW_PROMPT.md`.
+1. **ChatGPT reviews each batch**, with web search on, using `REVIEW_PROMPT.md`. Make the 4 batch files with:
+   `python -c "import pathlib as p; f=sorted(p.Path('eval/own-cases').glob('*/*.yaml'), key=lambda x: x.name); [p.Path(f'batch-{i+1}.yaml').write_text(chr(10).join('---'+chr(10)+x.read_text(encoding='utf-8') for x in f[i*25:i*25+25]), encoding='utf-8') for i in range(4)]"`
 2. **Disagreements:** a line marked wrong or unsure is fixed or removed. Only points both AIs agree on stay. Then set
    `review.cross_checked_by: chatgpt` on each case.
 3. **Ali checks the safety-critical cases himself** (`safety_critical: true`).
