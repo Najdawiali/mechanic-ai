@@ -548,5 +548,5 @@ def compose(model: ModelClient, purpose: str, *, system: str, facts: dict, langu
                 return {**out, "message": kept}
         user = json.dumps({**facts, "IMPORTANT": f"Your last message was refused: {'; '.join(found)}. Write it again without these "
                                                  "problems, with no number, pin, code or value that is not in the facts or in "
-                                                 "the mechanic's words; do not number a list."}, ensure_ascii=False, default=str)
+                                                 "the mechanic's words; number checks only as 1., 2., 3. at the start of a line."}, ensure_ascii=False, default=str)
     return None

@@ -95,9 +95,22 @@ _POSITION = re.compile(r"\b(?:bank|sensor)\s*[1-3]\b|\bB[12]\s*S[1-3]\b|(?:ال)
                        r"(?:ال)?حساس\s*رقم\s*[1-3](?!\d)", re.I)
 
 
+# A reference to one of the message's own numbered checks ("go to 2", "step 3", "انتقل إلى الخطوة 2", "مرحلہ 2"): layout,
+# allowed only when the message numbers its checks that far (answer layout, 2026-11-26). "cylinder 2" stays a value.
+_LINE_NUMBER = re.compile(r"(?m)^\s*(?:[-*•#>]+\s*)?(?:\*\*|__)?\(?(\d{1,2})[.)\-:](?:\*\*|__)?\s+")
+_STEP_REF = re.compile(r"(?:\b(?:step|check|go\s+to|move\s+to|continue\s+(?:with|to)|skip\s+to|back\s+to|see)\s+"
+                       r"(?:step\s+|check\s+)?|(?:انتقل|ارجع|عد|اذهب)\s+(?:إلى|الى|ل)\s*(?:ال)?(?:خطوة|فحص)?\s*(?:رقم\s*)?"
+                       r"|(?:ال)?(?:خطوة|فحص)\s*(?:رقم\s*)?|(?:مرحلہ|اسٹیپ|قدم|چیک)\s*(?:نمبر\s*)?)(\d{1,2})(?!\d)", re.I)
+
+
+def _without_step_references(message: str) -> str:
+    numbered = {int(n) for n in _LINE_NUMBER.findall(message)}
+    return _STEP_REF.sub(lambda m: " " if int(m.group(1)) in numbered else m.group(0), message)
+
+
 def problems(message: str, allowed: Allowed) -> list[str]:
     """The tokens in `message` that have no source. Empty = the message passes."""
-    message = _POSITION.sub(" ", message)
+    message = _without_step_references(_POSITION.sub(" ", message))
     found = []
     if _EASTERN_DIGIT.search(message):
         found.append("Arabic-Indic digits: numbers must be written with Latin digits")

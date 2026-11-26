@@ -38,3 +38,16 @@ def test_markdown_list_numbers_are_layout_too_but_a_value_inside_a_sentence_is_n
     allowed = Allowed.from_texts([])
     assert problems("**1.** Check the fuse.\n### 2. Check the ground.\n- 3: Check the connector.\n  4) Read the codes.", allowed) == []
     assert problems("It should read less than 1. Then check the ground.", allowed) == ["1"]
+
+
+def test_a_reference_to_the_answers_own_numbered_check_is_layout_not_a_value():
+    """Answer layout (2026-11-26): numbered checks, each with "go to 2" style results, in en / ar / ur."""
+    from app.engine.validator import Allowed, problems
+    a = Allowed()
+    assert problems("Checks:\n1. Inspect the plug.\n- Normal: go to 2. Burnt: replace it.\n2. Test power.\n"
+                    "- If dead, go back to step 1.", a) == []
+    assert problems("الفحوصات:\n1. افحص الفيشة.\n- إذا كانت سليمة انتقل إلى الخطوة 2.\n2. قس التغذية.", a) == []
+    assert problems("چیکس:\n1. کنیکٹر دیکھیں۔\n- ٹھیک ہو تو مرحلہ 2 پر جائیں۔\n2. وولٹیج چیک کریں۔", a) == []
+    assert problems("1. Inspect.\n- go to 3.\n2. Test.", a) == ["3"]  # no check 3 in the message
+    assert problems("1. Inspect.\n2. Swap the coil of cylinder 2.", a) == ["2"]  # a cylinder is not a check
+    assert problems("Go to step 2 now.", a) == ["2"]  # no numbered checks at all
