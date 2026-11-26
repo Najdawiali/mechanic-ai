@@ -6,101 +6,200 @@
 <title>Mechanic AI · demo</title>
 <!-- TEMPORARY demo page (app/demo). It calls the AI service only through /demo/api -> /ai, the platform's API. -->
 <style>
-  :root { --bg:#f6f7f9; --card:#fff; --ink:#1d2330; --muted:#667085; --line:#e4e7ec; --accent:#1f6feb;
-          --ok:#137333; --okbg:#e6f4ea; --warn:#8a5a00; --warnbg:#fff4d6; --bad:#b42318; --badbg:#fde8e7; --grey:#475467; --greybg:#eef0f3; }
+  :root {
+    --bg:#f2efe9; --panel:#fff; --ink:#1b1f24; --muted:#6b7280; --line:#e4ded3;
+    --steel:#1e2228; --steel2:#2b3038; --accent:#f26b1d; --accent-dark:#c4500f; --accent-soft:#fff1e7;
+    --ok:#157f3b; --okbg:#e7f5ec; --web:#1f4fd1; --webbg:#e9efff; --gen:#9a6200; --genbg:#fdf3d9;
+    --bad:#b42318; --badbg:#fdecea; --radius:14px;
+  }
   * { box-sizing:border-box; }
-  body { margin:0; font:15px/1.5 system-ui, -apple-system, "Segoe UI", Tahoma, Arial, sans-serif; color:var(--ink); background:var(--bg); }
-  header { padding:12px 20px; background:#101828; color:#fff; display:flex; gap:16px; align-items:baseline; }
-  header h1 { font-size:17px; margin:0; }
-  header span { color:#98a2b3; font-size:13px; }
-  .wrap { display:grid; grid-template-columns:320px 1fr; gap:16px; padding:16px; height:calc(100vh - 50px); }
-  aside, main { background:var(--card); border:1px solid var(--line); border-radius:10px; }
-  aside { padding:14px; overflow:auto; }
-  aside h2 { font-size:13px; text-transform:uppercase; letter-spacing:.04em; color:var(--muted); margin:14px 0 6px; }
-  aside h2:first-child { margin-top:0; }
-  label { display:block; font-size:13px; color:var(--muted); margin:6px 0 2px; }
-  input, select, textarea { width:100%; font:inherit; padding:7px 9px; border:1px solid var(--line); border-radius:7px; background:#fff; }
-  .row { display:grid; grid-template-columns:1fr 1fr; gap:8px; }
-  button { font:inherit; padding:7px 12px; border-radius:7px; border:1px solid var(--line); background:#fff; cursor:pointer; }
-  button.primary { background:var(--accent); border-color:var(--accent); color:#fff; }
-  button.danger { border-color:#f3c6c3; background:var(--badbg); color:var(--bad); font-weight:500; }
-  button:disabled { opacity:.5; cursor:default; }
-  .buttons { display:flex; gap:8px; flex-wrap:wrap; margin-top:10px; }
-  .script button { display:block; width:100%; text-align:start; margin:4px 0; font-size:13px; unicode-bidi:plaintext; }
-  .script button.used { color:var(--muted); background:var(--greybg); }
-  main { display:flex; flex-direction:column; min-height:0; }
-  .chat-bar { display:flex; align-items:center; justify-content:space-between; gap:12px; padding:10px 16px; border-bottom:1px solid var(--line); }
-  #chat { flex:1; overflow:auto; padding:16px; }
-  .msg { max-width:860px; margin:0 0 14px; }
-  .me { margin-inline-start:auto; background:#e8f0fe; border:1px solid #c6dafc; border-radius:10px; padding:8px 12px; width:fit-content; max-width:70%; }
-  .ai { background:#fff; border:1px solid var(--line); border-radius:10px; padding:10px 14px; }
-  .summary-card { border-color:#b6d0fa; background:#f8fbff; }
+  html, body { height:100%; }
+  body { margin:0; font:15px/1.55 system-ui, -apple-system, "Segoe UI", Tahoma, Arial, sans-serif; color:var(--ink);
+         background:var(--bg); display:flex; flex-direction:column; }
+  button, input, select, textarea { font:inherit; color:inherit; }
+
+  /* header: workshop dark steel with a hazard stripe */
+  header { background:var(--steel); color:#fff; position:relative; }
+  header::after { content:""; position:absolute; inset:auto 0 0 0; height:5px;
+                  background:repeating-linear-gradient(135deg, var(--accent) 0 14px, #15181c 14px 28px); }
+  .bar { display:flex; align-items:center; gap:14px; padding:12px 22px 17px; }
+  .logo { width:42px; height:42px; border-radius:11px; background:var(--accent); display:grid; place-items:center; flex:none;
+          box-shadow:0 2px 0 var(--accent-dark); }
+  .brand h1 { margin:0; font-size:19px; letter-spacing:.2px; }
+  .brand p { margin:0; font-size:12.5px; color:#aab1bd; }
+  .bar .spacer { flex:1; }
+  .pill { font-size:13px; padding:6px 12px; border-radius:99px; background:var(--steel2); color:#cfd5de; white-space:nowrap;
+          overflow:hidden; text-overflow:ellipsis; max-width:40vw; }
+  .pill.live { background:#16351f; color:#a7f0bd; }
+  .pill.live::before { content:"● "; color:#4ade80; }
+  #close { border:1px solid #5b2a22; background:transparent; color:#ffb4a8; padding:8px 14px; border-radius:10px; cursor:pointer; }
+  #close:hover:not(:disabled) { background:#3a1d19; }
+  #close:disabled { opacity:.35; cursor:default; }
+
+  /* layout */
+  .wrap { flex:1; min-height:0; display:grid; grid-template-columns:330px 1fr; gap:18px; padding:18px; }
+  aside { display:flex; flex-direction:column; gap:16px; min-height:0; overflow:auto; }
+  .card { background:var(--panel); border:1px solid var(--line); border-radius:var(--radius); padding:18px;
+          box-shadow:0 1px 2px rgba(20,20,20,.04); }
+  .card h2 { margin:0 0 2px; font-size:16px; display:flex; align-items:center; gap:8px; }
+  .card h2 svg { color:var(--accent); }
+  .card .sub { margin:0 0 12px; color:var(--muted); font-size:12.5px; }
+  label { display:block; font-size:12.5px; font-weight:600; color:#4b5563; margin:10px 0 4px; }
+  input, select { width:100%; padding:10px 12px; border:1px solid var(--line); border-radius:10px; background:#fbfaf7;
+                  transition:border-color .15s, box-shadow .15s; }
+  input:focus, select:focus, textarea:focus { outline:none; border-color:var(--accent); box-shadow:0 0 0 3px rgba(242,107,29,.18); background:#fff; }
+  .row { display:grid; grid-template-columns:1fr 1fr; gap:10px; }
+  .btn { border:0; border-radius:11px; padding:12px 16px; cursor:pointer; font-weight:650; display:inline-flex; align-items:center;
+         justify-content:center; gap:8px; transition:transform .05s, background .15s; }
+  .btn:active:not(:disabled) { transform:translateY(1px); }
+  .btn:disabled { opacity:.45; cursor:default; }
+  .btn-primary { background:var(--accent); color:#fff; box-shadow:0 2px 0 var(--accent-dark); }
+  .btn-primary:hover:not(:disabled) { background:#e25f12; }
+  #start { width:100%; margin-top:16px; font-size:15.5px; }
+  .tips { list-style:none; margin:0; padding:0; display:grid; gap:10px; }
+  .tips li { display:flex; gap:11px; align-items:flex-start; font-size:13.5px; }
+  .tips .ic { flex:none; width:30px; height:30px; border-radius:9px; background:var(--accent-soft); color:var(--accent-dark);
+              display:grid; place-items:center; }
+  .tips b { display:block; font-size:13.5px; }
+  .tips span { color:var(--muted); font-size:12.5px; }
+  code { font-family:ui-monospace, Consolas, monospace; background:#f3efe8; padding:1px 5px; border-radius:5px; font-size:12.5px; }
+
+  /* conversation */
+  main { background:var(--panel); border:1px solid var(--line); border-radius:var(--radius); display:flex; flex-direction:column;
+         min-height:0; overflow:hidden; box-shadow:0 1px 2px rgba(20,20,20,.04); }
+  #chat { flex:1; overflow:auto; padding:22px; display:flex; flex-direction:column; gap:14px;
+          background:linear-gradient(#fff, #fcfbf8); }
+  .empty { margin:auto; text-align:center; color:var(--muted); max-width:380px; }
+  .empty .big { width:74px; height:74px; margin:0 auto 12px; border-radius:20px; background:var(--accent-soft); color:var(--accent);
+                display:grid; place-items:center; }
+  .empty h3 { margin:0 0 4px; color:var(--ink); font-size:17px; }
+  .msg { max-width:min(820px, 88%); }
+  .me { align-self:flex-end; background:var(--steel); color:#f3f4f6; padding:10px 14px; border-radius:16px 16px 4px 16px; }
+  .me .file { color:#c9ced6; }
+  .ai { align-self:flex-start; background:#fff; border:1px solid var(--line); border-inline-start:5px solid var(--gen);
+        padding:12px 16px; border-radius:6px 16px 16px 16px; box-shadow:0 1px 2px rgba(20,20,20,.05); }
+  .ai.verified { border-inline-start-color:var(--ok); } .ai.web, .ai.public { border-inline-start-color:var(--web); }
+  .ai.emergency { border-inline-start-color:var(--bad); background:#fffafa; } .ai.summary { border-inline-start-color:var(--accent); }
+  .ai.note { border-inline-start-color:var(--line); color:var(--muted); }
+  .ai.error { border-inline-start-color:var(--bad); color:var(--bad); }
   .line { min-height:1.2em; unicode-bidi:plaintext; white-space:pre-wrap; }
-  .badges { display:flex; gap:6px; flex-wrap:wrap; margin-bottom:6px; font-size:12px; }
-  .badge { padding:1px 8px; border-radius:20px; background:var(--greybg); color:var(--grey); }
-  .verified { background:var(--okbg); color:var(--ok); } .general { background:var(--warnbg); color:var(--warn); }
-  .emergency { background:var(--badbg); color:var(--bad); font-weight:600; } .draft { background:var(--warnbg); color:var(--warn); }
-  .box { margin-top:8px; border-top:1px dashed var(--line); padding-top:8px; font-size:13px; }
-  .box b { color:var(--muted); font-weight:600; }
-  table { border-collapse:collapse; margin-top:4px; font-size:13px; }
-  td, th { border:1px solid var(--line); padding:3px 8px; text-align:start; }
-  details { margin:3px 0; } summary { cursor:pointer; }
-  pre { white-space:pre-wrap; background:var(--bg); padding:8px; border-radius:6px; font-size:12px; margin:4px 0; unicode-bidi:plaintext; }
-  img.diagram { max-width:100%; border:1px solid var(--line); border-radius:6px; margin-top:6px; }
-  .options button { margin:4px 6px 0 0; }
-  footer { border-top:1px solid var(--line); padding:10px; display:grid; grid-template-columns:1fr auto auto; gap:8px; align-items:end; }
-  footer textarea { min-height:44px; max-height:160px; resize:vertical; unicode-bidi:plaintext; }
-  .muted { color:var(--muted); font-size:13px; }
-  .file { font-size:12px; color:var(--muted); }
-  .error { color:var(--bad); }
+  .head { display:flex; gap:6px; flex-wrap:wrap; align-items:center; margin-bottom:8px; }
+  .badge { font-size:11.5px; font-weight:650; padding:2px 9px; border-radius:99px; letter-spacing:.2px; }
+  .b-verified { background:var(--okbg); color:var(--ok); } .b-web, .b-public { background:var(--webbg); color:var(--web); }
+  .b-general, .b-none { background:var(--genbg); color:var(--gen); } .b-emergency { background:var(--badbg); color:var(--bad); }
+  .b-draft { background:#f1efe9; color:#6b6457; } .b-summary { background:var(--accent-soft); color:var(--accent-dark); }
+  .time { margin-inline-start:auto; font-size:11.5px; color:#9aa1ab; }
+  .box { margin-top:10px; padding:10px 12px; border-radius:10px; background:#faf8f4; border:1px solid #efe9de; font-size:13.5px; }
+  .box > b { display:block; font-size:12px; text-transform:uppercase; letter-spacing:.5px; color:#7b746a; margin-bottom:4px; }
+  .box.warn { background:#fff8e6; border-color:#f6e2a8; } .box.warn > b { color:var(--gen); }
+  .options { display:flex; flex-wrap:wrap; gap:8px; margin-top:10px; }
+  .chip { border:1px solid #f3c7a8; background:var(--accent-soft); color:var(--accent-dark); border-radius:99px; padding:7px 14px;
+          cursor:pointer; font-weight:600; font-size:13.5px; unicode-bidi:plaintext; }
+  .chip:hover { background:#ffe4d0; }
+  table { border-collapse:collapse; margin-top:6px; font-size:13px; }
+  td, th { border:1px solid var(--line); padding:4px 9px; text-align:start; } th { background:#f6f2ec; font-weight:600; }
+  details { margin:4px 0; } summary { cursor:pointer; color:#3f4652; }
+  details a { color:var(--web); word-break:break-all; font-size:12.5px; }
+  pre { white-space:pre-wrap; background:#f6f3ee; padding:8px 10px; border-radius:8px; font-size:12px; margin:5px 0;
+        unicode-bidi:plaintext; font-family:ui-monospace, Consolas, monospace; }
+  img.diagram { max-width:100%; border:1px solid var(--line); border-radius:8px; margin-top:6px; }
+  .typing { display:inline-flex; gap:5px; padding:4px 2px; }
+  .typing i { width:7px; height:7px; border-radius:50%; background:#c8c1b6; animation:blink 1.2s infinite ease-in-out; }
+  .typing i:nth-child(2) { animation-delay:.15s; } .typing i:nth-child(3) { animation-delay:.3s; }
+  @keyframes blink { 0%, 80%, 100% { opacity:.25; transform:translateY(0); } 40% { opacity:1; transform:translateY(-3px); } }
+
+  /* message box */
+  .composer { border-top:1px solid var(--line); padding:12px 14px; background:#fff; }
+  .composer .inner { display:flex; align-items:flex-end; gap:10px; border:1px solid var(--line); border-radius:14px;
+                     padding:6px 6px 6px 8px; background:#fbfaf7; transition:border-color .15s, box-shadow .15s; }
+  .composer .inner:focus-within { border-color:var(--accent); box-shadow:0 0 0 3px rgba(242,107,29,.15); background:#fff; }
+  textarea { flex:1; border:0; background:transparent; resize:none; min-height:42px; max-height:160px; padding:9px 4px;
+             unicode-bidi:plaintext; box-shadow:none !important; }
+  .icon-btn { width:42px; height:42px; border-radius:11px; border:0; background:transparent; color:#5b6470; cursor:pointer;
+              display:grid; place-items:center; flex:none; }
+  .icon-btn:hover:not(:disabled) { background:#f0ece5; color:var(--ink); }
+  .icon-btn:disabled { opacity:.4; cursor:default; }
+  #send { width:46px; height:42px; padding:0; flex:none; }
+  .file { font-size:12px; color:var(--muted); margin:6px 4px 0; }
+
+  @media (max-width: 900px) {
+    body { display:block; }
+    .bar { padding:10px 14px 15px; gap:10px; } .brand h1 { font-size:17px; } .brand p { display:none; }
+    .logo { width:36px; height:36px; } .pill { max-width:34vw; font-size:12px; } #close { padding:7px 10px; font-size:13px; }
+    .wrap { display:flex; flex-direction:column; padding:12px; gap:12px; } aside { overflow:visible; }
+    main { height:78vh; } .tips-card { display:none; } .msg { max-width:94%; }
+  }
 </style>
 </head>
 <body>
-<header><h1>Mechanic AI · demo</h1><span>A test page for the AI service. Not the platform's app.</span></header>
+<header>
+  <div class="bar">
+    <div class="logo" aria-hidden="true">
+      <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+        <path d="M14.7 6.3a4 4 0 0 0-5.4 5.4L3.5 17.5a1.8 1.8 0 0 0 2.5 2.5l5.8-5.8a4 4 0 0 0 5.4-5.4l-2.6 2.6-2.3-.6-.6-2.3z"/></svg>
+    </div>
+    <div class="brand"><h1>Mechanic AI</h1><p>Workshop diagnostic assistant · مساعد التشخيص للورشة</p></div>
+    <div class="spacer"></div>
+    <span class="pill" id="chatStatus">No active job</span>
+    <button id="close" disabled>End conversation</button>
+  </div>
+</header>
+
 <div class="wrap">
   <aside>
-    <h2>Ready-made conversation</h2>
-    <select id="preset"><option value="">Free conversation</option></select>
-    <div class="muted" id="presetNote"></div>
+    <section class="card">
+      <h2><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 13l2-5a2 2 0 0 1 1.9-1.3h10.2A2 2 0 0 1 19 8l2 5v4a1 1 0 0 1-1 1h-1a2 2 0 0 1-4 0H9a2 2 0 0 1-4 0H4a1 1 0 0 1-1-1z"/><path d="M3 13h18"/></svg>
+        Job card</h2>
+      <p class="sub">The car on the lift · بيانات السيارة</p>
+      <div class="row">
+        <div><label for="make">Make</label><input id="make" value="Toyota" autocomplete="off"></div>
+        <div><label for="model">Model</label><input id="model" value="Land Cruiser" autocomplete="off"></div>
+      </div>
+      <div class="row">
+        <div><label for="year">Year</label><input id="year" value="2019" inputmode="numeric" autocomplete="off"></div>
+        <div><label for="engine">Engine code</label><input id="engine" value="" placeholder="optional" autocomplete="off"></div>
+      </div>
+      <label for="powertrain">Powertrain</label>
+      <select id="powertrain"><option value="">Not given</option><option value="ICE">Petrol / diesel</option>
+        <option value="Hybrid">Hybrid</option><option value="PHEV">Plug-in hybrid</option><option value="EV">Electric</option></select>
+      <button class="btn btn-primary" id="start">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14M13 6l6 6-6 6"/></svg>
+        Start diagnosis</button>
+    </section>
 
-    <h2>Vehicle</h2>
-    <div class="row">
-      <div><label>Make</label><input id="make" value="Acura"></div>
-      <div><label>Model</label><input id="model" value="Integra"></div>
-    </div>
-    <div class="row">
-      <div><label>Year</label><input id="year" value="2025" inputmode="numeric"></div>
-      <div><label>Engine code</label><input id="engine" value="L15CA"></div>
-    </div>
-    <div class="row">
-      <div><label>Powertrain</label>
-        <select id="powertrain"><option value="">not given</option><option>ICE</option><option>Hybrid</option><option>PHEV</option><option>EV</option></select></div>
-    </div>
-    <div class="buttons">
-      <button class="primary" id="start">Start session</button>
-      <button id="trace" disabled>Model calls</button>
-    </div>
-    <div class="muted" id="sessionInfo" style="margin-top:6px"></div>
-
-    <h2>Messages of this conversation</h2>
-    <div class="script" id="script"><div class="muted">Pick a ready-made conversation, or type your own.</div></div>
+    <section class="card tips-card">
+      <h2>What to send</h2>
+      <p class="sub">Arabic, English or Urdu · عربي، English، اردو</p>
+      <ul class="tips">
+        <li><span class="ic">#</span><div><b>Fault codes</b><span>for example <code>P0301</code>, <code>U0100</code></span></div></li>
+        <li><span class="ic">!</span><div><b>Symptoms</b><span>what the car does, and when</span></div></li>
+        <li><span class="ic">Ω</span><div><b>Your readings</b><span>for example <code>12.3 V</code>, <code>60 ohm</code></span></div></li>
+        <li><span class="ic">▣</span><div><b>A scan-report photo</b><span>attach it with the clip button</span></div></li>
+      </ul>
+    </section>
   </aside>
 
   <main>
-    <div class="chat-bar">
-      <span class="muted" id="chatStatus">No active conversation</span>
-      <button class="danger" id="close" disabled>End conversation</button>
-    </div>
-    <div id="chat"><div class="muted">Start a session, then send a message: a fault code, symptoms, a reading, or a scan-report photo.</div></div>
-    <footer>
-      <div>
-        <textarea id="text" placeholder="Message to the assistant" dir="auto" disabled></textarea>
-        <div class="file" id="fileName"></div>
+    <div id="chat">
+      <div class="empty">
+        <div class="big"><svg width="36" height="36" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14.7 6.3a4 4 0 0 0-5.4 5.4L3.5 17.5a1.8 1.8 0 0 0 2.5 2.5l5.8-5.8a4 4 0 0 0 5.4-5.4l-2.6 2.6-2.3-.6-.6-2.3z"/></svg></div>
+        <h3>Fill in the job card to start</h3>
+        <div>Then send a fault code, a symptom, a reading or a scan-report photo.</div>
       </div>
-      <label class="file" style="margin:0"><input type="file" id="file" accept="image/*,application/pdf" style="display:none" disabled>
-        <button type="button" id="attach" disabled>Attach</button></label>
-      <button class="primary" id="send" disabled>Send</button>
-    </footer>
+    </div>
+    <div class="composer">
+      <div class="inner">
+        <input type="file" id="file" accept="image/*,application/pdf" hidden disabled>
+        <button class="icon-btn" type="button" id="attach" title="Attach a scan-report photo" aria-label="Attach a file" disabled>
+          <svg width="21" height="21" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 11.5l-8.6 8.6a5.5 5.5 0 0 1-7.8-7.8l8.6-8.6a3.7 3.7 0 0 1 5.2 5.2l-8.6 8.6a1.8 1.8 0 0 1-2.6-2.6l7.9-7.9"/></svg>
+        </button>
+        <textarea id="text" rows="1" placeholder="Write to the assistant · اكتب للمساعد" dir="auto" disabled></textarea>
+        <button class="btn btn-primary" id="send" title="Send" aria-label="Send" disabled>
+          <svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14M13 6l6 6-6 6"/></svg>
+        </button>
+      </div>
+      <div class="file" id="fileName"></div>
+    </div>
   </main>
 </div>
 
@@ -108,10 +207,11 @@
 "use strict";
 const $ = (id) => document.getElementById(id);
 const el = (tag, cls, text) => { const n = document.createElement(tag); if (cls) n.className = cls; if (text != null) n.textContent = text; return n; };
-let session = null, scenarios = [], attachments = [], busy = false;
-// No language field: the assistant replies in the language of each message. A ready-made conversation passes its own
-// language for messages with no words (a code alone); a free one starts in Arabic, as the API does by default.
-let startLanguage = "ar";
+let session = null, attachments = [], busy = false;
+// No language field: the assistant replies in the language of each message; a session starts in Arabic, as the API does.
+const startLanguage = "ar";
+const TIER = { verified: "Verified data", web: "Web sources · check for this car", public: "NHTSA records · US data",
+               general: "General knowledge", none: "No verified data" };
 
 async function call(method, path, body) {
   const res = await fetch(`/demo/api/${path}`, { method, headers: { "Content-Type": "application/json" },
@@ -124,79 +224,80 @@ async function call(method, path, body) {
 
 function lines(parent, text) { for (const line of String(text || "").split("\n")) parent.append(el("div", "line", line)); }
 function scroll() { const c = $("chat"); c.scrollTop = c.scrollHeight; }
-function add(node) { const c = $("chat"); if (c.firstElementChild && c.firstElementChild.classList.contains("muted")) c.innerHTML = ""; c.append(node); scroll(); }
+function add(node) { const c = $("chat"); const e = c.querySelector(".empty"); if (e) e.remove(); c.append(node); scroll(); return node; }
+function box(cls, title) { const b = el("div", `box ${cls || ""}`); if (title) b.append(el("b", null, title)); return b; }
 
 function showMine(text, files) {
   const m = el("div", "msg me"); m.dir = "auto"; lines(m, text);
-  for (const f of files) m.append(el("div", "file", `attached: ${f.name}`));
+  for (const f of files) m.append(el("div", "file", `📎 ${f.name}`));
   add(m);
 }
 
 function showReply(r, seconds) {
-  const m = el("div", "msg ai");
-  const b = el("div", "badges");
-  b.append(el("span", `badge ${r.type === "emergency" ? "emergency" : ""}`, r.type));
-  b.append(el("span", `badge ${r.tier}`, { verified: "verified", web: "web, not verified", general: "general knowledge", none: "no verified data" }[r.tier] || r.tier));
-  if (r.confidence) b.append(el("span", "badge", `confidence: ${r.confidence}`));
-  if ((r.evidence || []).some((e) => e.status === "draft")) b.append(el("span", "badge draft", "uses draft records"));
-  b.append(el("span", "badge", `${seconds.toFixed(1)} s`));
-  m.append(b);
+  const emergency = r.type === "emergency";
+  const m = el("div", `msg ai ${emergency ? "emergency" : r.tier}`);
+  const h = el("div", "head");
+  if (emergency) h.append(el("span", "badge b-emergency", "⚠ Safety stop"));
+  else h.append(el("span", `badge b-${r.tier}`, TIER[r.tier] || r.tier));
+  if ((r.evidence || []).some((e) => e.status === "draft")) h.append(el("span", "badge b-draft", "draft records"));
+  h.append(el("span", "time", `${seconds.toFixed(1)} s`));
+  m.append(h);
   const body = el("div"); body.dir = "auto"; lines(body, r.message); m.append(body);
 
   if (r.question && r.question.options && r.question.options.length) {
-    const o = el("div", "box options"); o.append(el("b", null, "Choose: "));
-    for (const opt of r.question.options) { const btn = el("button", null, opt); btn.onclick = () => send(opt); o.append(btn); }
+    const o = el("div", "options");
+    for (const opt of r.question.options) { const c = el("button", "chip", opt); c.onclick = () => send(opt); o.append(c); }
     m.append(o);
   }
   if (r.step) {
-    const s = el("div", "box"); const st = r.step;
-    s.append(el("b", null, `Step ${st.number}${st.of ? " of " + st.of : ""} (${st.basis === "manufacturer" ? "manufacturer's procedure" : "general electrical practice"})`));
+    const st = r.step; const s = box("", `Step ${st.number}${st.of ? " of " + st.of : ""} · ${st.basis === "manufacturer" ? "manufacturer's procedure" : "general electrical practice"}`);
     if (st.test_points && st.test_points.length) {
-      const t = el("table"); const h = el("tr"); for (const x of ["", "connector / part", "pin", "terminal"]) h.append(el("th", null, x)); t.append(h);
+      const t = el("table"); const hr = el("tr"); for (const x of ["", "Connector / part", "Pin", "Side"]) hr.append(el("th", null, x)); t.append(hr);
       st.test_points.forEach((p, i) => { const tr = el("tr");
         for (const x of [i ? "to" : "from", p.ground ? "ground" : (p.connector || p.label || ""), p.ground ? "" : (p.pin || ""), p.terminal_side || ""]) tr.append(el("td", null, x));
         t.append(tr); });
       s.append(t);
     }
-    if (st.normal_text) s.append(el("div", null, `Normal (compared in code): ${st.normal_text}`));
+    if (st.normal_text) s.append(el("div", null, `Normal: ${st.normal_text}`));
     if (st.requires_tool) s.append(el("div", null, `Needs: ${st.requires_tool}`));
     m.append(s);
   }
-  if (r.report_codes && r.report_codes.length) { const s = el("div", "box"); s.append(el("b", null, "Codes read from the report: ")); s.append(document.createTextNode(r.report_codes.join(", "))); m.append(s); }
+  if (r.report_codes && r.report_codes.length) { const s = box("", "Codes read from the report"); s.append(el("div", null, r.report_codes.join(", "))); m.append(s); }
   if (r.possible_causes && r.possible_causes.length) {
-    const s = el("div", "box"); s.append(el("b", null, "Possible causes"));
-    for (const c of r.possible_causes) s.append(el("div", null, `${c.likelihood}: ${c.name}`)); m.append(s);
+    const s = box("", "Possible causes"); for (const c of r.possible_causes) s.append(el("div", null, `${c.likelihood}: ${c.name}`)); m.append(s);
   }
   if (r.warnings && r.warnings.length) {
-    const s = el("div", "box"); s.append(el("b", null, "Warnings"));
-    for (const w of r.warnings) { const d = el("div", "line", `⚠ ${w}`); s.append(d); } m.append(s);
+    const s = box("warn", "Warnings"); for (const w of r.warnings) s.append(el("div", "line", w)); m.append(s);
   }
   if (r.evidence && r.evidence.length) {
-    const s = el("div", "box"); s.append(el("b", null, "Sources"));
+    const s = box("", "Sources");
     for (const e of r.evidence) { const d = el("details");
-      const fit = e.applies === "check" ? " (check it fits this car)" : e.applies === "fits" ? " (fits this car)" : "";
-      d.append(el("summary", null, `${e.type}${e.status === "draft" ? " (draft)" : ""}: ${e.title}${fit}`));
+      const fit = e.applies === "check" ? " · check it fits this car" : e.applies === "fits" ? " · fits this car" : "";
+      d.append(el("summary", null, `${e.title}${fit}${e.status === "draft" ? " (draft)" : ""}`));
       if (e.url && /^https?:\/\//.test(e.url)) { const a = el("a", null, e.url); a.href = e.url; a.target = "_blank"; a.rel = "noopener noreferrer"; d.append(a); }
-      d.append(el("pre", null, e.excerpt)); s.append(d); }
+      if (e.excerpt) d.append(el("pre", null, e.excerpt));
+      s.append(d); }
     m.append(s);
   }
   if (r.diagrams && r.diagrams.length) {
-    const s = el("div", "box"); s.append(el("b", null, "Diagram pages"));
-    for (const d of r.diagrams) { s.append(el("div", null, `${d.title} · ${d.page} (${d.id})`));
+    const s = box("", "Diagram pages");
+    for (const d of r.diagrams) { s.append(el("div", null, `${d.title} · ${d.page}`));
       if (d.image_key) { const img = el("img", "diagram"); img.alt = d.title; img.src = `/demo/diagram?key=${encodeURIComponent(d.image_key)}`; s.append(img); } }
     m.append(s);
   }
   add(m);
 }
 
-function showNote(text, cls) { const m = el("div", `msg ai ${cls || ""}`); lines(m, text); add(m); }
+function showNote(text, cls) { const m = el("div", `msg ai ${cls || "note"}`); lines(m, text); add(m); }
+function typing() { const m = el("div", "msg ai note"); const t = el("span", "typing"); t.append(el("i"), el("i"), el("i")); m.append(t); return add(m); }
 
 function setBusy(on) {
   busy = on; const open = !!session && !on;
   for (const id of ["text", "send", "attach", "file", "close"]) $(id).disabled = !open;
-  $("trace").disabled = !session;
   $("start").disabled = on;
 }
+
+function carLabel(v) { return [v.year, v.make, v.model, v.engine_code].filter(Boolean).join(" "); }
 
 async function start() {
   const year = parseInt($("year").value, 10);
@@ -208,12 +309,9 @@ async function start() {
   try {
     await call("POST", "sessions", { session_id: id, vehicle, language: startLanguage });
     session = id; $("chat").innerHTML = "";
-    const label = [vehicle.year, vehicle.make, vehicle.model, vehicle.engine_code].filter(Boolean).join(" ");
-    $("sessionInfo").textContent = `Session ${id} · ${label}`;
-    $("chatStatus").textContent = `Active conversation · ${label}`;
-    document.querySelectorAll(".script button").forEach((b) => b.classList.remove("used"));
-    showNote("Session open. Send the first message.", "muted");
-  } catch (e) { showNote(`Could not open the session. ${e.message}`, "error"); }
+    $("chatStatus").textContent = carLabel(vehicle); $("chatStatus").classList.add("live");
+    showNote(`Job open for ${carLabel(vehicle)}. Send the first message.`);
+  } catch (e) { showNote(`Could not open the job. ${e.message}`, "error"); }
   setBusy(false); $("text").focus();
 }
 
@@ -221,14 +319,14 @@ async function send(textOverride) {
   if (!session || busy) return;
   const text = (textOverride ?? $("text").value).trim();
   if (!text && !attachments.length) return;
-  const files = attachments; attachments = []; $("fileName").textContent = ""; $("text").value = "";
+  const files = attachments; attachments = []; $("fileName").textContent = ""; $("text").value = ""; grow();
   showMine(text || "(attachment)", files);
   setBusy(true);
-  const t0 = performance.now();
+  const wait = typing(); const t0 = performance.now();
   try {
     const reply = await call("POST", `sessions/${session}/turns`, { message_id: crypto.randomUUID(), text, attachments: files });
-    showReply(reply, (performance.now() - t0) / 1000);
-  } catch (e) { showNote(`The service answered with an error. ${e.message}`, "error"); }
+    wait.remove(); showReply(reply, (performance.now() - t0) / 1000);
+  } catch (e) { wait.remove(); showNote(`The service answered with an error. ${e.message}`, "error"); }
   setBusy(false); $("text").focus();
 }
 
@@ -236,100 +334,38 @@ async function closeSession() {
   if (!session || busy) return;
   setBusy(true);
   $("close").textContent = "Summarizing...";
+  const wait = typing();
   try {
     const s = await call("POST", `sessions/${session}/close`);
-    const m = el("div", "msg ai summary-card");
-    const b = el("div", "badges");
-    b.append(el("span", "badge verified", "Conversation ended · Car issue summary"));
-    m.append(b);
+    wait.remove();
+    const m = el("div", "msg ai summary");
+    const h = el("div", "head"); h.append(el("span", "badge b-summary", "Job summary · ملخص الحالة")); m.append(h);
     const body = el("div"); body.dir = "auto"; lines(body, s.summary); m.append(body);
-    const d = el("details"); d.append(el("summary", null, "The session's record (what the platform stores)"));
-    d.append(el("pre", null, JSON.stringify(s.record, null, 2))); m.append(d);
-    const c = el("details"); c.append(el("summary", null, s.pending_case ? "Draft case for the admin to approve" : "No draft case (no confirmed fix)"));
-    if (s.pending_case) c.append(el("pre", null, JSON.stringify(s.pending_case, null, 2))); m.append(c);
     add(m);
-    const closed = session; session = null;
-    $("chatStatus").textContent = `Conversation ended · ${closed}`;
-    $("sessionInfo").textContent = `Session ${closed} · closed`;
-    $("trace").dataset.session = closed;
-  } catch (e) { showNote(`Could not end the conversation. ${e.message}`, "error"); }
-  finally { $("close").textContent = "End conversation"; setBusy(false); $("trace").disabled = !(session || $("trace").dataset.session); }
-}
-
-async function showTrace() {
-  const id = session || $("trace").dataset.session; if (!id) return;
-  try {
-    const rows = await call("GET", `sessions/${id}/trace`);
-    const m = el("div", "msg ai"); m.append(el("b", null, `Model calls of ${id}`));
-    const t = el("table"); const h = el("tr"); for (const x of ["purpose", "model", "seconds", "cost (USD)", "error"]) h.append(el("th", null, x)); t.append(h);
-    let total = 0;
-    for (const r of rows) { const tr = el("tr"); total += r.cost_usd || 0;
-      for (const x of [r.purpose, r.model, (r.latency_s ?? 0).toFixed(1), (r.cost_usd ?? 0).toFixed(6), r.error || ""]) tr.append(el("td", null, String(x)));
-      t.append(tr); }
-    m.append(t); m.append(el("div", "muted", `${rows.length} calls · total cost $${total.toFixed(5)}`)); add(m);
-  } catch (e) { showNote(`Could not read the calls. ${e.message}`, "error"); }
-}
-
-async function attachFromPath(path) {
-  const res = await fetch(`/demo/asset?path=${encodeURIComponent(path)}`);
-  if (!res.ok) throw new Error(`attachment ${path}: ${res.status}`);
-  const blob = await res.blob(); const name = path.split("/").pop();
-  return { name, content_type: blob.type || "application/octet-stream", data_base64: await toBase64(blob) };
+    session = null;
+    $("chatStatus").textContent = "Job closed"; $("chatStatus").classList.remove("live");
+  } catch (e) { wait.remove(); showNote(`Could not end the conversation. ${e.message}`, "error"); }
+  finally { $("close").textContent = "End conversation"; setBusy(false); }
 }
 
 function toBase64(blob) {
   return new Promise((ok, fail) => { const r = new FileReader(); r.onload = () => ok(String(r.result).split(",")[1]); r.onerror = fail; r.readAsDataURL(blob); });
 }
 
-function fillScript(sc) {
-  const box = $("script"); box.innerHTML = "";
-  if (!sc) { box.append(el("div", "muted", "Pick a ready-made conversation, or type your own.")); return; }
-  sc.turns.forEach((turn, i) => {
-    const b = el("button", null, `${i + 1}. ${turn.text}${turn.attachments.length ? "  [+ attachment]" : ""}`); b.dir = "auto";
-    b.onclick = async () => {
-      if (!session) { showNote("Start the session first.", "error"); return; }
-      try { attachments = await Promise.all(turn.attachments.map(attachFromPath)); } catch (e) { showNote(e.message, "error"); return; }
-      b.classList.add("used"); send(turn.text);
-    };
-    box.append(b);
-  });
-}
+function grow() { const t = $("text"); t.style.height = "auto"; t.style.height = `${Math.min(t.scrollHeight, 160)}px`; }
 
-async function loadScenarios() {
-  try {
-    scenarios = await (await fetch("/demo/scenarios")).json();
-    const groups = {};
-    for (const s of scenarios) (groups[s.group] ||= []).push(s);
-    for (const [group, list] of Object.entries(groups)) {
-      const og = document.createElement("optgroup"); og.label = group;
-      for (const s of list) { const o = el("option", null, s.id.replace(/^scn:/, "")); o.value = s.id; og.append(o); }
-      $("preset").append(og);
-    }
-  } catch { $("presetNote").textContent = "The ready-made conversations could not be loaded."; }
-}
-
-$("preset").onchange = () => {
-  const sc = scenarios.find((s) => s.id === $("preset").value);
-  if (sc) {
-    const v = sc.vehicle || {};
-    $("make").value = v.make || ""; $("model").value = v.model || ""; $("year").value = v.year || "";
-    $("engine").value = v.engine_code || ""; $("powertrain").value = v.powertrain || ""; startLanguage = sc.language;
-    $("presetNote").textContent = "Car filled in. Start the session, then click the messages in order.";
-  } else { $("presetNote").textContent = ""; startLanguage = "ar"; }
-  fillScript(sc);
-};
 $("start").onclick = start;
 $("send").onclick = () => send();
 $("close").onclick = closeSession;
-$("trace").onclick = showTrace;
 $("attach").onclick = () => $("file").click();
 $("file").onchange = async () => {
   const f = $("file").files[0]; if (!f) return;
   attachments = [{ name: f.name, content_type: f.type || "application/octet-stream", data_base64: await toBase64(f) }];
-  $("fileName").textContent = `attached: ${f.name}`; $("file").value = "";
+  $("fileName").textContent = `📎 ${f.name}`; $("file").value = "";
 };
+$("text").addEventListener("input", grow);
 $("text").addEventListener("keydown", (e) => { if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); send(); } });
-loadScenarios();
+for (const id of ["make", "model", "year", "engine"]) $(id).addEventListener("keydown", (e) => { if (e.key === "Enter") start(); });
 </script>
 </body>
 </html>
