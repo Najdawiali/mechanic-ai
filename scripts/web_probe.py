@@ -84,7 +84,6 @@ class Result:
     title: str
     domain: str
     official: bool
-    blocked: bool
     names_code: bool
     names_model: bool
     year: str  # "match" | "other years only" | "not stated"
@@ -115,7 +114,6 @@ def judge(case: Case, url: str, title: str, text: str) -> Result:
         title=title[:150],
         domain=domain,
         official=any(domain == d or domain.endswith("." + d) for d in OFFICIAL),
-        blocked=False,
         names_code=code[:5] in low.replace("_", "") or code in low.replace("_", ""),
         names_model=any(w in low for w in case.model_words),
         year=year_fit(whole, case.year),
@@ -174,7 +172,6 @@ def line(run: ProviderRun) -> str:
     n = len(run.results)
     official = sum(r.official for r in run.results)
     exact = sum(r.names_code and r.names_model and r.year == "match" for r in run.results)
-    blocked = sum(r.blocked for r in run.results)
     other = sum(r.year == "other years only" for r in run.results)
     opn = sum(r.year == "open range" for r in run.results)
     return (f"  {run.provider:<16} {run.seconds:4.1f}s  results {n}  official {official}  "

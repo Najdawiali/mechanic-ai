@@ -64,7 +64,12 @@ _SECURITY = re.compile(r"immobili[sz]er|\bpin\s*code|security\s+code|key\s+(?:pr
                        + _ar("إيموبلايزر", "ايموبلايزر", "الإيموبلايزر", "الايموبلايزر", "ايموبلايزر")
                        + r"|كود\s+(?:ال)?(?:حماية|أمان|امان|PIN)|رمز\s+(?:ال)?(?:حماية|PIN)|برمجة\s+(?:ال)?مفتاح|عداد\s+(?:ال)?(?:مسافة|كيلو)|"
                        r"(?:تصفير|ترجيع|تعديل)\s+(?:ال)?عداد|امو بلائزر|اموبلائزر", re.I)
-_FLASH = r"(?:flash\w*|blink\w*|ترمش|يرمش|تومض|يومض|تولع\s+وتطفي|يولع\s+ويطفي|ٹمٹما\w*|جھپک\w*)"
+_FLASH = (r"(?:flash\w*|blink\w*|ترمش|يرمش|تومض|يومض|وامض\w*|تفلش|يفلش|تولع\s+وتطفي|يولع\s+ويطفي|ٹمٹما\w*|جھپک\w*|"
+          r"فلیش\w*)")
+# "steady, not flashing" names the light but says it does NOT flash (judge 2026-11-26, ENG-010): removed before the check
+_NOT_FLASHING = re.compile(r"(?:\bnot\b|n't|\bnon-?|\bnever\b|\bwithout\b|\bno\b|"
+                           f"(?<![{_L}])و?(?:غير|ليست|ليس|لا|مو|مش|ما|نہیں|نہ)(?![{_L}]))"
+                           r"\s*" + _FLASH, re.I)
 _ENGINE_LIGHT = (r"(?:check.?engine|engine\s+light|\bcel\b|\bmil\b|لمبة\s+(?:ال)?(?:مكينة|مكينه|محرك|ماكينة)|"
                  r"لمبة\s+(?:ال)?check|انجن\s+لائٹ|چیک\s+انجن)")
 _FLASHING = re.compile(_FLASH + r".{0,60}" + _ENGINE_LIGHT + "|" + _ENGINE_LIGHT + r".{0,60}" + _FLASH
@@ -99,5 +104,6 @@ def check(text: str, *, high_voltage_car: bool = False, codes: list[str] | tuple
     isolation = (bool(_ISOLATION.search(text)) and (high_voltage_car or hv_object)) or \
         bool(ISOLATION_CODES & {c.upper() for c in codes})
     return Hazards(hv=hv_object and (bool(_HANDS_ON.search(text)) or isolation), isolation=isolation,
-                   srs=bool(_SRS.search(text)), hid=bool(_HID.search(text)), flashing=bool(_FLASHING.search(text)),
+                   srs=bool(_SRS.search(text)), hid=bool(_HID.search(text)),
+                   flashing=bool(_FLASHING.search(_NOT_FLASHING.sub(" ", text))),
                    ready=high_voltage_car and bool(_READY_WORK.search(text)), security=bool(_SECURITY.search(text)))

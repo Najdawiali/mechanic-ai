@@ -60,19 +60,10 @@ def load_his_answers(root: Path) -> dict[str, dict]:
         evidence = ((data.get("retrieval") or {}).get(row["case_id"]) or {}).get(row["mode"]) or {}
         out.setdefault(row["case_id"], {})[row["mode"]] = {
             "answer": row.get("answer") or "", "error": row.get("error"), "ms": row.get("total_ms"), "cost": row.get("cost_usd"),
-            "sources": [{"title": e.get("title"), "url": e.get("url"), "domain": e.get("domain"),
-                         "blocked": _blocked(e.get("url"))} for e in evidence.get("evidence", [])],
+            "sources": [{"title": e.get("title"), "url": e.get("url"), "domain": e.get("domain")}
+                        for e in evidence.get("evidence", [])],
         }
     return out
-
-
-def _blocked(url: str | None) -> bool:
-    """A source from a site our assistant never uses (WEB_BLOCKED_DOMAINS): shown, and marked, on his side."""
-    from app.config import get_settings
-    from app.web.applicability import is_blocked
-
-    host = re.sub(r"^https?://", "", url or "").split("/")[0]
-    return bool(host) and is_blocked(host, get_settings().web_blocked)
 
 
 # -- our side ------------------------------------------------------------------------------------------------
@@ -131,8 +122,6 @@ def _sources(sources: list[dict]) -> str:
     for s in sources:
         label = _e(s.get("title") or s.get("domain") or s.get("url"))
         mark = f" <i>({_e(s['applies'])})</i>" if s.get("applies") else ""
-        if s.get("blocked"):
-            mark += " <b class=warn>(site with no shown right to the manuals: blocked in our assistant)</b>"
         url = s.get("url") or ""
         link = f'<a href="{_e(url)}" target="_blank" rel="noopener noreferrer">{label}</a>' if re.match(r"https?://", url) else label
         items.append(f"<li>{link}{mark}</li>")
@@ -152,9 +141,7 @@ def render(cases: list[dict], ours: dict[str, dict], his: dict[str, dict], meta:
     summary = (f"<p><b>{len(cases)}</b> cases · ours answered <b>{len(run)}</b> · not run {not_run} · failed {failed} · "
                f"our level: {', '.join(f'{k} {v}' for k, v in sorted(tiers.items())) or '-'} · "
                f"our median time {median:.1f} s · our model cost ${sum(o['cost'] for o in run):.3f}</p>"
-               f"<p>His median time: {', '.join(f'{m} {v[len(v) // 2] / 1000:.1f} s' for m, v in his_ms.items() if v)} · "
-               f"his answers citing a site our assistant blocks: "
-               f"{sum(any(x.get('blocked') for x in h[m]['sources']) for h in his.values() for m in h)}</p>")
+               f"<p>His median time: {', '.join(f'{m} {v[len(v) // 2] / 1000:.1f} s' for m, v in his_ms.items() if v)}</p>")
     blocks = []
     for c in cases:
         o, h = ours.get(c["id"], {}), his.get(c["id"], {})
@@ -172,8 +159,7 @@ def render(cases: list[dict], ours: dict[str, dict], his: dict[str, dict], meta:
         else:
             ours_html = f"<p class=warn>{_e(o.get('not_run') or o.get('error') or 'not run')}</p>"
         his_html = "".join(
-            f"<details{' open' if m == 'hybrid' else ''}><summary>{m} · {(h[m]['ms'] or 0) / 1000:.1f} s"
-            f"{' · <b class=warn>uses a blocked site</b>' if any(x.get('blocked') for x in h[m]['sources']) else ''}</summary>"
+            f"<details{' open' if m == 'hybrid' else ''}><summary>{m} · {(h[m]['ms'] or 0) / 1000:.1f} s</summary>"
             f"<div class=msg dir=auto>{_e(h[m]['answer'] or h[m]['error'])}</div>{_sources(h[m]['sources'])}</details>"
             for m in HIS_MODES if m in h) or "<p class=warn>no stored answer</p>"
         blocks.append(

@@ -45,7 +45,6 @@ def test_both_sides_load_from_his_folder_and_the_page_shows_text_never_markup(tm
     (tmp_path / "eval/reports/phase4-final/results.json").write_text(json.dumps({"rows": rows, "retrieval": retrieval}))
     cases, his = cv.load_cases(tmp_path), cv.load_his_answers(tmp_path)
     assert [c["id"] for c in cases] == ["ENG-900"] and set(his["ENG-900"]) == set(cv.HIS_MODES)
-    assert [x["blocked"] for x in his["ENG-900"]["hybrid"]["sources"]] == [False, True]
     ours = {"ENG-900": {"tier": "web", "type": "question", "seconds": 3.1, "calls": 3, "cost": 0.002, "web_searches": 1, "refused": 0,
                         "message": "<img src=x onerror=alert(1)>", "warnings": [],
                         "sources": [{"type": "web", "title": "T", "url": "javascript:alert(1)", "applies": "check"}]}}
@@ -53,7 +52,6 @@ def test_both_sides_load_from_his_folder_and_the_page_shows_text_never_markup(tm
     assert "<script>x</script>" not in page and "&lt;script&gt;x&lt;/script&gt;" in page
     assert "<img src=x" not in page and 'href="javascript:' not in page  # only http(s) links become links
     assert "&lt;b&gt;rough idle&lt;/b&gt;" in page
-    assert "uses a blocked site" in page and "citing a site our assistant blocks: 1" in page
 
 
 def test_the_engine_code_is_taken_from_his_engine_text():
