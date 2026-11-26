@@ -92,14 +92,19 @@ class SessionState(_State):
     confirmed_fix: str | None = None
     repairs: list[str] = Field(default_factory=list)  # every repair the mechanic reported, in order, the fixing one last
     history: list[Turn] = Field(default_factory=list)
+    messages: list[Turn] = Field(default_factory=list)  # full conversation log used to summarise the car's issue at close
     external_searches: int = 0  # web searches spent in this session (limited by the source's searches_per_session)
     closed: bool = False
 
     HISTORY_KEPT: ClassVar[int] = 12
+    MESSAGES_KEPT: ClassVar[int] = 100
 
     def remember(self, role: Literal["mechanic", "assistant"], text: str, english: str | None = None) -> None:
-        self.history.append(Turn(role=role, text=text, english=english))
+        turn = Turn(role=role, text=text, english=english)
+        self.history.append(turn)
         del self.history[:-self.HISTORY_KEPT]
+        self.messages.append(turn)
+        del self.messages[:-self.MESSAGES_KEPT]
 
     def cite(self, *ids: str) -> None:
         for evidence_id in ids:

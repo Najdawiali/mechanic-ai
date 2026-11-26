@@ -37,7 +37,6 @@ class WebConfig:
     budget_s: float = 8.0
     max_results: int = 5
     max_items: int = 6
-    blocked: tuple[str, ...] = ()  # unused, kept for config compat
     searches_per_session: int = 6
     codes_per_lookup: int = 2
     symptom_search: bool = False

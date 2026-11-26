@@ -18,9 +18,11 @@ from app.engine.state import SessionState
 from app.engine.validator import Allowed
 from app.engine.wording import compose, translate
 
-SYSTEM = """Write a short summary of a car diagnosis session for the workshop's records: the vehicle, the fault codes,
-the checks done with their readings and results, the conclusion, and the confirmed repair if there is one.
-Use only the facts given. Keep it short: at most five plain sentences, no headings."""
+SYSTEM = """Write a short summary of the car's issue and the diagnostic conversation for the workshop's records:
+the vehicle, the car's reported issue and symptoms, any fault codes, the checks or findings discussed (with their
+readings and results), the conclusion or likely cause, and the confirmed repair if there is one.
+Read the conversation messages carefully to summarize the car's issue, even when no fault codes or readings were logged.
+Use only the facts and conversation messages given. Keep it short: at most five plain sentences, no headings."""
 
 
 def record(state: SessionState) -> dict:
@@ -50,6 +52,8 @@ def _code_summary(facts: dict) -> str:
     lines = [f"Vehicle: {render.vehicle_text(facts['vehicle_record'])}."]
     if facts["codes"]:
         lines.append(f"Fault codes: {', '.join(facts['codes'])}.")
+    if facts.get("reported_issue"):
+        lines.append(f"Reported issue: {facts['reported_issue']}")
     lines += [f"{line}." for line in checks(facts["readings"])]
     if facts["conclusion"]:
         lines.append(f"Conclusion: {facts['conclusion']}")
@@ -63,7 +67,8 @@ def pending_case(state: SessionState, session_id: str) -> dict | None:
     if not state.confirmed_fix:
         return None
     v = state.vehicle
-    found = [t.english or t.text for t in state.history if t.role == "mechanic"]
+    turns = state.messages or state.history
+    found = [t.english or t.text for t in turns if t.role == "mechanic"]
     return {
         "case_id": f"case:session:{session_id}",
         "make": v.make, "models": [v.model],
@@ -84,16 +89,30 @@ def pending_case(state: SessionState, session_id: str) -> dict | None:
 
 def summarise(model: ModelClient, state: SessionState, session_id: str, *, role: str = "reasoning") -> dict:
     facts = record(state)
-    english_facts = {**facts, "vehicle_record": state.vehicle,
-                     "what the mechanic said": [t.english or t.text for t in state.history if t.role == "mechanic"]}
-    allowed = Allowed.from_texts([str(facts), *english_facts["what the mechanic said"], render.vehicle_text(state.vehicle)])
-    model_facts = {k: v for k, v in english_facts.items() if k not in ("vehicle_record", "readings")}
-    model_facts["checks done"] = checks(facts["readings"])
+    turns = state.messages or state.history
+    mechanic_texts = [t.english or t.text for t in turns if t.role == "mechanic"]
+    conversation = [{"mechanic" if t.role == "mechanic" else "assistant": t.english or t.text} for t in turns]
+    allowed = Allowed.from_texts([
+        str(facts),
+        render.vehicle_text(state.vehicle),
+        *(t.text for t in turns),
+        *(t.english for t in turns if t.english),
+    ])
+    model_facts = {
+        **{k: v for k, v in facts.items() if k != "readings"},
+        "checks done": checks(facts["readings"]),
+        "conversation": conversation,
+    }
     allowed.add(" ".join(model_facts["checks done"]))
     out = compose(model, "summary", system=SYSTEM, facts=model_facts,
                   language=state.language, allowed=allowed, role=role)
     if out and out["message"].strip():
         text = out["message"]
     else:
-        text, _ = translate(model, _code_summary(english_facts), state.language)
+        fallback_facts = {
+            **facts,
+            "vehicle_record": state.vehicle,
+            "reported_issue": "; ".join(mechanic_texts[:3])[:400],
+        }
+        text, _ = translate(model, _code_summary(fallback_facts), state.language)
     return {"summary": text, "language": state.language, "record": facts, "pending_case": pending_case(state, session_id)}
