@@ -227,6 +227,8 @@ def main(argv: list[str] | None = None) -> int:
     parser.add_argument("--only", help="cases whose id contains this text")
     parser.add_argument("--limit", type=int, help="run only the first N cases")
     parser.add_argument("--approved-only", action="store_true", help="serve approved records only, as in production")
+    parser.add_argument("--workers", type=int, default=1, help="cases run at the same time (each with its own database "
+                        "connection); seconds per case stay comparable, the whole run is shorter")
     parser.add_argument("--render", type=Path, help="re-draw the page from a saved JSON, without running anything")
     args = parser.parse_args(argv)
 
@@ -257,20 +259,28 @@ def main(argv: list[str] | None = None) -> int:
                 "records": "approved only" if args.approved_only else "approved and draft"}
         ours = {}
         gateway = LLMGateway()
-        with connect() as conn:
-            kb = KnowledgeStore(conn)
-            from app.public.source import from_settings as public_records
+        from concurrent.futures import ThreadPoolExecutor
 
-            public = public_records(settings, conn, gateway)
+        from app.public.source import from_settings as public_records
 
-            def factory():
-                return Engine(kb, GatewayModel(gateway), statuses=statuses, external=external,
-                              emergency_number=settings.emergency_number, roles=roles, public=public)
+        def one(case: dict) -> dict:
+            with connect() as conn:  # one connection per case: workers never share a transaction
+                kb = KnowledgeStore(conn)
+                public = public_records(settings, conn, gateway)
 
-            for i, case in enumerate(cases, 1):
-                ours[case["id"]] = run_case(factory, case)
-                conn.rollback()  # nothing is written; never keep a transaction open between cases
-                o = ours[case["id"]]
+                def factory():
+                    return Engine(kb, GatewayModel(gateway), statuses=statuses, external=external,
+                                  emergency_number=settings.emergency_number, roles=roles, public=public)
+
+                try:
+                    return run_case(factory, case)
+                finally:
+                    conn.rollback()  # nothing is written
+
+        meta["workers"] = max(1, args.workers)
+        with ThreadPoolExecutor(max_workers=max(1, args.workers)) as pool:
+            for i, (case, o) in enumerate(zip(cases, pool.map(one, cases), strict=True), 1):
+                ours[case["id"]] = o
                 print(f"{i:>3}/{len(cases)} {case['id']:<8} {o.get('tier') or ('NOT RUN' if 'not_run' in o else 'ERROR'):<8} "
                       f"{o.get('seconds', 0):5.1f}s  {o.get('error', '')}", flush=True)
     RESULTS.mkdir(exist_ok=True)
