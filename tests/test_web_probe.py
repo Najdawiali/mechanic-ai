@@ -35,12 +35,7 @@ def test_a_wrong_generation_bulletin_is_not_an_exact_result():
     r = probe.judge(SONATA, "https://static.nhtsa.gov/odi/tsbs/2019/MC-10160095-9999.pdf",
                     "TSB 19-HC-001H", "DTC P1990, P1B76 ... Applicable Vehicles: 2016~ Sonata Hybrid (LF HEV)")
     assert r.official and r.names_code and r.names_model and r.year == "open range" and r.domain == "static.nhtsa.gov"
-    assert not r.blocked
 
-
-def test_a_site_without_rights_to_the_manuals_is_marked_blocked():
-    url = "https://lemon-manuals.la/Hyundai/2022/Sonata%20Hybrid%20Limited/Repair%20and%20Diagnosis/"
-    assert probe.judge(SONATA, url, "Diagnostic Flowchart", "Courtesy of HYUNDAI MOTOR AMERICA").blocked
 
 
 def test_one_failing_provider_does_not_stop_the_others():

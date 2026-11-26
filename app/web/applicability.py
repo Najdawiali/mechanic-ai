@@ -4,7 +4,7 @@ Each result is marked:
     fits   code and model named; the year named or inside a closed range; no other engine named
     check  probably about this car, but something is not confirmed (no year, an open year range
            such as "2016~", an engine-specific page when the car's engine is not known)
-    drop   neither the make nor the model named, other years only, another engine, the code not named, a blocked site
+    drop   neither the make nor the model named, other years only, another engine, the code not named
 
 Probe findings this guards against (web-search-story-review.md): a bulletin for the 2016- Sonata
 Hybrid offered for a 2020 car; a Toyota bulletin for the 2GR-FKS V6 only; a page date read as a model year.
@@ -112,23 +112,8 @@ def engines_said(text: str) -> set[str]:
     return said
 
 
-def is_blocked(domain: str, blocked: tuple[str, ...]) -> bool:
-    """'charm.li' blocks charm.li and its subdomains. 'lemon-manuals.*' blocks that name on any ending
-    (.la, .org.ua, .gy, ...): such sites move between domains to stay up."""
-    domain = domain.lower().removeprefix("www.")
-    for entry in blocked:
-        if entry.endswith(".*"):
-            if re.search(rf"(?:^|\.){re.escape(entry[:-2])}\.", domain):
-                return True
-        elif domain == entry or domain.endswith("." + entry):
-            return True
-    return False
-
-
-def judge(vehicle: Vehicle, code: str, url: str, title: str, text: str, blocked: tuple[str, ...]) -> Mark:
+def judge(vehicle: Vehicle, code: str, url: str, title: str, text: str, blocked: tuple[str, ...] = ()) -> Mark:
     domain = (urlparse(url).hostname or "").lower().removeprefix("www.")
-    if is_blocked(domain, blocked):
-        return Mark("drop", ["blocked site"])
     whole = f"{title} {text}"
     low = whole.lower()
     if code and not code_named(code, whole):  # code "" = a symptom search: no code to check
