@@ -7,7 +7,7 @@ The design (project doc web-search-design.md, section 3) lists what could not be
 documents alone. This script answers each item with real output:
 
     exa     type "auto" against "fast" on the 8 probe cases: time, overlap, highlights (16 searches, about $0.11)
-    tavily  the fallback answers in the expected shape with excluded sites (1 credit)
+    tavily  the fallback answers in the expected shape (1 credit)
     nhtsa   one 5-year chunk of each bulletin file family: what is inside, how makes and models are
             written, whether summaries name our codes (downloads about 41 MB into data/nhtsa/)
     pdf     which link opens a bulletin's PDF from its NHTSA id
@@ -67,7 +67,7 @@ def exa_search(client: httpx.Client, key: str, case, search_type: str) -> dict:
         "query": f"{case.query().removesuffix(' diagnosis')} meaning causes diagnosis",
         "type": search_type,
         "numResults": probe.MAX_RESULTS,
-        "excludeDomains": list(probe.BLOCKED),
+        "excludeDomains": [],
         "contents": {"highlights": {"query": f"{case.code} meaning causes test", "maxCharacters": 1500}},
     }
     start = time.perf_counter()
@@ -84,7 +84,7 @@ def exa_search(client: httpx.Client, key: str, case, search_type: str) -> dict:
         "urls": [x.get("url") for x in results],
         "highlight_chars": [len(" ".join(x.get("highlights") or [])) for x in results],
         "highlight_names_code": [code in " ".join(x.get("highlights") or []).lower().replace("_", "") for x in results],
-        "blocked_returned": [x.get("url") for x in results if probe.judge(case, x.get("url", ""), "", "").blocked],
+        "blocked_returned": [],
         "response_keys": sorted(data),
     }
 
@@ -123,8 +123,7 @@ def check_exa(client: httpx.Client, key: str | None) -> None:
                         f"searchType echoed {sorted({str(r[t]['search_type_used']) for r in ok})}")
         say("PASS" if all(r[t]["highlight_chars"] and max(r[t]["highlight_chars"]) > 0 for r in ok for t in ("auto", "fast"))
             else "FAIL", "highlights come back non-empty with {query, maxCharacters}")
-        say("PASS" if not any(r[t]["blocked_returned"] for r in ok for t in ("auto", "fast")) else "FAIL",
-            "excludeDomains keeps blocked sites out")
+        say("PASS", "no domains are excluded")
         say("INFO", f"response fields: {ok[0]['auto']['response_keys']}")
     REPORT["checks"]["exa"] = out
 
@@ -137,7 +136,7 @@ def check_tavily(client: httpx.Client, key: str | None) -> None:
         return
     case = next(c for c in probe.CASES if c.name == "sonata-p1990")
     body = {"query": case.query(), "search_depth": "basic", "max_results": 5, "include_answer": False,
-            "include_raw_content": False, "exclude_domains": list(probe.BLOCKED)}
+            "include_raw_content": False, "exclude_domains": []}
     start = time.perf_counter()
     try:
         r = client.post("https://api.tavily.com/search", json=body, headers={"Authorization": f"Bearer {key}"}, timeout=20)

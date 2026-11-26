@@ -37,7 +37,7 @@ class WebConfig:
     budget_s: float = 8.0
     max_results: int = 5
     max_items: int = 6
-    blocked: tuple[str, ...] = ()
+    blocked: tuple[str, ...] = ()  # unused, kept for config compat
     searches_per_session: int = 6
     codes_per_lookup: int = 2
     symptom_search: bool = False
@@ -66,25 +66,24 @@ class WebSource:
             tavily_key=settings.tavily_api_key.get_secret_value() if settings.tavily_api_key else None,
             search_type=settings.web_search_type, timeout_s=settings.web_timeout_s,
             fallback_timeout_s=settings.web_fallback_timeout_s, budget_s=settings.web_budget_s,
-            max_results=settings.web_max_results, blocked=settings.web_blocked,
+            max_results=settings.web_max_results,
             searches_per_session=settings.web_searches_per_session, symptom_search=settings.web_symptom_search))
 
     # -- one code -------------------------------------------------------------------------------------
     def _search(self, vehicle: Vehicle, code: str, q: str, highlight: str) -> tuple[list[providers.ProviderRun], list[ExternalItem], list[TraceEntry]]:
         http = self.http or providers.client()
         c = self.config
-        excluded = tuple(d for d in c.blocked if not d.endswith(".*"))  # providers take plain domains only
-        runs = [providers.exa(http, c.exa_key, q, highlight, max_results=c.max_results, excluded=excluded,
+        runs = [providers.exa(http, c.exa_key, q, highlight, max_results=c.max_results, excluded=(),
                               timeout=c.timeout_s, search_type=c.search_type)]
         if not runs[0].ok and c.tavily_key:
-            runs.append(providers.tavily(http, c.tavily_key, q, max_results=c.max_results, excluded=excluded,
+            runs.append(providers.tavily(http, c.tavily_key, q, max_results=c.max_results, excluded=(),
                                          timeout=c.fallback_timeout_s))
         items, calls = [], []
         for run in runs:
             marked = []
             for found in run.found:
                 text = applicability.clean_excerpt(found.text)
-                mark = applicability.judge(vehicle, code, found.url, found.title, text, c.blocked)
+                mark = applicability.judge(vehicle, code, found.url, found.title, text)
                 marked.append({"url": found.url, "title": found.title[:150], "applies": mark.applies, "reasons": mark.reasons})
                 if mark.applies != "drop":
                     domain = (httpx.URL(found.url).host or "").removeprefix("www.")

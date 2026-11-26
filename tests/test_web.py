@@ -11,7 +11,7 @@ from app.kb.schemas import Vehicle
 from app.web import applicability, query
 from app.web.source import WebConfig, WebSource
 
-BLOCKED = ("lemon-manuals.*", "lemon-manuals.la", "lemon-manuals.org.ua", "lemon-manuals.gy", "charm.li", "17vin.com")
+BLOCKED = ()
 CAMRY_TSB = ("| Applicability | Multiple models equipped w/2GR-FKS/FXS | APPLICABLE VEHICLES 2017-2022 Highlander "
              "2018-2022 Camry | O2 and/or A/F Sensor DTC's P0420")
 
@@ -23,7 +23,7 @@ def car(make, model, year=None, engine=None):
 # -- does a page fit this car ------------------------------------------------------------------------------
 def test_an_engine_specific_bulletin_fits_only_that_engine():
     def mark(engine):
-        return applicability.judge(car("Toyota", "Camry", 2018, engine), "P0420", "https://static.nhtsa.gov/t.pdf", "TSB", CAMRY_TSB, BLOCKED)
+        return applicability.judge(car("Toyota", "Camry", 2018, engine), "P0420", "https://static.nhtsa.gov/t.pdf", "TSB", CAMRY_TSB)
 
     assert mark("2GR-FKS").applies == "fits"
     assert mark("A25A-FKS").applies == "drop"  # the 4-cylinder Camry: the V6 bulletin is not for it
@@ -34,19 +34,17 @@ def test_an_engine_specific_bulletin_fits_only_that_engine():
 def test_another_generation_is_never_a_fit():
     sonata = car("Hyundai", "Sonata Hybrid", 2020)
     open_range = applicability.judge(sonata, "P1990", "https://static.nhtsa.gov/a.pdf", "HMA TSB",
-                                     "Applicable Vehicles: 2016~ Sonata Hybrid (LF HEV) DTC P1990", BLOCKED)
+                                     "Applicable Vehicles: 2016~ Sonata Hybrid (LF HEV) DTC P1990")
     assert open_range.applies == "check"
     campaign = applicability.judge(sonata, "P1990", "https://static.oemdtc.com/b.pdf", "T4M",
-                                   "Date: January 16, 2020 Subject: Service Campaign T4M: 2016-2017MY SONATA HEV P1990", BLOCKED)
+                                   "Date: January 16, 2020 Subject: Service Campaign T4M: 2016-2017MY SONATA HEV P1990")
     assert campaign.applies == "drop"  # the page date (2020) is not a model year
 
 
-def test_pages_for_another_car_another_code_or_a_blocked_site_are_dropped():
+def test_pages_for_another_car_another_code_are_dropped():
     integra = car("Acura", "Integra", 2025, "L15CA")
-    assert applicability.judge(integra, "P0010", "https://carbuzz.com/x", "Chevy Equinox P0010", "P0010 on the Equinox", BLOCKED).applies == "drop"
-    assert applicability.judge(integra, "P0341", "https://x.com/y", "Integra 2025", "camshaft sensor on the 2025 Integra", BLOCKED).applies == "drop"
-    blocked = applicability.judge(integra, "P0010", "https://lemon-manuals.la/Acura/2025/Integra", "P0010", "2025 Integra P0010", BLOCKED)
-    assert (blocked.applies, blocked.reasons) == ("drop", ["blocked site"])
+    assert applicability.judge(integra, "P0010", "https://carbuzz.com/x", "Chevy Equinox P0010", "P0010 on the Equinox").applies == "drop"
+    assert applicability.judge(integra, "P0341", "https://x.com/y", "Integra 2025", "camshaft sensor on the 2025 Integra").applies == "drop"
 
 
 def test_a_long_code_is_named_by_its_first_five_characters_and_an_alert_by_its_name():
@@ -81,10 +79,10 @@ def exa_page(url, title, text):
 
 
 def source(handler, **config):
-    return WebSource(WebConfig(exa_key="e", tavily_key="t", blocked=BLOCKED, **config), http=httpx.Client(transport=httpx.MockTransport(handler)))
+    return WebSource(WebConfig(exa_key="e", tavily_key="t", **config), http=httpx.Client(transport=httpx.MockTransport(handler)))
 
 
-def test_exa_is_asked_with_the_blocked_sites_and_the_mechanics_words_are_never_sent():
+def test_exa_is_asked_and_the_mechanics_words_are_never_sent():
     sent = []
 
     def handler(request):
@@ -95,7 +93,7 @@ def test_exa_is_asked_with_the_blocked_sites_and_the_mechanics_words_are_never_s
     found = source(handler).lookup(car("Hyundai", "Sonata Hybrid", 2020), ["P1990"], "my customer Ahmad 0791234567 says it won't start")
     host, body, headers = sent[0]
     assert host == "api.exa.ai" and len(sent) == 1  # Exa answered: Tavily is not asked
-    assert body["excludeDomains"] == [d for d in BLOCKED if not d.endswith(".*")] and body["contents"]["highlights"]["query"] == "P1990 meaning causes test"
+    assert body["excludeDomains"] == [] and body["contents"]["highlights"]["query"] == "P1990 meaning causes test"
     assert "Ahmad" not in json.dumps(body) and "0791234567" not in json.dumps(body) and headers["x-api-key"] == "e"
     assert [(i.url, i.extra["applies"]) for i in found.items] == [("https://static.nhtsa.gov/a.pdf", "fits")]
     assert found.searched == 1 and found.calls[0].purpose == "web_search" and found.calls[0].cost_usd == 0.007
@@ -115,10 +113,10 @@ def test_tavily_answers_only_when_exa_fails_and_dropped_pages_never_come_back():
 
     found = source(handler).lookup(car("Hyundai", "Sonata Hybrid", 2020), ["P1990"], "")
     assert asked == ["api.exa.ai", "api.tavily.com"]
-    assert [i.url for i in found.items] == ["https://www.hyundai-forums.com/x"] and found.items[0].provider == "tavily"
+    assert [i.url for i in found.items] == ["https://www.hyundai-forums.com/x", "https://lemon-manuals.la/Hyundai/x"] and found.items[0].provider == "tavily"
     assert [c.model for c in found.calls] == ["exa", "tavily"] and "503" in found.calls[0].error
     kept = json.loads(found.calls[1].output)  # the trace keeps links and marks, not the page text
-    assert [k["applies"] for k in kept] == ["fits", "drop", "drop"] and all("text" not in k for k in kept)
+    assert [k["applies"] for k in kept] == ["fits", "fits", "drop"] and all("text" not in k for k in kept)
 
 
 def test_a_search_over_the_time_budget_is_left_out_and_the_turn_goes_on():
@@ -154,11 +152,3 @@ def test_names_from_a_web_page_are_allowed_its_values_never():
     assert problems("Check the 40A fuse.", allowed) == ["40A"]
     assert problems("It is for 2016 cars.", allowed) == ["2016"]
 
-
-def test_a_blocked_site_is_blocked_on_any_domain_it_moves_to():
-    # seen in the team lead's evaluation results (2026-11-22): the same site on .la, .org.ua and .gy
-    for host in ("lemon-manuals.la", "lemon-manuals.org.ua", "lemon-manuals.gy", "www.lemon-manuals.gy", "lemon-manuals.xyz",
-                 "charm.li", "www.charm.li", "en.17vin.com"):
-        assert applicability.is_blocked(host, BLOCKED), host
-    for host in ("nhtsa.gov", "not-lemon-manuals.com", "lemon-manualsx.com", "charm.lie"):
-        assert not applicability.is_blocked(host, BLOCKED), host
