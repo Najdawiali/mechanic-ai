@@ -77,6 +77,26 @@ def test_workshop_meanings_of_a_trigger_word_are_not_emergencies(text):
 
 
 @pytest.mark.parametrize("text", [
+    # words the list never had (an independent set of 80 sentences, 2026-11-26, found them missing); new sentences here
+    "there are flames under the steering column", "ألسنة لهب تحت الطبلون", "شعلہ نظر آ رہا ہے بونٹ کے نیچے",
+    "زميلي تعرض لصدمة كهربائية من الكيبل البرتقالي", "العامل تكهرب من سلك الهايبرد", "the loom insulation is softening",
+    "the 12V battery we are charging has started swelling on both sides", "جوانب البطارية قاعدة تنتفخ",
+    "فيشة المروحة قاعدة تسيح", "عازل السلك يذوب", "a burning-plastic smell from the glovebox",
+    "رائحة البلاستيك المحترق من خلف الطبلون", "تار کا کور دیکھتے دیکھتے پگھل رہا ہے", "جلے ربڑ کی بو آ رہی ہے",
+    "the battery case is cracked and the battery is leaking acid",
+])
+def test_the_danger_words_cover_flames_shocks_melting_and_batteries(text):
+    assert emergency.check(text) is not None
+
+
+@pytest.mark.parametrize("text", ["did a smoke test, the machine's smoke came out at the intake boot",
+                                  "سويت اختبار الدخان وطلع دخان الجهاز من الثروتل", "لمبة المكينة ولعت بعد تبديل الفلتر",
+                                  "فاحص الشرارة يبين نبضة على كل السلندرات"])
+def test_smoke_test_machines_engine_lights_and_spark_testers_are_not_emergencies(text):
+    assert emergency.check(text) is None
+
+
+@pytest.mark.parametrize("text", [
     "white smoke from under the hood and a sweet smell", "دخان أبيض من الكبوت", "smoke from the dashboard vents",
     "السيارة ولعت", "اللمبة ولعت وبعدين السيارة ولعت", "طالع نار من المكينة", "the car caught fire",
     "black smoke coming from the battery", "کالا دھواں بیٹری سے نکل رہا ہے",
@@ -106,3 +126,15 @@ def test_the_safety_texts_exist_in_every_language_carry_the_number_and_are_marke
             for hv in (True, False):
                 assert "911" in emergency.text(kind, language, high_voltage=hv, number="911")
     assert emergency.TEXTS_APPROVED is False
+
+
+def test_the_safety_check_script_reports_misses_and_false_alarms_without_a_model(tmp_path, capsys):
+    from scripts.check_safety import main
+    rows = [{"text": "there is a flame behind the headlight", "danger": True},
+            {"text": "blue smoke from the exhaust at a cold start", "danger": False},
+            {"text": "liquid seeping from a crack in the case", "danger": True}]  # the second layer's job
+    path = tmp_path / "s.jsonl"
+    path.write_text("\n".join(json.dumps(r) for r in rows), encoding="utf-8")
+    assert main([str(path)]) == 1  # a missed danger fails the check
+    out = capsys.readouterr().out
+    assert "dangers caught 1/2" in out and "false alarms 0/1" in out and "MISSED #3" in out

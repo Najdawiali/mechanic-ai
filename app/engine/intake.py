@@ -69,6 +69,7 @@ class Intake:
     fix: str | None = None  # the repair that fixed it, in English, when intent is fix_confirmed
     repair: str | None = None  # a repair this message reports, fixed or not (code keeps the list)
     terms: list[str] = field(default_factory=list)  # workshop words found by the glossary, "word = English"
+    danger: str = "none"  # "vehicle" / "person": danger happening now that the word list missed (second safety layer)
 
 
 SYSTEM = """You read one message from a car mechanic to a diagnostic assistant and return JSON.
@@ -98,6 +99,14 @@ repair: if this message reports a repair the mechanic did (replaced, re-seated, 
   updated...), a short English phrase naming it, whether or not it fixed the fault; else null.
 result_words: if intent is fix_confirmed, the words of the message that say the fault is gone, copied exactly
   (e.g. "the car runs normally", "وراح العطل"); else null.
+danger_now: the safety check. "vehicle" if the message says something dangerous is happening now, or was just seen
+  and may still be happening: fire or a flame, smoke from the car (in the cabin, from the engine, wiring, a connector,
+  the battery or under the car), a burning smell that is there now or getting stronger, sparks or arcing, wiring,
+  insulation or a connector melting, softening or dripping, a battery swelling, cracking, leaking, hissing or venting.
+  "person" if someone got an electric shock just now or still has symptoms from one. Otherwise "none", including:
+  exhaust smoke described as a fault symptom (its colour, at a cold start, under load), smoke from a smoke-test
+  machine, a warning light that came on, spark plugs or a spark tester, hot weather, and old damage on a part that
+  is already removed or unplugged. When unsure whether it is happening now, answer "vehicle".
 fix: if intent is fix_confirmed, a short English phrase naming the cause found and every repair done in this
   conversation that fixed it, using "earlier messages" too; name a procedure in words, not only by its code
   (e.g. "internal short in the inverter: inverter replaced"; "connectors re-seated and window regulator basic setting";
@@ -110,7 +119,7 @@ def _schema(components: list[str], options: list[str]) -> dict:
     return {
         "type": "object", "additionalProperties": False,
         "required": ["intent", "english", "codes", "reading", "components", "power_and_ground", "pins_only", "answer",
-                     "repair", "result_words", "fix"],
+                     "repair", "result_words", "fix", "danger_now"],
         "properties": {
             "intent": {"type": "string", "enum": list(INTENTS)},
             "english": {"type": "string"},
@@ -126,6 +135,7 @@ def _schema(components: list[str], options: list[str]) -> dict:
             "repair": {"type": ["string", "null"]},
             "result_words": {"type": ["string", "null"]},
             "fix": {"type": ["string", "null"]},
+            "danger_now": {"type": "string", "enum": ["none", "vehicle", "person"]},
         },
     }
 
@@ -259,4 +269,4 @@ def read_message(model: ModelClient, state: SessionState, text: str, *, componen
                   components=chosen, unsure=unsure, power_and_ground=bool(out.get("power_and_ground")),
                   pins_only=bool(out.get("pins_only")), answer=answer, fix=fix,
                   repair=out.get("repair") if isinstance(out.get("repair"), str) and out.get("repair").strip() else None,
-                  terms=terms)
+                  terms=terms, danger=out.get("danger_now") if out.get("danger_now") in ("vehicle", "person") else "none")

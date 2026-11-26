@@ -21,6 +21,12 @@ failures were these false alarms, each answered with the fire text and no diagno
   * "الجو نار" is very hot weather; "البوجي يعطي نار" and "شرارة البوجي" are the ignition spark; "نظام الاشتعال",
     "مفتاح الاشتعال" are the ignition system and switch; "fire it up", "won't fire" are starting the engine.
 
+A SECOND LAYER catches what the word list misses: the intake model, which reads every message anyway, also answers
+"is something dangerous happening now?" (`Intake.danger`, app/engine/intake.py); a yes gets the same fixed text.
+An independent set of 80 sentences written by another AI (2026-11-26) showed why: the word list alone missed 20 of
+40 real dangers ("a flame", "لهب", "شعلہ", "صدمة كهربائية", "تكهرب", insulation "softening and dripping"...). The word
+list stays first: it needs no model, so it also works when the model is down.
+
 THE SAFETY TEXTS ARE DRAFTS. The client's expert must approve them (handoff, section 7.1). Until he
 does, `TEXTS_APPROVED` is False and every emergency reply says so in its warnings.
 """
@@ -52,28 +58,32 @@ TRIGGERS: list[tuple[Kind, re.Pattern[str]]] = [(kind, re.compile(p, re.I)) for 
     # English
     ("vehicle", r"\bsmok(?:e|es|ing|y)\b(?!\s*(?:test|machine|generator))"),
     ("vehicle", r"\b(?:fire|flames?|on fire|caught fire|burst into flames?)\b"),
-    ("vehicle", r"\b(?:burn\w*|burnt|scorch\w*)\s+(?:smell|odou?r|plastic|wires?|insulation)\b"),
+    ("vehicle", r"\b(?:burn\w*|burnt|scorch\w*)[\s-]+(?:smell|odou?r|plastic|wires?|insulation)\b"),
     ("vehicle", r"\bsmell\w*\s+(?:of\s+|like\s+)?(?:burn\w*|burnt|plastic|scorch\w*)\b"),
     ("vehicle", r"\bspark(?:s|ing)\b(?!\s*plugs?)|\barcing\b"),
-    ("vehicle", r"\b(?:swollen|swelling|bulging|puffed|puffy)\b.{0,30}\bbatter|\bbatter\w*\b.{0,30}\b(?:swollen|swelling|bulging|puffed|puffy)\b"),
+    ("vehicle", r"\b(?:swollen|swelling|bulging|puffed|puffy)\b.{0,60}\bbatter|\bbatter\w*\b.{0,60}\b(?:swollen|swelling|bulging|puffed|puffy)\b"),
     ("vehicle", r"\bbatter\w*\b.{0,30}\b(?:leak\w*|hiss\w*|venting)\b|\b(?:electrolyte|coolant)\s+leak\w*\s+(?:from|out of)\s+(?:the\s+)?(?:hv\s+|high.voltage\s+)?batter"),
-    ("vehicle", r"\bthermal\s+runaway\b|\bmelt(?:ed|ing)\b"),
+    ("vehicle", r"\bthermal\s+runaway\b|\bmelt(?:ed|ing)\b|\b(?:insulation|wire|wiring|loom|harness|connector|plug)\b.{0,40}"
+                r"\b(?:soften\w*|dripp\w*)\b"),
     ("person", r"\b(?:got|get|was|been|getting)\s+(?:an?\s+)?(?:electric\s+)?shock(?:ed)?\b|\belectrocut\w*\b"),
     # Arabic
     ("vehicle", _ar("دخان", "دخنة", "دخنه", "يدخن", "بدخن", "بتدخن", "تدخن", "دخّان")),
-    ("vehicle", _ar("شياط", "حريق", "نار", "ولعت", "ولّعت", "اشتعلت", "اشتعال", "بتولع", "مولعة", "مولعه")),
-    ("vehicle", "(?:ريحة|ريحه|رائحة|رائحه)\\s+(?:\\S+\\s+)?(?:محروق|محروقة|شياط|حريق|احتراق|بلاستيك)"),
+    ("vehicle", _ar("شياط", "حريق", "نار", "ولعت", "ولّعت", "اشتعلت", "اشتعال", "بتولع", "مولعة", "مولعه", "لهب", "لهبا", "لهبًا",
+                    "ألسنة")),
+    ("vehicle", "(?:ريحة|ريحه|رائحة|رائحه)\\s+(?:\\S+\\s+)?(?:ال)?(?:محروق|محروقة|محترق|محترقة|شياط|حريق|احتراق|بلاستيك)"),
     ("vehicle", _ar("شرار", "شرارة", "شراره", "شرر")),
-    ("vehicle", _BATTERY_AR + ".{0,25}(?:انتفخت|منفوخة|منفوخه|منتفخة|منتفخه|نافخة|نافخه|بتسرب|بتسرّب|تسرب|بتنقط|بتنفس|بتصفر)"
+    ("vehicle", _BATTERY_AR + ".{0,60}(?:انتفخت|تنتفخ|ينتفخ|منفوخة|منفوخه|منتفخة|منتفخه|نافخة|نافخه|بتسرب|بتسرّب|تسرب|بتنقط|بتنفس|بتصفر)"
                 "|(?:انتفاخ|نفخ|تسريب|تسرب)\\s+(?:في\\s+|من\\s+)?" + _BATTERY_AR),
-    ("vehicle", _WIRE_AR + "\\s+(?:\\S+\\s+)?(?:ذاب|ذايب|ساح|سايح|ساحت|ذابت|محروق|محروقة|محروقه|محترق)"),
-    ("person", _ar("كهربني", "كهربه", "كهربته", "كهربتني", "صعقة", "صعقه", "انصعق", "صعقته", "مكهرب")),
+    ("vehicle", "(?:" + _WIRE_AR[3:-1] + "|عازل|فيشة|فيشه|جلدة|موصل)\\s+(?:\\S+\\s+){0,3}(?:قاعد\\s+|قاعدة\\s+)?"
+                "(?:ذاب|ذايب|ساح|سايح|ساحت|ذابت|يذوب|تذوب|يسيح|تسيح|محروق|محروقة|محروقه|محترق)"),
+    ("person", _ar("كهربني", "كهربه", "كهربته", "كهربتني", "صعقة", "صعقه", "انصعق", "صعقته", "مكهرب", "تكهرب", "تكهربت",
+                   "انكهرب", "انكهربت") + "|صدمة\\s+كهربائية|صدمه\\s+كهربائيه"),
     # Urdu
     ("vehicle", "(?<!\\w)(?:دھواں|دھوئیں|دھویں)(?!\\w)"),
-    ("vehicle", "(?<!\\w)آگ(?!\\w)|جلنے\\s+کی\\s+(?:بو|بدبو)|جلی\\s+ہوئی\\s+بو"),
+    ("vehicle", "(?<!\\w)(?:آگ|شعلہ|شعلے)(?!\\w)|جلنے\\s+کی\\s+(?:بو|بدبو)|جلی\\s+ہوئی\\s+بو|جلے\\s+(?:\\S+\\s+)?کی\\s+بو"),
     ("vehicle", "(?<!\\w)(?:چنگاری|چنگاریاں)(?!\\w)"),
-    ("vehicle", "بیٹری.{0,25}(?:پھول|لیک|رس)|(?:پھولی|پھولی ہوئی)\\s+بیٹری"),
-    ("vehicle", "(?:تار|تاریں)\\s+(?:\\S+\\s+)?(?:پگھل|جل)"),
+    ("vehicle", "بیٹری.{0,60}(?:پھول|لیک|رس)|(?:پھولی|پھولی ہوئی)\\s+بیٹری"),
+    ("vehicle", "(?:تار|تاریں)\\s+(?:\\S+\\s+){0,4}(?:پگھل|جل)"),
     ("person", "کرنٹ\\s+لگ|جھٹکا\\s+لگ"),
 ]]
 
@@ -119,7 +129,9 @@ _IGNITION_WORD = re.compile(r"اشتعال")
 _IGNITION_BEFORE = re.compile(f"^{_W}(?:نظام|توقيت|ملف|ملفات|كويل|كويلات|دائرة|مفتاح|سويتش|شمعات|شمعة|ضعف|تقديم|"
                               f"تأخير|زاوية|بوبينة)$")
 _SPARK_AR = re.compile(r"شرار|شرر")
-_SPARK_TEST = re.compile(f"^{_W}(?:فحص|اختبار|قوة|ضعف|جهاز)$")
+_SPARK_TEST = re.compile(f"^{_W}(?:فحص|فاحص|اختبار|قوة|ضعف|جهاز|تستر|تيستر)$")
+# smoke from a smoke-test machine: "اختبار الدخان", "جهاز الدخان", "دخان الجهاز", "مشین کا دھواں", "smoke machine"
+_SMOKE_TOOL = re.compile(f"^{_W}(?:اختبار|فحص|جهاز|مشين|مشین|ٹیسٹ|سموك|اسموک)$|^(?:test|machine(?:'s)?|tester)$", re.I)
 _FIRE_EN = re.compile(r"^fire$", re.I)
 
 
@@ -133,11 +145,15 @@ def _workshop_meaning(text: str, match: re.Match[str]) -> bool:
     near = text[max(0, start - 60): end + 60]
     before, after = _words(text[:start])[-3:], _words(text[end:])[:2]
     if _SMOKE_WORD.search(word):
+        if any(_SMOKE_TOOL.match(w) for w in before[-2:]) or (after and _SMOKE_TOOL.match(after[0])) or \
+                (len(before) >= 2 and before[-1] == "کا" and _SMOKE_TOOL.match(before[-2])):
+            return not _DANGER_PLACE.search(near)
         coloured = _COLOUR.search(text[max(0, start - 25): end + 25])
         return bool(coloured or _EXHAUST.search(near)) and not _DANGER_PLACE.search(near)
     if _LIT_WORD.search(word):
-        for i, w in enumerate(before):  # the light, then the verb, with no car part named in between
-            if _LIGHT.match(w) and not any(_VEHICLE_NOUN.match(x) for x in before[i + 1:]):
+        for i, w in enumerate(before):  # the light, then the verb, with no other car part named in between;
+            # the word right after the light names it ("لمبة المكينة" = the engine light)
+            if _LIGHT.match(w) and not any(_VEHICLE_NOUN.match(x) for x in before[i + 2:]):
                 return True
         return bool(after) and bool(_LIGHT.match(after[0]) or (len(after) > 1 and _LIGHT.match(after[1])
                                                                  and not _VEHICLE_NOUN.match(after[0])))

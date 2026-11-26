@@ -225,6 +225,23 @@ def test_an_emergency_stops_the_flow_before_any_lookup_or_model(kb):
     assert "الهاي فولتج" in reply.message and reply.warnings  # high-voltage text; marked as a draft text
 
 
+def test_danger_the_word_list_misses_is_caught_by_the_intake_and_gets_the_same_fixed_text(kb):
+    """Second safety layer (independent sentences, 2026-11-26): the intake model answers "danger now?" on every message."""
+    text = "clear liquid is seeping out of a crack in the battery case onto the tray right now"
+    script = Script(intakes={text: {"danger_now": "vehicle"}})
+    engine, state = Engine(kb, script.model), session()
+    reply = engine.turn(state, text).reply
+    assert reply.type == "emergency" and "911" in reply.message and reply.warnings and state.emergency
+    assert len(script.calls("intake")) == 1 and not script.calls("general") and not script.calls("web")
+
+
+def test_an_intake_with_no_danger_keeps_the_normal_flow(kb):
+    text = "blue smoke from the exhaust for two seconds at a cold start"
+    script = Script(intakes={text: {"danger_now": "none"}})
+    reply = Engine(kb, script.model).turn(session(), text).reply
+    assert reply.type != "emergency"
+
+
 # -- workshop cases ---------------------------------------------------------------------------------------
 def test_a_case_with_the_same_code_is_a_hint_and_its_message_passes_the_validator(kb):
     script = Script(advise=[

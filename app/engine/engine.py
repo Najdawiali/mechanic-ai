@@ -236,6 +236,8 @@ class Engine:
         except ModelError:
             intake = Intake(intent="other", english=text, codes=codes_in(text), reading=parse_reading(text))
         state.remember("mechanic", text, intake.english)
+        if intake.danger != "none":  # second safety layer: danger the word list did not catch (independent test, 2026-11-26)
+            return self._done(state, self._emergency(state, emergency.Emergency(intake.danger, "intake: danger now"), text), gaps)
         if intake.repair and intake.intent != "fix_confirmed" and intake.repair not in state.repairs:
             state.repairs.append(intake.repair)
         new_codes = self._add_codes(state, intake.codes + (report.codes if report else []))
