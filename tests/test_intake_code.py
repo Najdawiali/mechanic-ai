@@ -80,6 +80,11 @@ def test_workshop_meanings_of_a_trigger_word_are_not_emergencies(text):
     "white smoke from under the hood and a sweet smell", "دخان أبيض من الكبوت", "smoke from the dashboard vents",
     "السيارة ولعت", "اللمبة ولعت وبعدين السيارة ولعت", "طالع نار من المكينة", "the car caught fire",
     "black smoke coming from the battery", "کالا دھواں بیٹری سے نکل رہا ہے",
+    # coloured smoke at the engine, under the car or at a wheel: possibly a fire, so it still stops the flow
+    "دخان أسود من المكينة", "دخان أبيض كثيف تحت السيارة", "black smoke from the engine",
+    "white smoke pouring from the engine compartment", "انجن سے کالا دھواں نکل رہا ہے", "گاڑی کے نیچے سے سفید دھواں",
+    "blue smoke from under the car", "دخان رمادي من العجلة الأمامية", "grey smoke from the front wheel",
+    "ولعت لمبة الحرارة والمكينة ولعت", "الكبوت ولعت", "السيارة مولعة", "الجو نار والسيارة طلع منها نار",
 ])
 def test_the_same_words_still_stop_the_flow_when_they_describe_danger(text):
     assert emergency.check(text) is not None

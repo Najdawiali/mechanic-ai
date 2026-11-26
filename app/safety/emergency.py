@@ -95,9 +95,15 @@ _EXHAUST = re.compile(
     r"\bexhaust\b|tail\s*pipe|muffler|silencer|"
     f"(?<!\\w){_W}(?:شكمان|إشكمان|اشكمان|اكزوز|إكزوز|عادم)(?!\\w)|"
     r"(?<!\w)(?:ایگزاسٹ|اگزاسٹ|سائلنسر|سلنسر)(?!\w)", re.I)
+# Smoke placed at the engine, under the car, at a wheel or brake, or in the cabin stays an emergency, coloured or not
+# (black smoke from the engine compartment can be a fire): "from the engine", "من المكينة", "تحت السيارة", "انجن سے".
 _DANGER_PLACE = re.compile(
-    r"\b(?:hood|bonnet|engine\s+bay|dash\w*|cabin|interior|vents?|wir\w*|harness|batter\w*|fuse\s*box|charg\w*|"
-    r"under\s+the\s+(?:car|seat|dash\w*))\b|"
+    r"\b(?:hood|bonnet|engine\s+(?:bay|compartment|room)|dash\w*|cabin|interior|vents?|wir\w*|harness|batter\w*|"
+    r"fuse\s*box|charg\w*|under\s+the\s+(?:car|vehicle|truck|seat|dash\w*)|"
+    r"from\s+(?:the\s+|under\s+the\s+)?(?:engine|motor|front|wheels?|tyres?|tires?|brakes?|steering))\b|"
+    r"(?:من|تحت|عند|جنب|داخل|فوق)\s+(?:ال)?(?:مكينة|مكينه|ماكينة|ماكينه|محرك|سيارة|سياره|عجلة|عجله|عجل|كفر|فرامل|بريك|"
+    r"دركسون|مقود)(?!\w)|"
+    r"(?<!\w)(?:انجن|بونٹ|گاڑی|ٹائر|پہیے|پہیہ|بریک)\s+(?:کے\s+)?(?:سے|نیچے|اندر)(?!\w)|"
     f"(?<!\\w){_W}(?:كبوت|كبّوت|بونيت|طبلون|تابلوه|مقصورة|فتحات|سلك|اسلاك|أسلاك|ضفيرة|شريط|شرايط|بطارية|بطاريه|"
     f"فيوز|فيوزات|شاحن|مكيف|كمبيوتر)(?!\\w)|"
     r"(?<!\w)(?:بونٹ|ڈیش|تار|تاریں|وائرنگ|بیٹری|فیوز|چارجر|کیبن)(?!\w)", re.I)
